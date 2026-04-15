@@ -1,12 +1,17 @@
 # Dependencies
 node_modules/
 venv_customer/
+.pnp
+.pnp.*
+.yarn/
 .venv/
 env/
 venv/
 
 # Next.js
-
+frontend/.next/
+frontend/out/
+frontend/build/
 
 # Production
 dist/
@@ -18,13 +23,13 @@ build/
 .env.development.local
 .env.test.local
 .env.production.local
-
+frontend/.env*
 
 # Databases
 *.db
 *.sqlite
 *.sqlite3
-# Except we want to keep the mvp.db in the repo for now if it is seed data
+# Except we want to keep the mvp.db in the repo for now as seed data
 # !db/mvp.db
 
 # Misc
@@ -38,7 +43,7 @@ yarn-error.log*
 
 # TypeScript
 *.tsbuildinfo
-
+frontend/next-env.d.ts
 
 # Python cache
 __pycache__/

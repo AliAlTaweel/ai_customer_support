@@ -1,3 +1,5 @@
+'use client';
+
 import { Product } from '@/lib/db';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';

@@ -9,6 +9,9 @@ import { Send, MessageCircle, X, Minus, Sparkles, Bot } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import { useUser } from '@clerk/nextjs';
+import { ChatMessage } from '@/types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -17,10 +20,25 @@ function cn(...inputs: ClassValue[]) {
 export default function ChatWidget() {
   const { user, isLoaded } = useUser();
   const [isOpen, setIsOpen] = useState(false);
+  const [isOnline, setIsOnline] = useState<boolean | null>(null); // null = checking, true = up, false = down
   const [chatMessage, setChatMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Check backend health on mount
+  useEffect(() => {
+    const checkHealth = async () => {
+      try {
+        const res = await fetch(`${API_URL}/health`);
+        if (res.ok) setIsOnline(true);
+        else setIsOnline(false);
+      } catch {
+        setIsOnline(false);
+      }
+    };
+    checkHealth();
+  }, []);
 
   // Initialize with personalized message when user is loaded
   useEffect(() => {
@@ -48,7 +66,7 @@ export default function ChatWidget() {
     setIsLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
@@ -78,12 +96,17 @@ export default function ChatWidget() {
           <CardHeader className="bg-gradient-to-r from-blue-600/10 to-emerald-600/10 pb-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
-                <div className="rounded-lg bg-blue-600 p-1.5 text-white shadow-lg shadow-blue-500/20">
+                <div className={cn(
+                  "rounded-lg p-1.5 text-white shadow-lg",
+                  isOnline ? "bg-blue-600 shadow-blue-500/20" : "bg-zinc-500 shadow-zinc-500/20"
+                )}>
                   <Bot size={18} />
                 </div>
                 <div>
                   <CardTitle className="text-sm font-semibold">AI Support</CardTitle>
-                  <CardDescription className="text-[10px] leading-tight">Always online • Local RAG</CardDescription>
+                  <CardDescription className="text-[10px] leading-tight">
+                    {isOnline === null ? "Connecting..." : isOnline ? "Always online • Local RAG" : "Brain offline • Reconnecting"}
+                  </CardDescription>
                 </div>
               </div>
               <Button
@@ -137,9 +160,10 @@ export default function ChatWidget() {
           <CardFooter className="p-4 bg-muted/30">
             <form onSubmit={handleSendMessage} className="flex w-full items-center gap-2">
               <Input
-                placeholder="Ask something..."
+                placeholder={isOnline === false ? "Assistant is offline..." : "Ask something..."}
                 className="h-9 border-border/50 bg-background/50 focus-visible:ring-blue-500"
                 value={chatMessage}
+                disabled={isOnline === false}
                 onChange={(e) => setChatMessage(e.target.value)}
               />
               <Button 
@@ -171,8 +195,14 @@ export default function ChatWidget() {
           <div className="relative">
             <MessageCircle className="h-6 w-6 text-white" />
             <span className="absolute -top-1 -right-1 flex h-3 w-3">
-              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75"></span>
-              <span className="relative inline-flex rounded-full h-3 w-3 bg-emerald-500"></span>
+              <span className={cn(
+                "animate-ping absolute inline-flex h-full w-full rounded-full opacity-75",
+                isOnline ? "bg-emerald-400" : "bg-red-400"
+              )}></span>
+              <span className={cn(
+                "relative inline-flex rounded-full h-3 w-3",
+                isOnline ? "bg-emerald-500" : "bg-red-500"
+              )}></span>
             </span>
           </div>
         )}

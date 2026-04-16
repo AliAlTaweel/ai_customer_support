@@ -3,8 +3,9 @@
 import { currentUser } from '@clerk/nextjs/server';
 import { getCustomerByEmail, createOrder, Order } from '@/lib/db';
 import { redirect } from 'next/navigation';
+import { CartItem, CheckoutResult } from '@/types';
 
-export async function checkoutAction(formData: FormData, cartItems: any[], total: number) {
+export async function checkoutAction(formData: FormData, cartItems: CartItem[], total: number): Promise<CheckoutResult> {
   const user = await currentUser();
 
   if (!user) {

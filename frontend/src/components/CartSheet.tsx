@@ -11,9 +11,16 @@ import { checkoutAction } from '@/app/actions/checkout';
 import { useRouter } from 'next/navigation';
 import { useUser } from '@clerk/nextjs';
 import { cn } from '@/lib/utils';
+import { CartItem } from '@/types';
 
 export default function CartSheet() {
-  const { cart, removeFromCart, clearCart, cartTotal, cartCount } = useCart();
+  const { cart, removeFromCart, clearCart, cartTotal, cartCount } = useCart() as {
+    cart: CartItem[];
+    removeFromCart: (id: number) => void;
+    clearCart: () => void;
+    cartTotal: number;
+    cartCount: number;
+  };
   const { isSignedIn, isLoaded } = useUser();
   const [address, setAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -92,7 +99,7 @@ export default function CartSheet() {
         ) : (
           <>
             <div className="flex-1 overflow-y-auto mt-6 pl-2 pr-2">
-              {cart.map((item) => (
+              {cart.map((item: CartItem) => (
                 <div key={item.product_id} className="flex gap-4 p-4 border rounded-lg mb-3 bg-muted/20 group hover:border-primary/20 transition-all hover:translate-x-1">
                   <div className="w-16 h-16 bg-muted rounded flex items-center justify-center flex-shrink-0">
                     <ShoppingBasket className="w-8 h-8 opacity-20" />

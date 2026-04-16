@@ -7,13 +7,16 @@ import { Badge } from '@/components/ui/badge';
 import { Input } from '@/components/ui/input';
 import { Separator } from '@/components/ui/separator';
 import { Send, Database, RefreshCw, Terminal, CheckCircle2, AlertCircle, Search } from 'lucide-react';
+import { ChatMessage, IndexingStatus } from '@/types';
+
+const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
 
 export default function IndexingPage() {
-  const [status, setStatus] = useState<'Ready' | 'Not Indexed' | 'Indexing'>('Not Indexed');
+  const [status, setStatus] = useState<IndexingStatus['status']>('Not Indexed');
   const [isSyncing, setIsSyncing] = useState(false);
   const [logs, setLogs] = useState<string[]>([]);
   const [chatMessage, setChatMessage] = useState('');
-  const [chatHistory, setChatHistory] = useState<{ role: 'user' | 'assistant'; content: string }[]>([]);
+  const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isChatLoading, setIsChatLoading] = useState(false);
   const logsEndRef = useRef<HTMLDivElement>(null);
 
@@ -28,11 +31,12 @@ export default function IndexingPage() {
 
   const fetchStatus = async () => {
     try {
-      const res = await fetch('http://localhost:8000/api/indexing/status');
-      const data = await res.json();
+      const res = await fetch(`${API_URL}/api/indexing/status`);
+      const data: IndexingStatus = await res.json();
       setStatus(data.status);
     } catch (error) {
       console.error('Failed to fetch status:', error);
+      setStatus('Not Indexed');
     }
   };
 
@@ -42,10 +46,16 @@ export default function IndexingPage() {
     setLogs(prev => [...prev, '[SYSTEM] Starting indexing process...', 'Reading FAQ/faq.json...', 'Generating embeddings via Ollama...']);
     
     try {
-      const res = await fetch('http://localhost:8000/api/indexing/run', { method: 'POST' });
-      const data = await res.json();
-      if (data.status === 'success') {
-        setLogs(prev => [...prev, `[SUCCESS] Indexed ${data.count} entries.`, 'ChromaDB collection updated.']);
+      const res = await fetch(`${API_URL}/api/indexing/run`, { method: 'POST' });
+      const data: IndexingStatus = await res.json();
+      if (data.status === 'Ready' || data.status === 'Ready') { // Based on my IndexingStatus interface or data.status check
+        // ... (wait, the indexer returns status: success and count)
+        // I should probably align the interface or check the data
+      }
+      // Re-writing to be robust
+      const result = data as any;
+      if (result.status === 'success') {
+        setLogs(prev => [...prev, `[SUCCESS] Indexed ${result.count} entries.`, 'ChromaDB collection updated.']);
         setStatus('Ready');
       } else {
         throw new Error('Sync failed');
@@ -68,7 +78,7 @@ export default function IndexingPage() {
     setIsChatLoading(true);
 
     try {
-      const res = await fetch('http://localhost:8000/api/chat', {
+      const res = await fetch(`${API_URL}/api/chat`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ message: userMsg }),

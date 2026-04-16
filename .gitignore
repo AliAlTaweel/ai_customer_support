@@ -26,9 +26,7 @@ build/
 frontend/.env*
 
 # Databases
-*.db
-*.sqlite
-*.sqlite3
+
 # Except we want to keep the mvp.db in the repo for now as seed data
 # !db/mvp.db
 

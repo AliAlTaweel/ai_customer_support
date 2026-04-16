@@ -1,0 +1,38 @@
+INFO:     Started server process [81200]
+INFO:     Waiting for application startup.
+INFO:     Application startup complete.
+INFO:     Uvicorn running on http://0.0.0.0:8000 (Press CTRL+C to quit)
+INFO:     127.0.0.1:56196 - "GET /health HTTP/1.1" 200 OK
+Loading data from FAQ/faq.json...
+Processing 25 entries...
+Initializing ChromaDB at db/vector_store...
+Indexing completed successfully.
+INFO:     127.0.0.1:56198 - "POST /api/indexing/run HTTP/1.1" 200 OK
+/Users/alial-taweel/projects/ai/customer_support/backend/assistant.py:18: LangChainDeprecationWarning: The class `Chroma` was deprecated in LangChain 0.2.9 and will be removed in 1.0. An updated version of the class exists in the `langchain-chroma package and should be used instead. To use it run `pip install -U `langchain-chroma` and import as `from `langchain_chroma import Chroma``.
+  self.vector_store = Chroma(
+INFO:     127.0.0.1:56211 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56239 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56239 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56241 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56241 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56250 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56250 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56260 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56280 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56280 - "GET /api/indexing/status HTTP/1.1" 200 OK
+Loading data from FAQ/faq.json...
+Processing 25 entries...
+Initializing ChromaDB at db/vector_store...
+Indexing completed successfully.
+INFO:     127.0.0.1:56280 - "POST /api/indexing/run HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56381 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56381 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56383 - "OPTIONS /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56383 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56445 - "GET /health HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56478 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56500 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56500 - "GET /api/indexing/status HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56575 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56599 - "POST /api/chat HTTP/1.1" 200 OK
+INFO:     127.0.0.1:56605 - "POST /api/chat HTTP/1.1" 200 OK

@@ -8,6 +8,7 @@ import { LayoutDashboard } from 'lucide-react';
 
 import { CartProvider } from "@/components/CartProvider";
 import CartSheet from "@/components/CartSheet";
+import ChatWidget from "@/components/ChatWidget";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -45,6 +46,7 @@ export default function RootLayout({
                     <Link href="/" className="transition-colors hover:text-primary text-foreground/60">Home</Link>
                     <Link href="/products" className="transition-colors hover:text-primary text-foreground/60">Products</Link>
                     <Link href="/orders" className="transition-colors hover:text-primary text-foreground/60">Orders</Link>
+                    <Link href="/indexing" className="transition-colors hover:text-primary text-foreground/60">Indexing</Link>
                   </nav>
                 </div>
                 <div className="flex items-center gap-4">
@@ -54,6 +56,7 @@ export default function RootLayout({
               </div>
             </header>
             <main className="flex-1">{children}</main>
+            <ChatWidget />
           </body>
         </html>
       </CartProvider>

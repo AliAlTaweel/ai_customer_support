@@ -9,13 +9,27 @@ import { ShoppingBasket, Trash2, CheckCircle2 } from 'lucide-react';
 import { useState } from 'react';
 import { checkoutAction } from '@/app/actions/checkout';
 import { useRouter } from 'next/navigation';
+import { useUser } from '@clerk/nextjs';
+import { cn } from '@/lib/utils';
 
 export default function CartSheet() {
   const { cart, removeFromCart, clearCart, cartTotal, cartCount } = useCart();
+  const { isSignedIn, isLoaded } = useUser();
   const [address, setAddress] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [success, setSuccess] = useState(false);
   const router = useRouter();
+
+  const isAddressValid = address.trim().length > 3; // Basic validation
+  const canCheckout = isSignedIn && isAddressValid && !isSubmitting;
+
+  const getButtonText = () => {
+    if (isSubmitting) return "Processing...";
+    if (!isLoaded) return "Checking status...";
+    if (!isSignedIn) return "Sign in to Checkout";
+    if (!isAddressValid) return "Enter Delivery Address";
+    return "Complete Checkout";
+  };
 
   const handleCheckout = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -113,8 +127,15 @@ export default function CartSheet() {
                   />
                 </div>
                 <SheetFooter>
-                  <Button type="submit" className="w-full text-lg h-12" disabled={isSubmitting}>
-                    {isSubmitting ? "Processing..." : "Complete Checkout"}
+                  <Button 
+                    type="submit" 
+                    className={cn(
+                      "w-full text-lg h-12 transition-all",
+                      !canCheckout && "opacity-50 grayscale-[0.5]"
+                    )} 
+                    disabled={!canCheckout}
+                  >
+                    {getButtonText()}
                   </Button>
                 </SheetFooter>
               </form>

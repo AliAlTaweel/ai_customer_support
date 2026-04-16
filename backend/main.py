@@ -29,8 +29,8 @@ async def health_check():
 async def run_indexing():
     try:
         indexer = KnowledgeIndexer(
-            source_path="FAQ/faq.json",
-            db_path="db/vector_store"
+            source_path="../FAQ/faq.json",
+            db_path="../db/vector_store"
         )
         result = indexer.run_indexing()
         return result
@@ -39,16 +39,17 @@ async def run_indexing():
 
 @app.get("/api/indexing/status")
 async def get_indexing_status():
-    db_exists = os.path.exists("db/vector_store")
+    db_exists = os.path.exists("../db/vector_store")
     return {
         "status": "Ready" if db_exists else "Not Indexed",
-        "db_path": "db/vector_store"
+        "db_path": "../db/vector_store"
     }
 
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     try:
-        assistant = AgenticAssistant(db_path="db/vector_store")
+        # Note: AgenticAssistant already defaults to ../db/vector_store
+        assistant = AgenticAssistant()
         answer = assistant.ask(request.message, first_name=request.first_name)
         return {"answer": answer}
     except Exception as e:

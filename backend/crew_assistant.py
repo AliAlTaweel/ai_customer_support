@@ -15,39 +15,9 @@ llm = LLM(
 @tool
 def search_company_faq(query: str) -> str:
     """Ideal for answering questions about return policies, shipping, services, and general FAQs."""
-    from langchain_ollama import OllamaEmbeddings, ChatOllama
-    from langchain_community.vectorstores import Chroma
-    from langchain_core.prompts import ChatPromptTemplate
-    from langchain_classic.chains import create_retrieval_chain
-    from langchain_classic.chains.combine_documents import create_stuff_documents_chain
-
-    # Path to vector store
-    db_path = "db/vector_store"
-    
-    embeddings = OllamaEmbeddings(model="nomic-embed-text")
-    llm_instance = ChatOllama(model="llama3.1:8b", temperature=0)
-    
-    vector_store = Chroma(
-        persist_directory=db_path,
-        embedding_function=embeddings,
-        collection_name="faq_collection"
-    )
-    retriever = vector_store.as_retriever(search_kwargs={"k": 3})
-    
-    system_prompt = (
-        "You are a professional Customer Support Specialist. "
-        "Only answer questions related to orders, products, and policies. "
-        "Use the following pieces of retrieved context to answer. {context}"
-    )
-    prompt = ChatPromptTemplate.from_messages([
-        ("system", system_prompt),
-        ("human", "{input}"),
-    ])
-    
-    question_answer_chain = create_stuff_documents_chain(llm_instance, prompt)
-    rag_chain = create_retrieval_chain(retriever, question_answer_chain)
-    response = rag_chain.invoke({"input": query})
-    return response["answer"]
+    from rag_service import RAGService
+    rag = RAGService()
+    return rag.query_faq(query)
 
 class SupportCrew:
     def __init__(self, first_name: str = None):

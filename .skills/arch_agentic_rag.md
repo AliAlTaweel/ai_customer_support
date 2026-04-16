@@ -1,33 +1,35 @@
-# Architecture: Local Agentic RAG System
+# Architecture: Multi-Agent CrewAI System
 
-This document defines the high-level architecture for the local customer support system, ensuring a balance between efficiency (RAG) and intelligence (Agents).
+This document defines the high-level architecture for the local customer support system, utilizing the **CrewAI** multi-agent framework for collaborative problem-solving.
 
-## 1. The Search-Verify-Act Loop
-The system operates on a hierarchical fallback model to minimize latency and token costs while maximizing resolution capacity.
+## 1. The Multi-Agent Collaboration Loop
+The system has transitioned from a single RAG chain to a hierarchical team of specialized agents. This allows for better role-playing, more robust tool usage, and intelligent task delegation.
 
-1.  **Intent Router**: Classifies the query immediately into `INFORMATIONAL` (FAQ) or `TRANSACTIONAL` (Action).
-2.  **RAG Layer**: If informational, performs a vector search against local document stores.
-3.  **Handoff Verifier**: An LLM-based check to verify if the RAG result actually answers the query.
-4.  **Agentic Layer**: If a query is transactional or a RAG lookup fails, the query is handed off to a ReAct agent with tool access.
+1.  **Intent Router**: Initially classifies the query into `FAQ`, `ACTION`, or `OUT_OF_SCOPE`.
+2.  **The Crew**: A team of agents supervised by a sequential process:
+    - **Policy Support Specialist**: First responder. Analyzes the query using the FAQ knowledge base (RAG).
+    - **Order & Catalog Manager**: Data expert. Fetches live order, user, and product data if required.
+3.  **Synthesis**: The final agent consolidates policy and data findings into a single, professional response.
 
 ## 2. Component Interaction
 ```mermaid
 graph TD
     User([User Query]) --> Router{Intent Router}
     
-    Router -- "General FAQ" --> RAG[RAG Retrieval]
-    Router -- "Actions / Tasks" --> Agent[Agentic Problem Solver]
+    Router -- "General FAQ / Action" --> Crew[Support Crew]
+    Router -- "Off-topic" --> Refusal([Polite Refusal])
     
-    RAG --> Verifier{Is Info Sufficient?}
-    Verifier -- Yes --> Output([Return Response])
-    Verifier -- No --> Agent
+    subgraph CrewAI Orchestra
+        Crew --> Agent1[Policy Support Specialist]
+        Agent1 -- "Need Data?" --> Agent2[Order & Catalog Manager]
+        Agent1 --> RAG[RAG Retrieval Tool]
+        Agent2 --> SQL[SQL Database Tools]
+    end
     
-    Agent --> Tools[Database/API Tools]
-    Tools --> Agent
-    Agent --> Output
+    Crew --> Output([Consolidated Response])
 ```
 
 ## 3. Local Constraints
-*   **LLM**: The system MUST run on local models (e.g., Llama 3.1) via local inference engines (Ollama/vLLM).
-*   **Vector Store**: Must be a local persistent store (e.g., ChromaDB/FAISS) to ensure data privacy and zero latency over the open web.
-*   **Database**: Direct read-only access to `db/mvp.db` for the agentic layer.
+*   **Framework**: CrewAI 1.14+ (orchestrated with Llama 3.1:8b).
+*   **LLM Integration**: Native CrewAI `LLM` wrapper pointing to local Ollama (`http://localhost:11434`).
+*   **Persistence**: ChromaDB for FAQs and SQLite for transactional data.

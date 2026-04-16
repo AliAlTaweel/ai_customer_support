@@ -4,7 +4,7 @@ from pydantic import BaseModel
 import uvicorn
 import os
 from indexer import KnowledgeIndexer
-from assistant import IndexingAssistant
+from assistant import AgenticAssistant
 
 app = FastAPI(title="Agentic RAG Backend")
 
@@ -48,7 +48,7 @@ async def get_indexing_status():
 @app.post("/api/chat")
 async def chat(request: ChatRequest):
     try:
-        assistant = IndexingAssistant(db_path="db/vector_store")
+        assistant = AgenticAssistant(db_path="db/vector_store")
         answer = assistant.ask(request.message, first_name=request.first_name)
         return {"answer": answer}
     except Exception as e:

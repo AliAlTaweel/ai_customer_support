@@ -1,24 +1,28 @@
-# Logic Definition: Support Agent
+# Logic Definition: Customer Support Crew
 
-This document defines the agentic behavior and the specific tools available to the system for transactional problem solving.
+This document defines the roles, goals, and logic of the specialized agents that make up the system's "brain".
 
-## 1. The ReAct Reasoning Loop
-The support agent uses a **Thought-Action-Observation** loop (ReAct) to solve queries that require real-time data access.
+## 1. Agent Roles & Personas
 
-1.  **Thought**: Analyze the user's intent and determine if/which database tool is required.
-2.  **Action**: Execute the specific tool against the local database (`mvp.db`).
-3.  **Observation**: Receive the tool output and interpret the result.
-4.  **Final Answer**: Formulate a natural language response based on the actual database state.
+### Policy Support Specialist
+- **Role**: Senior Support Strategist
+- **Goal**: Resolve user questions by searching company policies and FAQ.
+- **Responsibility**: First responder. Analyzes intent and uses the `search_company_faq` tool. Can delegate tasks to the Order Manager if transactional data is needed.
+- **Backstory**: A veteran at the support desk who knows all rules inside and out.
 
-## 2. SQL Tools (Read-Only)
-The agent is empowered with the following tools to solve account and order issues:
+### Order & Catalog Manager
+- **Role**: Customer Data Manager
+- **Goal**: Fetch specific data (orders, profiles, products) from the SQL database.
+- **Responsibility**: Accurate data retrieval. Uses `get_order_status`, `get_customer_info`, and `search_products`.
+- **Backstory**: Secure and precise gatekeeper of the `mvp.db`.
 
-| Tool Name | Input | Responsibility |
-| :--- | :--- | :--- |
-| `get_order_status` | `order_id` (int) | Fetches order status, amount, and date from `orders`. |
-| `get_customer_info` | `email` (str) | Fetches customer name, country, and signup data from `customers`. |
-| `search_products` | `query` (str) | Searches the `products` table for catalog information. |
+## 2. Multi-Agent Delegation Logic
+The system uses a **Sequential Process** with optional **Task Delegation**:
+1.  **Direct Retrieval**: If a query is purely transactional ("Status of order 3"), the Order Manager handles it.
+2.  **Collaborative Handoff**: If a query is mixed ("What is your refund policy for my order 3?"), the Policy Specialist retrieves the rules and then hires the Order Manager to fetch the specific order data.
+3.  **Synthesis**: The final output is a consolidated, professional response that combines data and policy.
 
 ## 3. Fallback Protocols
-*   **Missing Data**: If a tool returns "not found", the agent must explicitly state it cannot find the record and ask the user for clarification (e.g., "Could you double-check your order ID?").
-*   **Ambiguous Requests**: If a query is unclear, the agent must ask for the specific piece of data (Order ID or Email) before attempting to call a tool.
+- **Data Not Found**: If a database tool returns "not found", the agent must report this as a final answer rather than retrying.
+- **Privacy Enforcement**: Agents are instructed to only use the user's first name provided in the context, ensuring no sensitive data leak.
+- **Out of Scope**: Off-topic queries are intercepted by the Intent Router before reaching the Crew.

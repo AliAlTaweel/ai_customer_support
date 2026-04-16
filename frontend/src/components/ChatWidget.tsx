@@ -12,6 +12,7 @@ import { useUser } from '@clerk/nextjs';
 import { ChatMessage } from '@/types';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+const DRAG_THRESHOLD = 5; // Pixels to distinguish drag from click
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
@@ -20,11 +21,25 @@ function cn(...inputs: ClassValue[]) {
 export default function ChatWidget() {
   const { user, isLoaded } = useUser();
   const [isOpen, setIsOpen] = useState(false);
-  const [isOnline, setIsOnline] = useState<boolean | null>(null); // null = checking, true = up, false = down
+  const [isOnline, setIsOnline] = useState<boolean | null>(null);
   const [chatMessage, setChatMessage] = useState('');
   const [chatHistory, setChatHistory] = useState<ChatMessage[]>([]);
   const [isLoading, setIsLoading] = useState(false);
   const scrollRef = useRef<HTMLDivElement>(null);
+
+  // Dragging State
+  const [position, setPosition] = useState({ x: 0, y: 0 }); // Offset from bottom-right (bottom-6, right-6)
+  const [isDragging, setIsDragging] = useState(false);
+  const dragStart = useRef({ x: 0, y: 0 });
+  const hasMoved = useRef(false);
+
+  // Load position from LocalStorage
+  useEffect(() => {
+    const saved = localStorage.getItem('chat_widget_pos');
+    if (saved) {
+      try { setPosition(JSON.parse(saved)); } catch (e) {}
+    }
+  }, []);
 
   // Check backend health on mount
   useEffect(() => {
@@ -49,6 +64,61 @@ export default function ChatWidget() {
       ]);
     }
   }, [isLoaded, user, chatHistory.length]);
+
+  // Global Drag Handlers
+  useEffect(() => {
+    if (!isDragging) return;
+
+    const handleMouseMove = (e: MouseEvent) => {
+      const dx = e.clientX - dragStart.current.x;
+      const dy = e.clientY - dragStart.current.y;
+      
+      if (Math.abs(dx) > DRAG_THRESHOLD || Math.abs(dy) > DRAG_THRESHOLD) {
+        hasMoved.current = true;
+      }
+
+      setPosition(prev => {
+        const next = { x: prev.x - dx, y: prev.y - dy };
+        
+        // Boundaries (stay on screen)
+        // Note: x and y are offsets from bottom-right
+        const margin = 24;
+        const maxX = window.innerWidth - 80;
+        const maxY = window.innerHeight - 80;
+        
+        return {
+          x: Math.max(-margin, Math.min(next.x, maxX)),
+          y: Math.max(-margin, Math.min(next.y, maxY))
+        };
+      });
+      
+      dragStart.current = { x: e.clientX, y: e.clientY };
+    };
+
+    const handleMouseUp = () => {
+      setIsDragging(false);
+      localStorage.setItem('chat_widget_pos', JSON.stringify(position));
+    };
+
+    window.addEventListener('mousemove', handleMouseMove);
+    window.addEventListener('mouseup', handleMouseUp);
+    return () => {
+      window.removeEventListener('mousemove', handleMouseMove);
+      window.removeEventListener('mouseup', handleMouseUp);
+    };
+  }, [isDragging, position]);
+
+  const onMouseDown = (e: React.MouseEvent) => {
+    setIsDragging(true);
+    hasMoved.current = false;
+    dragStart.current = { x: e.clientX, y: e.clientY };
+  };
+
+  const toggleOpen = () => {
+    if (!hasMoved.current) {
+      setIsOpen(!isOpen);
+    }
+  };
 
   useEffect(() => {
     if (scrollRef.current) {
@@ -84,7 +154,13 @@ export default function ChatWidget() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-40 flex flex-col items-end">
+    <div 
+      className="fixed z-40 flex flex-col items-end touch-none"
+      style={{
+        bottom: `calc(1.5rem + ${position.y}px)`,
+        right: `calc(1.5rem + ${position.x}px)`,
+      }}
+    >
       {/* Chat Window */}
       <div
         className={cn(
@@ -181,9 +257,11 @@ export default function ChatWidget() {
 
       {/* Toggle Button */}
       <Button
-        onClick={() => setIsOpen(!isOpen)}
+        onMouseDown={onMouseDown}
+        onClick={toggleOpen}
         className={cn(
           "h-14 w-14 rounded-full shadow-2xl transition-all duration-300 active:scale-95 group",
+          isDragging ? "cursor-grabbing" : "cursor-grab",
           isOpen 
             ? "rotate-90 bg-zinc-900 hover:bg-zinc-800" 
             : "bg-blue-600 hover:bg-blue-700"

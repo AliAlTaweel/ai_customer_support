@@ -1,48 +1,50 @@
 # Luxe E-Commerce Frontend
 
-This directory contains the user-facing web application for the Luxe E-Commerce platform and AI Assistant interface.
+A premium, high-performance storefront built with Next.js. This application serves as both the e-commerce interface and the chat portal for the AI Support Assistant.
 
-## Tech Stack
-- **Framework**: Next.js (App Router)
-- **Language**: TypeScript
-- **Styling**: Tailwind CSS (or similar utility-based styling for modern UI)
-- **Database ORM**: Prisma Client
-- **Database**: SQLite (`prisma/dev.db`)
+## ✨ Features
+- **Luxe UI**: A sleek, modern aesthetic tailored for high-end retail.
+- **Full Checkout Flow**: Product browsing, cart management, and order placement.
+- **AI Chat Widget**: A persistent sidebar chat that communicates with the agentic backend.
+- **Shared Data**: Uses a local SQLite database that the AI backend also accesses to perform real-time actions.
 
-## Features
-- **Product Catalog & Cart**: Browse products, manage cart items, and proceed through a complete checkout flow.
-- **Order Management**: Users can view their order IDs and details.
-- **AI Support Chat**: An integrated chat interface that connects to the Python backend to provide intelligent, agentic customer support. The frontend maintains the chat history and state, sending it to the backend for processing.
+---
 
-## Setup & Running
+## 🛠 Tech Stack
+- **Next.js 15+**: (App Router)
+- **TypeScript**: Type-safe development.
+- **Tailwind CSS**: Modern, responsive styling.
+- **Prisma**: Type-safe database access and migrations.
+- **Lucide React**: Premium iconography.
 
-### Prerequisites
-- Node.js (v18+)
-- npm
+---
+
+## 🚦 Getting Started
 
 ### Installation
-1. Navigate to the frontend directory:
-   ```bash
-   cd frontend
-   ```
-2. Install dependencies:
-   ```bash
-   npm install
-   ```
+1.  **Dependencies**:
+    ```bash
+    cd frontend
+    npm install
+    ```
 
-### Database Setup
-The project uses a local SQLite database located at `prisma/dev.db`.
-To ensure your Prisma client is up to date with the schema:
-```bash
-npx prisma generate
-```
+2.  **Database**:
+    Initialize the SQLite database and generate the Prisma client:
+    ```bash
+    npx prisma generate
+    npx prisma db push
+    ```
 
-### Running the Development Server
-Start the Next.js development server:
+### Running the App
 ```bash
 npm run dev
 ```
-The application will be available at [http://localhost:3000](http://localhost:3000).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-## Connection to Backend
-The frontend chat interface makes POST requests to the AI Backend, which typically runs on `http://localhost:3001/chat`. Ensure the backend server is running simultaneously for the AI Assistant to function.
+---
+
+## 🏗 Interaction with AI Backend
+The frontend chat component sends the conversation history to `http://localhost:3001/api/v1/chat`. Ensure the backend server is running for the AI features to work.
+
+### Database Sharing
+The database file is located at `prisma/dev.db`. The AI backend is configured to read/write to this same file, allowing the agents to see your products and manage your orders instantly.

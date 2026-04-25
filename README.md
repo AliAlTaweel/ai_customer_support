@@ -1,31 +1,76 @@
 # Luxe E-Commerce & AI Customer Support Assistant
 
-This project is a complete, modern e-commerce platform integrated with an advanced, multi-agent AI customer support system. It aims to provide a seamless shopping experience backed by intelligent, responsive, and action-oriented AI support.
+A premium, modern e-commerce platform integrated with an advanced, multi-agent AI customer support system. This project demonstrates a production-grade architecture combining a **Next.js** frontend with a **FastAPI + CrewAI** backend.
 
-## Project Architecture
+## 🌟 Project Overview
 
-The project is split into two main directories, separating the user-facing web application from the heavy AI processing backend:
+This application provides a seamless luxury shopping experience where users can browse products, manage orders, and get intelligent support from an AI agent team that actually *acts* on the database (placing orders, canceling them, searching products) and provides factual answers from a company knowledge base.
 
-### 1. Frontend (`/frontend`)
-The frontend is a modern web application built with **Next.js**, **React**, and **TypeScript**. 
-- **User Interface**: Features a premium "Luxe" aesthetic for browsing products, managing a cart, and completing checkout.
-- **Database**: Uses **Prisma** ORM with a SQLite database (`dev.db`) to manage Products, Orders, and Order Items.
-- **AI Integration**: Hosts the chat interface where users interact with the Support Assistant, communicating with the backend via REST API.
+### 🏗 Architecture
 
-### 2. Backend (`/backend`)
-The backend is a high-performance Python server powered by **FastAPI** and **CrewAI**.
-- **Multi-Agent System**: Utilizes a hierarchical CrewAI architecture with specialized agents (Manager, Sales, Orders, Policy) to handle complex customer queries without hallucination.
-- **Local LLMs**: Powered by local AI models via **Ollama**, ensuring privacy and zero API costs. It uses `llama3.1:8b` for management tasks and `gemma4:e4b` for specialized worker tasks.
-- **Tool Integration**: Agents have direct access to read and write to the frontend's SQLite database (via SQLAlchemy) to search products, place orders, check statuses, and cancel orders.
-- **Knowledge Base (RAG)**: Uses FAISS and HuggingFace embeddings to search the `/FAQ/faq.json` file for accurate company policy answers.
+The project is split into two specialized components:
 
-## Getting Started
+```mermaid
+graph TD
+    User((User)) --> Frontend[Next.js Frontend]
+    Frontend --> DB[(SQLite DB)]
+    Frontend -- "API Request" --> Backend[FastAPI Backend]
+    
+    subgraph "AI Agent Team (CrewAI)"
+        Backend --> Router[Intent Router]
+        Router --> Specialist{Specialists}
+        Specialist --> RAG[Knowledge Specialist]
+        Specialist --> Ops[Order Ops Specialist]
+        RAG --> FAQ[(FAQ JSON)]
+        Ops --> DB
+        Specialist --> CX[CX Specialist]
+    end
+    
+    CX -- "Final Response" --> Frontend
+```
 
-To run this project locally, you will need to start both the frontend and backend servers.
+- **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma.
+- **Backend (`/backend`)**: An agentic AI server powered by CrewAI and FastAPI, using local LLMs (via Ollama) for privacy and speed.
 
-1. **Start the Database & Frontend**: 
-   Navigate to the `frontend` directory, ensure dependencies are installed, and run the Next.js dev server.
-2. **Start the AI Backend**: 
-   Navigate to the `backend` directory, activate the Python virtual environment (`venv_v3`), ensure Ollama is running with the required models, and run `python main.py`.
+---
 
-*Please see the respective `README.md` files in the `/frontend` and `/backend` directories for specific setup instructions.*
+## 🚀 Quick Start
+
+### 1. Prerequisites
+- **Node.js** (v18+) & **npm**
+- **Python** (3.12+)
+- **Ollama** (Running locally with `llama3.1:8b` and `gemma4:e4b`)
+
+### 2. Database & Frontend Setup
+```bash
+cd frontend
+npm install
+npx prisma generate
+npm run dev
+```
+The frontend will be available at [http://localhost:3000](http://localhost:3000).
+
+### 3. AI Backend Setup
+```bash
+cd backend
+source venv_v3/bin/activate  # On Windows: venv_v3\Scripts\activate
+pip install -r requirements.txt
+python run.py
+```
+The backend will run on [http://localhost:3001](http://localhost:3001).
+
+---
+
+## 🛠 Tech Stack
+
+| Component | Technology |
+| :--- | :--- |
+| **Frontend** | Next.js, React, TypeScript, Tailwind CSS |
+| **Backend** | FastAPI, CrewAI, LangChain |
+| **LLMs** | Ollama (Llama 3.1 & Gemma 2) |
+| **Database** | SQLite, Prisma (Frontend), SQLAlchemy (Backend) |
+| **Search** | FAISS, HuggingFace Embeddings (RAG) |
+
+---
+
+*For detailed technical documentation, please refer to the README files in the respective `/frontend` and `/backend` directories.*

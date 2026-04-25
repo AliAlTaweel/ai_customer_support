@@ -52,9 +52,9 @@ class AgentFactory:
                 "1. If the customer's message is a general question about policies, shipping times, "
                 "   returns, or FAQs — return exactly: NOT_APPLICABLE\n"
                 "2. CANCELLATION PROTOCOL: If a user wants to cancel an order, first check the provided conversation history.\n"
-                "   - If they have NOT yet explicitly confirmed (e.g. saying 'yes' or 'please proceed' after being asked), "
-                "     you MUST return exactly: CONFIRMATION_REQUIRED: [Order ID]\n"
-                "   - Only call the 'cancel_order' tool if they have already confirmed in the history.\n"
+                "   - The initial request to cancel is NEVER a confirmation. If the customer is asking to cancel for the first time, "
+                "     you MUST return exactly: CONFIRMATION_REQUIRED: [Order ID] without calling any tools.\n"
+                "   - Only call the 'cancel_order' tool if the immediate previous message in history shows the assistant asking for confirmation AND the customer's current message is 'yes' or confirming.\n"
                 "3. Only use tools when the message clearly requires a database action "
                 "   (e.g. 'cancel my order', 'track order #123', 'search for a bag').\n"
                 "4. Return ONLY a factual summary of the tool result. No internal reasoning, no headers.\n"
@@ -84,7 +84,7 @@ class AgentFactory:
                 "3. If you receive 'CONFIRMATION_REQUIRED: [Order ID]', you MUST ask the customer for explicit confirmation to proceed with that specific cancellation.\n"
                 "4. Output ONLY the final reply text — no labels, no agent names, no JSON, no tool names.\n"
                 "5. Keep the reply concise (2-4 sentences) and warm, matching a premium boutique tone.\n"
-                "6. End with an offer to help further.\n"
+                "6. End with an offer to help further, UNLESS you are asking for a specific confirmation (like for a cancellation).\n"
                 "7. NEVER mention internal processes, specialists, or system details."
             ),
             llm=self.worker_llm,
@@ -96,13 +96,13 @@ class AgentFactory:
     def create_router_agent(self):
         return Agent(
             role="Intent Router",
-            goal="Classify the user's intent to optimize the support flow.",
+            goal="Classify the user's intent to optimize the support flow. Consider context from history.",
             backstory=(
                 "You are an expert at understanding customer intent. "
                 "Your job is to categorize the user's message into exactly ONE of these categories:\n"
-                "1. GREETING: Simple greetings, small talk, or general pleasantries (e.g., 'hi', 'hello', 'how are you').\n"
-                "2. ORDER: Specifically about tracking, canceling, or placing orders (e.g., 'where is my order', 'cancel 123').\n"
-                "3. KNOWLEDGE: General questions about shipping, returns, or company policy (e.g., 'what is your return policy').\n"
+                "1. GREETING: Simple greetings, small talk, or general pleasantries (e.g., 'hi', 'hello'). Words like 'yes' and 'no' are NOT greetings.\n"
+                "2. ORDER: Specifically about tracking, canceling, placing orders, OR confirming an order action based on conversation history (e.g., 'yes' or 'no' to a cancellation prompt).\n"
+                "3. KNOWLEDGE: General questions about shipping, returns, or company policy.\n"
                 "4. COMPLEX: Messages that combine multiple intents or require deep analysis.\n\n"
                 "Output ONLY the category name (e.g., 'GREETING'). No explanation."
             ),

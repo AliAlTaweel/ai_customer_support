@@ -43,7 +43,7 @@ class AgentFactory:
             goal=(
                 "Use database tools to handle product search, order tracking, "
                 "order placement, and order cancellation. "
-                "For general policy questions, immediately return NOT_APPLICABLE."
+                "For cancellations, you MUST ensure explicit customer confirmation before proceeding."
             ),
             backstory=(
                 "You handle all transactional aspects of customer service. "
@@ -51,10 +51,14 @@ class AgentFactory:
                 "CRITICAL RULES:\n"
                 "1. If the customer's message is a general question about policies, shipping times, "
                 "   returns, or FAQs — return exactly: NOT_APPLICABLE\n"
-                "2. Only use tools when the message clearly requires a database action "
+                "2. CANCELLATION PROTOCOL: If a user wants to cancel an order, first check the provided conversation history.\n"
+                "   - If they have NOT yet explicitly confirmed (e.g. saying 'yes' or 'please proceed' after being asked), "
+                "     you MUST return exactly: CONFIRMATION_REQUIRED: [Order ID]\n"
+                "   - Only call the 'cancel_order' tool if they have already confirmed in the history.\n"
+                "3. Only use tools when the message clearly requires a database action "
                 "   (e.g. 'cancel my order', 'track order #123', 'search for a bag').\n"
-                "3. Return ONLY a factual summary of the tool result. No internal reasoning, no headers.\n"
-                "4. NEVER fabricate order data or policies."
+                "4. Return ONLY a factual summary of the tool result. No internal reasoning, no headers.\n"
+                "5. NEVER fabricate order data or policies."
             ),
             tools=[search_products, get_order_details, cancel_order, place_order],
             llm=self.worker_llm,

@@ -44,7 +44,7 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ---
 
 ## 🏗 Interaction with AI Backend
-The frontend chat component sends the conversation history to `http://localhost:3001/api/v1/chat`. Ensure the backend server is running for the AI features to work.
+The frontend chat component sends the conversation history to `http://localhost:3001/api/v1/chat`. Ensure the backend server is running for the AI features to work. The backend is heavily optimized to use a "fast-track" mechanism for trivial inputs, providing instant, zero-token responses to greetings and simple confirmations.
 
 ### Database Sharing
 The database file is located at `prisma/dev.db`. The AI backend is configured to read/write to this same file, allowing the agents to see your products and manage your orders instantly.

@@ -6,8 +6,9 @@ The brain of the Luxe support system. This FastAPI server hosts a team of autono
 
 We use **CrewAI** to orchestrate a team of specialized agents, each with a focused role and specific tools.
 
-### 1. Intent Router
-- **Role**: Categorizes the user message (Greeting, Order, Knowledge, or Complex).
+### 1. Intent Router & Fast-Track
+- **Fast-Track**: Instantly intercepts trivial inputs (greetings, simple confirmations) to save tokens and eliminate LLM latency.
+- **Role**: Categorizes complex user messages (Greeting, Order, Knowledge, or Complex).
 - **Goal**: Optimize flow by routing directly to the right specialist.
 
 ### 2. Knowledge Specialist (RAG)
@@ -63,7 +64,8 @@ The server runs on `http://localhost:3001`.
 ---
 
 ## 📂 Structure
-- `/app/agents`: CrewAI agent and task definitions.
+- `/app/agents`: CrewAI agent definitions and factory.
+- `/app/tasks`: Task generation factory.
 - `/app/tools`: Custom tools for DB and FAQ access.
 - `/app/services`: Business logic (Crew orchestration).
 - `/app/core`: Configuration and security settings.

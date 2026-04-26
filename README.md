@@ -17,7 +17,9 @@ graph TD
     Frontend -- "API Request" --> Backend[FastAPI Backend]
     
     subgraph "AI Agent Team (CrewAI)"
-        Backend --> Router[Intent Router]
+        Backend --> FastTrack[Fast-Track Interceptor]
+        FastTrack -- "Trivial Request" --> Frontend
+        FastTrack -- "Complex Request" --> Router[Intent Router]
         Router --> Specialist{Specialists}
         Specialist --> RAG[Knowledge Specialist]
         Specialist --> Ops[Order Ops Specialist]
@@ -30,7 +32,7 @@ graph TD
 ```
 
 - **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma.
-- **Backend (`/backend`)**: An agentic AI server powered by CrewAI and FastAPI, using local LLMs (via Ollama) for privacy and speed.
+- **Backend (`/backend`)**: An agentic AI server powered by CrewAI and FastAPI, using local LLMs (via Ollama) for privacy and speed. It features a fast-track interceptor to optimize token usage and latency for simple inputs.
 
 ---
 

@@ -25,11 +25,13 @@ async def chat(request: ChatRequest):
             crew_service.kickoff_chat, 
             request.message, 
             formatted_history, 
-            request.user_name
+            request.user_name,
+            request.state
         )
         
         final_message = response_data["result"]
-        usage = response_data["usage"]
+        usage = response_data.get("usage", {})
+        state_update = response_data.get("state_update", {})
         
         # PERSIST TO DATABASE
         # These are also blocking DB calls, should ideally be async or offloaded
@@ -48,6 +50,11 @@ async def chat(request: ChatRequest):
             "entities": request.state.get("entities", {}) if request.state else {},
             "history": [m.model_dump() for m in updated_history]
         }
+        
+        # Merge state updates if any
+        if request.state:
+            new_state.update({k: v for k, v in request.state.items() if k not in new_state})
+        new_state.update(state_update)
         
         return ChatResponse(message=final_message, state=new_state, usage=usage)
     

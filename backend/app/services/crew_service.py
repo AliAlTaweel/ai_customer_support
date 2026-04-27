@@ -9,8 +9,20 @@ class CrewService:
     def __init__(self):
         self.agent_factory = AgentFactory()
 
-    def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None) -> Dict[str, Any]:
+    def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None, user_context: Any = None, user_id: str = None) -> Dict[str, Any]:
         user_info = f"Customer Name: {user_name}\n" if user_name else ""
+        if user_id:
+            user_info += f"Customer ID: {user_id}\n"
+        
+        if user_context and getattr(user_context, 'is_authenticated', False):
+            user_info += f"Customer Email: {user_context.email}\n"
+            user_info += "AUTHENTICATION STATUS: VERIFIED. You do NOT need to ask for their email.\n"
+        else:
+            user_info += "AUTHENTICATION STATUS: GUEST. You MUST ask for their email/details if they want to place an order.\n"
+        
+        if user_id:
+            user_info += f"CRITICAL: When placing an order, ALWAYS pass the 'user_id' ({user_id}) to the place_order tool.\n"
+        
         state = state or {}
         
         # ── Fast Track: Regex check for extremely simple greetings ──────────

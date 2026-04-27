@@ -10,6 +10,7 @@ class ChatRequest(BaseModel):
     history: Optional[List[ChatMessage]] = []
     state: Optional[Dict[str, Any]] = None
     user_name: Optional[str] = None
+    user_id: Optional[str] = None
 
 class GreetRequest(BaseModel):
     first_name: str

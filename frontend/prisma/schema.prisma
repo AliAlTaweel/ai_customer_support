@@ -50,9 +50,12 @@ model OrderItem {
 }
 
 model ChatMessage {
-  id        String   @id @default(uuid())
-  role      String
-  content   String
-  userName  String?
-  createdAt DateTime @default(now())
+  id               String   @id @default(uuid())
+  role             String
+  content          String
+  userName         String?
+  promptTokens     Int?
+  completionTokens Int?
+  totalTokens      Int?
+  createdAt        DateTime @default(now())
 }

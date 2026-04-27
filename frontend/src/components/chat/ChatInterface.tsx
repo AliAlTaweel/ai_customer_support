@@ -5,7 +5,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Maximize2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationState } from "@/lib/ai/types";
-import { useUser } from "@clerk/nextjs";
+import { useUser, useAuth } from "@clerk/nextjs";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,6 +19,8 @@ interface Message {
 
 export default function ChatInterface() {
   const { user } = useUser();
+  const { getToken } = useAuth();
+  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState("");
@@ -39,7 +41,13 @@ export default function ChatInterface() {
     const fetchHistory = async () => {
       if (user?.firstName) {
         try {
-          const response = await fetch(`http://localhost:3001/api/v1/history/${user.firstName}`);
+          const token = await getToken();
+          const response = await fetch(`${API_URL}/history`, {
+            headers: {
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            }
+          });
           if (response.ok) {
             const data = await response.json();
             if (data.history && data.history.length > 0) {
@@ -61,10 +69,14 @@ export default function ChatInterface() {
       if (isOpen && !hasGreeted && messages.length === 0) {
         setHasGreeted(true);
         setIsLoading(true);
+        const token = await getToken();
         try {
-          const response = await fetch("http://localhost:3001/api/v1/chat/greet", { // Updated path to match backend
+          const response = await fetch(`${API_URL}/chat/greet`, { 
             method: "POST",
-            headers: { "Content-Type": "application/json" },
+            headers: { 
+              "Content-Type": "application/json",
+              "Authorization": `Bearer ${token}`
+            },
             body: JSON.stringify({
               first_name: user?.firstName || "there",
             }),
@@ -103,15 +115,20 @@ export default function ChatInterface() {
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
     setIsLoading(true);
 
+    const token = await getToken();
     try {
-      const response = await fetch("http://localhost:3001/api/v1/chat/chat", { // Updated path to match backend
+      const response = await fetch(`${API_URL}/chat/chat`, { 
         method: "POST",
-        headers: { "Content-Type": "application/json" },
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
         body: JSON.stringify({
           message: userMsg,
           history: messages,
           state: state,
           user_name: user?.firstName || "Guest",
+          user_id: user?.id,
         }),
       });
 

@@ -38,13 +38,21 @@ class TaskFactory:
                 f"{user_info}"
                 f"Conversation history:\n{history_str}\n"
                 f"Customer message: '{user_message}'\n\n"
-                "1. If the user wants to CANCEL an order: Check the history. "
-                "   - The initial request to cancel is NEVER a confirmation. If the assistant has not yet asked for confirmation, return exactly: 'CONFIRMATION_REQUIRED: [Order ID]'.\n"
-                "   - If the assistant ALREADY asked for confirmation in the history, AND the user just confirmed (e.g., 'yes'), use the cancel_order tool.\n"
-                "2. For other actions (search, track): use the appropriate tool.\n"
-                "3. If no action needed: return 'NOT_APPLICABLE'."
+                "1. If the user wants to CANCEL an order: Check history. "
+                "   - If not yet asked for confirmation, return exactly: 'CONFIRMATION_REQUIRED: [Order ID]'.\n"
+                "   - If already asked and user says 'yes', call cancel_order.\n"
+                "2. If the user wants to PLACE an order: \n"
+                "   - You MUST have: customer_name, customer_email, shipping_address, and items.\n"
+                "   - Use the 'user_info' above for name/email if available. Don't ask again if verified.\n"
+                "   - If ANY detail is missing, ask the user for it politely.\n"
+                "   - Once you have ALL details: \n"
+                "     a) Present a clear summary of the order.\n"
+                "     b) If the history does NOT show the user explicitly confirming THIS summary, ask: 'Would you like me to place this order for you?'. Do NOT call the tool yet.\n"
+                "     c) If the user just confirmed (e.g., 'yes', 'do it'), call 'place_order' with all details.\n"
+                "3. For other actions (search, track): use the appropriate tool.\n"
+                "4. If no action needed: return 'NOT_APPLICABLE'."
             ),
-            expected_output="Database result, 'CONFIRMATION_REQUIRED', or 'NOT_APPLICABLE'.",
+            expected_output="Database result, confirmation request/summary, or 'NOT_APPLICABLE'.",
             agent=agent
         )
 

@@ -50,16 +50,23 @@ def search_products(query: str):
     """
     return search_products_fn(query)
 
-def get_order_details_fn(order_id: str = None, email: str = None):
+def get_order_details_fn(order_id: str = None, email: str = None, auth_email: str = None):
     """Retrieve order details using order ID or customer email."""
     try:
         with engine.connect() as connection:
             if order_id:
-                query = text("SELECT * FROM 'Order' WHERE id = :order_id")
-                params = {"order_id": order_id}
+                # Security: Even with an ID, we filter by the authenticated email if provided
+                if auth_email:
+                    query = text("SELECT * FROM 'Order' WHERE id = :order_id AND customerEmail = :auth_email")
+                    params = {"order_id": order_id, "auth_email": auth_email}
+                else:
+                    query = text("SELECT * FROM 'Order' WHERE id = :order_id")
+                    params = {"order_id": order_id}
             elif email:
+                # If searching by email, we use the provided email but could still check against auth_email
+                target_email = auth_email if auth_email else email
                 query = text("SELECT * FROM 'Order' WHERE customerEmail = :email ORDER BY createdAt DESC LIMIT 1")
-                params = {"email": email}
+                params = {"email": target_email}
             else:
                 return "Please provide either an order ID or an email."
 
@@ -67,7 +74,7 @@ def get_order_details_fn(order_id: str = None, email: str = None):
             order = result.fetchone()
             
             if not order:
-                return "Order not found."
+                return "Order not found or you do not have permission to view it."
             
             order_dict = dict(order._mapping)
             
@@ -85,31 +92,40 @@ def get_order_details_fn(order_id: str = None, email: str = None):
         return f"Error retrieving order: {str(e)}"
 
 @tool("get_order_details")
-def get_order_details(order_id: str = None, email: str = None):
-    """Retrieve order details using order ID or customer email."""
-    return get_order_details_fn(order_id, email)
+def get_order_details(order_id: str = None, email: str = None, auth_email: str = None):
+    """
+    Retrieve order details using order ID or customer email.
+    If 'auth_email' is provided, results are strictly filtered to that user.
+    """
+    return get_order_details_fn(order_id, email, auth_email)
 
-def cancel_order_fn(order_id: str):
+def cancel_order_fn(order_id: str, auth_email: str = None):
     """Cancel an order given its ID. Only PENDING or PROCESSING orders can be cancelled."""
     try:
         with engine.connect() as connection:
-            # Check status first
-            check = connection.execute(
-                text("SELECT status FROM 'Order' WHERE id = :order_id"),
-                {"order_id": order_id}
-            ).fetchone()
+            # Check status and ownership first
+            if auth_email:
+                check_query = text("SELECT status, customerEmail FROM 'Order' WHERE id = :order_id AND customerEmail = :auth_email")
+                params = {"order_id": order_id, "auth_email": auth_email}
+            else:
+                check_query = text("SELECT status, customerEmail FROM 'Order' WHERE id = :order_id")
+                params = {"order_id": order_id}
+                
+            check = connection.execute(check_query, params).fetchone()
             
             if not check:
-                return "Order not found."
+                return "Order not found or you do not have permission to cancel it."
             
-            if check._mapping['status'] not in ['PENDING', 'PROCESSING']:
-                return f"Cannot cancel order with status: {check._mapping['status']}. Only PENDING or PROCESSING orders can be cancelled."
+            check_data = check._mapping
+            if check_data['status'] not in ['PENDING', 'PROCESSING']:
+                return f"Cannot cancel order with status: {check_data['status']}. Only PENDING or PROCESSING orders can be cancelled."
             
             # Update status
-            connection.execute(
-                text("UPDATE 'Order' SET status = 'CANCELLED' WHERE id = :order_id"),
-                {"order_id": order_id}
-            )
+            update_query = text("UPDATE 'Order' SET status = 'CANCELLED' WHERE id = :order_id")
+            if auth_email:
+                update_query = text("UPDATE 'Order' SET status = 'CANCELLED' WHERE id = :order_id AND customerEmail = :auth_email")
+            
+            connection.execute(update_query, params)
             connection.commit()
             return f"Order {order_id} has been successfully cancelled."
     except Exception as e:
@@ -117,21 +133,26 @@ def cancel_order_fn(order_id: str):
         return f"Error cancelling order: {str(e)}"
 
 @tool("cancel_order")
-def cancel_order(order_id: str):
+def cancel_order(order_id: str, auth_email: str = None):
     """
     Cancel an existing order using its Order ID. 
+    If 'auth_email' is provided, it must match the order's customer email.
     Use this tool ONLY after the customer has explicitly confirmed they want to proceed with the cancellation (e.g., by saying "yes").
     Only orders with PENDING or PROCESSING status can be cancelled.
     """
-    return cancel_order_fn(order_id)
+    return cancel_order_fn(order_id, auth_email)
 
-def place_order_fn(customer_email: str, customer_name: str, items: list):
+def place_order_fn(customer_email: str, customer_name: str, items: list, shipping_address: str, user_id: str = None):
     """
     Place a new order. 
     'items' should be a list of dictionaries, each with 'product_name' and 'quantity'.
+    'shipping_address' is mandatory for delivery.
     """
     if not items:
         return "Error: No items provided for the order."
+    
+    if not shipping_address or shipping_address == "Pending Selection":
+        return "Error: A valid shipping address is required to place an order."
 
     try:
         with engine.connect() as connection:
@@ -167,10 +188,10 @@ def place_order_fn(customer_email: str, customer_name: str, items: list):
             
             connection.execute(
                 text("""
-                    INSERT INTO 'Order' (id, total, status, createdAt, updatedAt, customerEmail, customerName, shippingAddress)
-                    VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, 'Pending Selection')
+                    INSERT INTO 'Order' (id, total, status, createdAt, updatedAt, customerEmail, customerName, shippingAddress, userId)
+                    VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id)
                 """),
-                {"id": order_id, "total": total_price, "now": now, "email": customer_email, "name": customer_name}
+                {"id": order_id, "total": total_price, "now": now, "email": customer_email, "name": customer_name, "address": shipping_address, "user_id": user_id}
             )
 
             for item_data in order_items_to_create:
@@ -184,16 +205,17 @@ def place_order_fn(customer_email: str, customer_name: str, items: list):
                 )
 
             connection.commit()
-            return f"Successfully placed order! Order ID: {order_id}. Total: ${total_price:.2f}"
+            return f"Successfully placed order! Order ID: {order_id}. Total: ${total_price:.2f}. Shipping to: {shipping_address}"
     except Exception as e:
         logger.error(f"Error placing order: {e}")
         return f"Error placing order: {str(e)}"
 
 @tool("place_order")
-def place_order(customer_email: str, customer_name: str, items: Any):
+def place_order(customer_email: str, customer_name: str, items: Any, shipping_address: str, user_id: str = None):
     """
     Creates a new order in the system. 
     'items' should be a list of objects, e.g. [{"product_name": "Product A", "quantity": 1}]
+    'shipping_address' is the physical address for delivery.
     """
     import json
     if isinstance(items, str):
@@ -209,19 +231,25 @@ def place_order(customer_email: str, customer_name: str, items: Any):
             except Exception as e:
                 return f"Error: Could not parse items list. Please provide a valid list. Error: {str(e)}"
     
-    return place_order_fn(customer_email, customer_name, items)
+    return place_order_fn(customer_email, customer_name, items, shipping_address, user_id)
 
-def save_chat_message_fn(role: str, content: str, user_name: str = None):
-    """Save a chat message to the database."""
+def save_chat_message_fn(role: str, content: str, user_name: str = None, prompt_tokens: int = None, completion_tokens: int = None, total_tokens: int = None):
+    """Save a chat message to the database with optional token usage tracking."""
     try:
         with engine.connect() as connection:
             connection.execute(
-                text("INSERT INTO ChatMessage (id, role, content, userName, createdAt) VALUES (:id, :role, :content, :user_name, :now)"),
+                text("""
+                    INSERT INTO ChatMessage (id, role, content, userName, promptTokens, completionTokens, totalTokens, createdAt) 
+                    VALUES (:id, :role, :content, :user_name, :prompt, :comp, :total, :now)
+                """),
                 {
                     "id": str(uuid.uuid4()),
                     "role": role,
                     "content": content,
                     "user_name": user_name,
+                    "prompt": prompt_tokens,
+                    "comp": completion_tokens,
+                    "total": total_tokens,
                     "now": datetime.now().isoformat()
                 }
             )
@@ -236,14 +264,29 @@ def get_chat_history_fn(user_name: str = None, limit: int = 15):
     try:
         with engine.connect() as connection:
             if user_name:
-                query = text("SELECT role, content, createdAt FROM ChatMessage WHERE userName = :user_name ORDER BY createdAt DESC LIMIT :limit")
+                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage WHERE userName = :user_name ORDER BY createdAt DESC LIMIT :limit")
                 params = {"user_name": user_name, "limit": limit}
             else:
-                query = text("SELECT role, content, createdAt FROM ChatMessage ORDER BY createdAt DESC LIMIT :limit")
+                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage ORDER BY createdAt DESC LIMIT :limit")
                 params = {"limit": limit}
             
             result = connection.execute(query, params)
-            messages = [dict(row._mapping) for row in result]
+            rows = [dict(row._mapping) for row in result]
+            
+            # Format rows to match the frontend expectation (usage object)
+            messages = []
+            for row in rows:
+                msg = {
+                    "role": row["role"],
+                    "content": row["content"],
+                }
+                if row.get("totalTokens"):
+                    msg["usage"] = {
+                        "prompt_tokens": row["promptTokens"],
+                        "completion_tokens": row["completionTokens"],
+                        "total_tokens": row["totalTokens"]
+                    }
+                messages.append(msg)
             
             # Reverse to get chronological order (oldest to newest) for the UI
             messages.reverse()

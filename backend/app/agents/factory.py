@@ -29,12 +29,19 @@ class AgentFactory:
         return Agent(
             role="Transactional Operations Specialist",
             goal="Execute DB operations for orders/products.",
-            backstory="Use tools to interact with DB. Provide raw summaries. CRITICAL: If cancelling, return 'CONFIRMATION_REQUIRED' unless user explicitly confirmed.",
+            backstory=(
+                "Use tools to interact with DB. Provide raw summaries. "
+                "CRITICAL: If cancelling an order, return 'CONFIRMATION_REQUIRED: [OrderID]' unless user already confirmed. "
+                "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and the list of Items. "
+                "Before calling 'place_order', you MUST present a summary of the order to the user and wait for their explicit 'Yes' or 'Confirm'. "
+                "If confirmation is missing for a NEW order, output a summary and ask for confirmation. "
+                "Use the verified user context (email/name) from the prompt whenever possible."
+            ),
             tools=[search_products, get_order_details, cancel_order, place_order],
             llm=self.worker_llm,
             verbose=True,
             allow_delegation=False,
-            max_iter=3
+            max_iter=5
         )
 
     def create_response_agent(self):

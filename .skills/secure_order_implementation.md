@@ -2,12 +2,12 @@
 
 This document outlines the phases required to transition the AI Customer Support system from a proof-of-concept to a secure, production-ready transactional platform.
 
-## Phase 1: Backend Security & Identity (Current)
+## Phase 1: Backend Security & Identity
 **Goal:** Establish user identity and protect API endpoints.
-- [ ] Create `app/core/auth.py` to handle JWT/API Key verification.
-- [ ] Update `app/api/endpoints/chat.py` to require authentication.
-- [ ] Extract user identity (Name, Email) from the request context.
-- [ ] Pass verified user identity into the `CrewService`.
+- [x] Create `app/core/auth.py` to handle JWT/API Key verification.
+- [x] Update `app/api/endpoints/chat.py` to require authentication.
+- [x] Extract user identity (Name, Email) from the request context.
+- [x] Pass verified user identity into the `CrewService`.
 
 ## Phase 2: Tool Hardening & Address Support
 **Goal:** Ensure tools are secure and support physical delivery.
@@ -26,11 +26,11 @@ This document outlines the phases required to transition the AI Customer Support
 
 ## Phase 4: Frontend Integration
 **Goal:** Connect the UI to the secure backend.
-- [ ] Update frontend to store and send the `Authorization` token in the `/chat` request.
-- [ ] (Optional) Add a visual "Confirm Order" button or card to improve UX.
+- [x] Update frontend to store and send the `Authorization` token in the `/chat` request.
+- [x] (Optional) Add a visual "Confirm Order" button or card to improve UX.
 
 ## Phase 5: Testing & Validation
 **Goal:** Verify security boundaries.
-- [ ] Test that User A cannot cancel User B's order.
-- [ ] Test that the agent correctly identifies missing address information.
-- [ ] Verify that tool calls only happen after confirmation.
+- [x] Test that User A cannot cancel User B's order.
+- [x] Test that the agent correctly identifies missing address information.
+- [x] Verify that tool calls only happen after confirmation.

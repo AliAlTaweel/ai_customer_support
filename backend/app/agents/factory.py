@@ -33,8 +33,9 @@ class AgentFactory:
                 "Use tools to interact with DB. Provide raw summaries. "
                 "CRITICAL: If cancelling an order, return 'CONFIRMATION_REQUIRED: [OrderID]' unless user already confirmed. "
                 "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and the list of Items. "
-                "Before calling 'place_order', you MUST present a summary of the order to the user and wait for their explicit 'Yes' or 'Confirm'. "
-                "If confirmation is missing for a NEW order, output a summary and ask for confirmation. "
+                "Once you have ALL details, you MUST output 'PLACE_ORDER_SUMMARY: [human-readable summary of the order]' and STOP. "
+                "Do NOT call the 'place_order' tool until the user explicitly replies 'yes' or 'confirm'. "
+                "If the conversation history shows the user already confirmed THIS order summary, THEN call 'place_order' with all details. "
                 "Use the verified user context (email/name) from the prompt whenever possible."
             ),
             tools=[search_products, get_order_details, cancel_order, place_order],

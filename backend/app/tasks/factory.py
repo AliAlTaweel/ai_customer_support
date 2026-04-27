@@ -45,14 +45,14 @@ class TaskFactory:
                 "   - You MUST have: customer_name, customer_email, shipping_address, and items.\n"
                 "   - Use the 'user_info' above for name/email if available. Don't ask again if verified.\n"
                 "   - If ANY detail is missing, ask the user for it politely.\n"
-                "   - Once you have ALL details: \n"
-                "     a) Present a clear summary of the order.\n"
-                "     b) If the history does NOT show the user explicitly confirming THIS summary, ask: 'Would you like me to place this order for you?'. Do NOT call the tool yet.\n"
-                "     c) If the user just confirmed (e.g., 'yes', 'do it'), call 'place_order' with all details.\n"
+                "   - Once you have ALL details:\n"
+                "     a) Check if the conversation history already shows the user explicitly confirming THIS order summary.\n"
+                "     b) If NOT yet confirmed: output exactly 'PLACE_ORDER_SUMMARY: [clear summary of items, address, total]'. Do NOT call place_order yet.\n"
+                "     c) If the user just confirmed (e.g., 'yes', 'confirm', 'do it'), call 'place_order' with all details.\n"
                 "3. For other actions (search, track): use the appropriate tool.\n"
                 "4. If no action needed: return 'NOT_APPLICABLE'."
             ),
-            expected_output="Database result, confirmation request/summary, or 'NOT_APPLICABLE'.",
+            expected_output="Database result, PLACE_ORDER_SUMMARY, CONFIRMATION_REQUIRED, or 'NOT_APPLICABLE'.",
             agent=agent
         )
 

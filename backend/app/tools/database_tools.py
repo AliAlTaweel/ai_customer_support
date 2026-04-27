@@ -155,26 +155,28 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
         return "Error: A valid shipping address is required to place an order."
 
     try:
-        with engine.connect() as connection:
+        # engine.begin() creates an implicit transaction: auto-commits on success,
+        # auto-rolls-back on any exception — ensures atomicity across all inserts.
+        with engine.begin() as connection:
             total_price = 0.0
             order_items_to_create = []
-            
+
             for item in items:
                 name = item.get('product_name')
                 qty = item.get('quantity', 1)
-                
+
                 product = connection.execute(
                     text("SELECT id, price, stock FROM Product WHERE name = :name"),
                     {"name": name}
                 ).fetchone()
-                
+
                 if not product:
                     return f"Error: Product '{name}' not found."
-                
+
                 product_data = product._mapping
                 if product_data['stock'] < qty:
                     return f"Error: Not enough stock for '{name}'. Available: {product_data['stock']}"
-                
+
                 total_price += product_data['price'] * qty
                 order_items_to_create.append({
                     "id": str(uuid.uuid4()),
@@ -185,26 +187,29 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
 
             order_id = str(uuid.uuid4())
             now = datetime.now().isoformat()
-            
+
             connection.execute(
                 text("""
                     INSERT INTO 'Order' (id, total, status, createdAt, updatedAt, customerEmail, customerName, shippingAddress, userId)
                     VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id)
                 """),
-                {"id": order_id, "total": total_price, "now": now, "email": customer_email, "name": customer_name, "address": shipping_address, "user_id": user_id}
+                {"id": order_id, "total": total_price, "now": now,
+                 "email": customer_email, "name": customer_name,
+                 "address": shipping_address, "user_id": user_id}
             )
 
             for item_data in order_items_to_create:
                 connection.execute(
                     text("INSERT INTO OrderItem (id, orderId, productId, quantity, price) VALUES (:id, :orderId, :productId, :quantity, :price)"),
-                    {"id": item_data['id'], "orderId": order_id, "productId": item_data['productId'], "quantity": item_data['quantity'], "price": item_data['price']}
+                    {"id": item_data['id'], "orderId": order_id, "productId": item_data['productId'],
+                     "quantity": item_data['quantity'], "price": item_data['price']}
                 )
                 connection.execute(
                     text("UPDATE Product SET stock = stock - :qty WHERE id = :pid"),
                     {"qty": item_data['quantity'], "pid": item_data['productId']}
                 )
 
-            connection.commit()
+            # No explicit commit needed — engine.begin() handles it
             return f"Successfully placed order! Order ID: {order_id}. Total: ${total_price:.2f}. Shipping to: {shipping_address}"
     except Exception as e:
         logger.error(f"Error placing order: {e}")
@@ -233,37 +238,45 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
     
     return place_order_fn(customer_email, customer_name, items, shipping_address, user_id)
 
-def save_chat_message_fn(role: str, content: str, user_name: str = None, prompt_tokens: int = None, completion_tokens: int = None, total_tokens: int = None):
+def save_chat_message_fn(role: str, content: str, user_name: str = None, user_id: str = None, prompt_tokens: int = None, completion_tokens: int = None, total_tokens: int = None):
     """Save a chat message to the database with optional token usage tracking."""
     try:
-        with engine.connect() as connection:
+        with engine.begin() as connection:
             connection.execute(
                 text("""
-                    INSERT INTO ChatMessage (id, role, content, userName, promptTokens, completionTokens, totalTokens, createdAt) 
-                    VALUES (:id, :role, :content, :user_name, :prompt, :comp, :total, :now)
+                    INSERT INTO ChatMessage (id, role, content, userName, userId, promptTokens, completionTokens, totalTokens, createdAt)
+                    VALUES (:id, :role, :content, :user_name, :user_id, :prompt, :comp, :total, :now)
                 """),
                 {
                     "id": str(uuid.uuid4()),
                     "role": role,
                     "content": content,
                     "user_name": user_name,
+                    "user_id": user_id,
                     "prompt": prompt_tokens,
                     "comp": completion_tokens,
                     "total": total_tokens,
                     "now": datetime.now().isoformat()
                 }
             )
-            connection.commit()
             return True
     except Exception as e:
         logger.error(f"Error saving chat message: {e}")
         return False
 
-def get_chat_history_fn(user_name: str = None, limit: int = 15):
-    """Retrieve chat history from the database, returning the latest messages in chronological order."""
+def get_chat_history_fn(user_id: str = None, user_name: str = None, limit: int = 15):
+    """
+    Retrieve chat history from the database, returning the latest messages in chronological order.
+    Prefers querying by user_id (unique) over user_name (collision-prone) when both are available.
+    """
     try:
         with engine.connect() as connection:
-            if user_name:
+            if user_id:
+                # Preferred: exact match on immutable user ID
+                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage WHERE userId = :user_id ORDER BY createdAt DESC LIMIT :limit")
+                params = {"user_id": user_id, "limit": limit}
+            elif user_name:
+                # Fallback: name-based (legacy rows without userId)
                 query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage WHERE userName = :user_name ORDER BY createdAt DESC LIMIT :limit")
                 params = {"user_name": user_name, "limit": limit}
             else:

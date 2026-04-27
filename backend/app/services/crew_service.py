@@ -152,6 +152,15 @@ class CrewService:
                 order_id = raw_output.split("CONFIRMATION_REQUIRED:")[-1].strip()
                 final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
                 return {"result": final_message, "usage": usage, "state_update": {"pending_confirmation": order_id}}
+
+            # Fast-path: agent gathered all order details — ask for confirmation without another LLM call
+            if "PLACE_ORDER_SUMMARY:" in raw_output:
+                order_summary = raw_output.split("PLACE_ORDER_SUMMARY:")[-1].strip()
+                final_message = (
+                    f"Here's a summary of your order:\n\n{order_summary}\n\n"
+                    "Would you like me to go ahead and place this order? Reply **yes** to confirm or **no** to cancel."
+                )
+                return {"result": final_message, "usage": usage, "state_update": {"pending_order_summary": order_summary}}
             
             if "has been successfully cancelled" in raw_output.lower() or "successfully canceled" in raw_output.lower():
                 # E.g. "Order 123... has been successfully cancelled."

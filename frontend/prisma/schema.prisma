@@ -54,6 +54,7 @@ model ChatMessage {
   role             String
   content          String
   userName         String?
+  userId           String?
   promptTokens     Int?
   completionTokens Int?
   totalTokens      Int?

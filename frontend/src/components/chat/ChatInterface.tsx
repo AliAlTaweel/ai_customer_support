@@ -107,11 +107,11 @@ export default function ChatInterface() {
     fetchGreeting();
   }, [isOpen, hasGreeted, user?.firstName, messages.length]);
 
-  const handleSend = async () => {
-    if (!input.trim() || isLoading) return;
+  const handleSend = async (overrideMsg?: string) => {
+    const userMsg = overrideMsg || input.trim();
+    if (!userMsg || isLoading) return;
 
-    const userMsg = input.trim();
-    setInput("");
+    if (!overrideMsg) setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
     setIsLoading(true);
 
@@ -268,6 +268,40 @@ export default function ChatInterface() {
                         <span className="text-[10px] uppercase tracking-widest font-bold">Luxe is thinking...</span>
                       </div>
                     </div>
+                  )}
+
+                  {state?.pending_confirmation && !isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-3 p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 mx-2 mb-2"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <Bot className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Confirm Action</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed">
+                        Would you like to proceed with the cancellation for order <strong>{state.pending_confirmation}</strong>?
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold"
+                          onClick={() => handleSend("yes")}
+                        >
+                          Yes, Cancel Order
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold bg-background"
+                          onClick={() => handleSend("no")}
+                        >
+                          Nevermind
+                        </Button>
+                      </div>
+                    </motion.div>
                   )}
                 </div>
 

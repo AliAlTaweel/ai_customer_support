@@ -18,6 +18,16 @@ class Settings(BaseSettings):
     MANAGER_MODEL: str = "ollama/llama3.1:8b"
     WORKER_MODEL: str = "ollama/gemma4:e4b"
     EMBEDDING_MODEL: str = "ollama/nomic-embed-text:latest"
+
+    # Clerk Auth Settings
+    # Derive JWKS URL from the publishable key domain.
+    # Format: https://<your-clerk-domain>/.well-known/jwks.json
+    CLERK_JWKS_URL: str = "https://blessed-possum-82.clerk.accounts.dev/.well-known/jwks.json"
+    CLERK_ISSUER: str = "https://blessed-possum-82.clerk.accounts.dev"
+
+    # Rate Limiting (per authenticated user / per IP for guests)
+    RATE_LIMIT_REQUESTS: int = 15  # max requests per window
+    RATE_LIMIT_WINDOW_SECONDS: int = 60  # window size in seconds
     
     # Database Settings
     DATABASE_URL: Optional[str] = None

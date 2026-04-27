@@ -2,19 +2,49 @@ from app.models.chat import ChatRequest, ChatResponse, GreetRequest, ChatMessage
 from app.services.crew_service import CrewService
 from app.tools.database_tools import save_chat_message_fn, get_chat_history_fn
 from app.core.auth import get_current_user, UserContext
-from fastapi import APIRouter, HTTPException, Depends, status
+from app.core.config import settings
+from fastapi import APIRouter, HTTPException, Depends, Request, status
 import logging
+import time
+from collections import defaultdict
+from threading import Lock
 
 logger = logging.getLogger(__name__)
 import asyncio
 
 router = APIRouter()
 
+# ── Simple in-memory rate limiter ─────────────────────────────────────────────
+# Keyed by user_id (authenticated) or remote IP (guest).
+# Uses a sliding-window approach.
+_rate_store: dict = defaultdict(list)
+_rate_lock = Lock()
+
+
+def _check_rate_limit(key: str) -> bool:
+    """Returns False if the key has exceeded the rate limit."""
+    now = time.time()
+    window_start = now - settings.RATE_LIMIT_WINDOW_SECONDS
+    with _rate_lock:
+        _rate_store[key] = [t for t in _rate_store[key] if t > window_start]
+        if len(_rate_store[key]) >= settings.RATE_LIMIT_REQUESTS:
+            return False
+        _rate_store[key].append(now)
+        return True
+
 @router.post("/chat/chat", response_model=ChatResponse)
 async def chat(
-    request: ChatRequest, 
+    request_obj: Request,
+    request: ChatRequest,
     current_user: UserContext = Depends(get_current_user)
 ):
+    # Rate limiting: use user_id for authenticated users, remote IP for guests
+    rate_key = current_user.user_id or request_obj.client.host
+    if not _check_rate_limit(rate_key):
+        raise HTTPException(
+            status_code=429,
+            detail=f"Too many requests. Please wait before sending another message."
+        )
     try:
         crew_service = CrewService()
         
@@ -48,17 +78,24 @@ async def chat(
         # PERSIST TO DATABASE - Use the verified target_user_name and include token usage
         # Assistant message includes usage
         await asyncio.to_thread(
-            save_chat_message_fn, 
-            role="assistant", 
-            content=final_message, 
+            save_chat_message_fn,
+            role="assistant",
+            content=final_message,
             user_name=target_user_name,
+            user_id=current_user.user_id,
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             total_tokens=usage.get("total_tokens")
         )
-        
-        # User message (usually has 0 usage or we can leave it empty)
-        await asyncio.to_thread(save_chat_message_fn, role="user", content=request.message, user_name=target_user_name)
+
+        # User message
+        await asyncio.to_thread(
+            save_chat_message_fn,
+            role="user",
+            content=request.message,
+            user_name=target_user_name,
+            user_id=current_user.user_id
+        )
         
         # Update history for response state
         updated_history = request.history + [
@@ -137,8 +174,11 @@ async def get_history(current_user: UserContext = Depends(get_current_user)):
         )
         
     try:
-        # We strictly use current_user.full_name from the token, NOT from a URL parameter.
-        messages = get_chat_history_fn(user_name=current_user.full_name)
+        # Prefer user_id for exact, collision-free lookup; fall back to full_name
+        messages = get_chat_history_fn(
+            user_id=current_user.user_id,
+            user_name=current_user.full_name
+        )
         return {"history": messages}
     except Exception as e:
         logger.error(f"Error fetching history: {e}")

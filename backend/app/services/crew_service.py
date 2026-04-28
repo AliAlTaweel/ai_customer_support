@@ -1,6 +1,7 @@
 from crewai import Crew, Process, Task
 from app.agents.factory import AgentFactory
 from app.tasks.factory import TaskFactory
+from app.core.privacy import PrivacyScrubber
 from typing import List, Dict, Any
 import re
 
@@ -10,12 +11,18 @@ class CrewService:
         self.agent_factory = AgentFactory()
 
     def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None, user_context: Any = None, user_id: str = None) -> Dict[str, Any]:
-        user_info = f"Customer Name: {user_name}\n" if user_name else ""
+        # GDPR: Mask sensitive info before sending to LLM
+        masked_name = PrivacyScrubber.mask_name(user_name)
+        user_info = f"Customer Name: {masked_name}\n" if user_name else ""
+        
         if user_id:
-            user_info += f"Customer ID: {user_id}\n"
+            # We keep the ID for tool calling, but we could pseudonymize it if needed.
+            # For now, we'll just call it "Internal ID" to the LLM.
+            user_info += f"Customer Internal ID: {user_id}\n"
         
         if user_context and getattr(user_context, 'is_authenticated', False):
-            user_info += f"Customer Email: {user_context.email}\n"
+            masked_email = PrivacyScrubber.mask_email(user_context.email)
+            user_info += f"Customer Email: {masked_email}\n"
             user_info += "AUTHENTICATION STATUS: VERIFIED. You do NOT need to ask for their email.\n"
         else:
             user_info += "AUTHENTICATION STATUS: GUEST. You MUST ask for their email/details if they want to place an order.\n"
@@ -63,8 +70,8 @@ class CrewService:
         # Instantiate agents
         router_agent = self.agent_factory.create_router_agent()
         
-        # Format recent history as a readable string (last 4 turns)
-        history_str = "\n".join(history[-4:]) if history else "No previous conversation."
+        # Format recent history as a readable string (last 6 turns)
+        history_str = "\n".join(history[-6:]) if history else "No previous conversation."
 
         # ── Step 1: Routing ────────────────────────────────────────────────
         router_task = TaskFactory.create_router_task(
@@ -79,10 +86,23 @@ class CrewService:
 
         # ── Step 2: Handle Simple Intent Paths ────────────────────────────
         if "INVALID" in intent:
+            if len(user_message.split()) > 3:
+                return {
+                    "result": "I'm sorry, but I can only assist with Luxe products, orders, and company policies. That request seems to be outside of my current scope.",
+                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
+                }
             return self.get_clarification_response()
 
         if "GREETING" in intent and "ORDER" not in intent and "KNOWLEDGE" not in intent:
             return self.get_greeting(user_name or "there")
+
+        # 2b. Fast Track: Simple Complaint (Ask for details before spinning up specialist)
+        is_simple_complaint = (intent == "COMPLAINT" or "admin" in clean_msg or "complain" in clean_msg) and len(user_message.split()) < 8
+        if is_simple_complaint:
+            return {
+                "result": "I'm sorry to hear you're having trouble. I can certainly help you get a message to our administration team. Could you please provide the details of your complaint or the message you'd like to send?",
+                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}
+            }
 
         # ── Step 3: Setup Specialists ─────────────────────────────────────
         rag_specialist = self.agent_factory.create_rag_agent()
@@ -102,8 +122,8 @@ class CrewService:
             tasks.append(rag_task)
             context.append(rag_task)
 
-        # Only add Order task if it's ORDER or COMPLEX
-        if any(x in intent for x in ["ORDER", "COMPLEX"]):
+        # Only add Order task if it's ORDER, COMPLAINT or COMPLEX
+        if any(x in intent for x in ["ORDER", "COMPLAINT", "COMPLEX"]):
             order_task = TaskFactory.create_order_task(
                 agent=order_specialist,
                 user_message=user_message,
@@ -125,7 +145,7 @@ class CrewService:
             gather_agents = []
             if any(x in intent for x in ["KNOWLEDGE", "COMPLEX"]):
                 gather_agents.append(rag_specialist)
-            if any(x in intent for x in ["ORDER", "COMPLEX"]):
+            if any(x in intent for x in ["ORDER", "COMPLAINT", "COMPLEX"]):
                 gather_agents.append(order_specialist)
                 
             gather_crew = Crew(
@@ -165,6 +185,10 @@ class CrewService:
             if "has been successfully cancelled" in raw_output.lower() or "successfully canceled" in raw_output.lower():
                 # E.g. "Order 123... has been successfully cancelled."
                 return {"result": raw_output, "usage": usage, "state_update": {"pending_confirmation": None}}
+            
+            if "Reference ID:" in raw_output:
+                # Specialist successfully submitted a complaint, bypass final response to keep the technical info intact
+                return {"result": raw_output, "usage": usage}
         else:
             raw_output = "No specific action needed."
 

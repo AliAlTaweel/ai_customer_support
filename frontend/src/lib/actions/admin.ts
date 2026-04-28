@@ -93,3 +93,60 @@ export async function deleteOrder(orderId: string) {
     return { success: false, error: "Failed to delete order" };
   }
 }
+
+export async function getAllComplaints() {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const complaints = await prisma.complaint.findMany({
+      orderBy: {
+        createdAt: "desc",
+      },
+    });
+
+    // Ensure proper serialization for Server Actions
+    return { 
+      success: true, 
+      complaints: JSON.parse(JSON.stringify(complaints)) 
+    };
+  } catch (error: any) {
+    console.error("[ADMIN ERROR] Failed to fetch complaints:", error);
+    return { 
+      success: false, 
+      error: `Failed to fetch complaints: ${error.message || "Unknown error"}` 
+    };
+  }
+}
+
+export async function updateComplaintStatus(complaintId: string, status: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: { status },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to update complaint status:", error);
+    return { success: false, error: "Failed to update status" };
+  }
+}
+
+export async function deleteComplaint(complaintId: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    await prisma.complaint.delete({
+      where: { id: complaintId },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to delete complaint:", error);
+    return { success: false, error: "Failed to delete complaint" };
+  }
+}

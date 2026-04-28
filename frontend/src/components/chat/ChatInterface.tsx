@@ -2,7 +2,7 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Maximize2 } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Maximize2, Flag } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationState } from "@/lib/ai/types";
 import { useUser, useAuth } from "@clerk/nextjs";
@@ -28,6 +28,8 @@ export default function ChatInterface() {
   const [state, setState] = useState<ConversationState | undefined>(undefined);
   const [isLoading, setIsLoading] = useState(false);
   const [hasGreeted, setHasGreeted] = useState(false);
+  const [isComplaintModalOpen, setIsComplaintModalOpen] = useState(false);
+  const [complaintText, setComplaintText] = useState("");
   const scrollRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -183,7 +185,7 @@ export default function ChatInterface() {
             className="bg-background border border-primary/10 shadow-2xl rounded-[2rem] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="p-4 bg-primary text-primary-foreground flex items-center justify-between">
+            <div className="relative p-4 bg-primary text-primary-foreground flex items-center justify-between">
               <div className="flex items-center gap-3">
                 <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
                   <Bot className="w-6 h-6" />
@@ -200,7 +202,16 @@ export default function ChatInterface() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-white/10 text-white"
+                  className="hover:bg-white/10 text-primary-foreground"
+                  title="Contact Support/Admin"
+                  onClick={() => setIsComplaintModalOpen(true)}
+                >
+                  <Flag className="w-4 h-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="icon" 
+                  className="hover:bg-white/10 text-primary-foreground"
                   onClick={() => setIsMinimized(!isMinimized)}
                 >
                   {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
@@ -208,7 +219,7 @@ export default function ChatInterface() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-white/10 text-white"
+                  className="hover:bg-white/10 text-primary-foreground"
                   onClick={() => setIsOpen(false)}
                 >
                   <X className="w-4 h-4" />
@@ -217,7 +228,7 @@ export default function ChatInterface() {
             </div>
 
             {!isMinimized && (
-              <>
+              <div className="flex-1 flex flex-col relative overflow-hidden">
                 {/* Chat Messages */}
                 <div 
                   ref={scrollRef}
@@ -305,6 +316,65 @@ export default function ChatInterface() {
                   )}
                 </div>
 
+                {/* Complaint Overlay */}
+                <AnimatePresence>
+                  {isComplaintModalOpen && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.9 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      exit={{ opacity: 0, scale: 0.9 }}
+                      className="absolute inset-0 bg-background/60 backdrop-blur-md z-30 p-6 flex flex-col items-center justify-center text-center"
+                    >
+                      <motion.div 
+                        initial={{ y: 20 }}
+                        animate={{ y: 0 }}
+                        className="bg-background border border-primary/20 p-6 rounded-[2rem] shadow-2xl w-full max-w-[320px] space-y-4"
+                      >
+                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto">
+                          <Flag className="w-6 h-6 text-red-500" />
+                        </div>
+                        <div>
+                          <h4 className="font-bold font-outfit text-lg text-foreground">Send Feedback</h4>
+                          <p className="text-xs text-muted-foreground">
+                            Please describe your concern or complaint for the administration team.
+                          </p>
+                        </div>
+                        <textarea 
+                          value={complaintText}
+                          onChange={(e) => setComplaintText(e.target.value)}
+                          placeholder="Type your complaint here..."
+                          className="w-full h-32 bg-secondary/30 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border border-primary/10 resize-none text-foreground"
+                          autoFocus
+                        />
+                        <div className="flex gap-2">
+                          <Button 
+                            variant="outline" 
+                            className="flex-1 rounded-xl h-10 font-bold"
+                            onClick={() => {
+                              setIsComplaintModalOpen(false);
+                              setComplaintText("");
+                            }}
+                          >
+                            Cancel
+                          </Button>
+                          <Button 
+                            variant="default" 
+                            className="flex-1 rounded-xl h-10 font-bold"
+                            disabled={!complaintText.trim()}
+                            onClick={() => {
+                              handleSend(`I want to send a message to the administration team: ${complaintText}`);
+                              setIsComplaintModalOpen(false);
+                              setComplaintText("");
+                            }}
+                          >
+                            Submit
+                          </Button>
+                        </div>
+                      </motion.div>
+                    </motion.div>
+                  )}
+                </AnimatePresence>
+
                 {/* Input Area */}
                 <div className="p-4 border-t border-primary/5 bg-background">
                   <div className="relative group">
@@ -317,7 +387,7 @@ export default function ChatInterface() {
                       className="w-full h-12 bg-secondary/30 rounded-2xl pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border border-transparent group-hover:border-primary/10"
                     />
                     <button 
-                      onClick={handleSend}
+                      onClick={() => handleSend()}
                       disabled={!input.trim() || isLoading}
                       className="absolute right-2 top-1.5 w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
                     >
@@ -328,7 +398,7 @@ export default function ChatInterface() {
                     Powered by Luxe Intelligence
                   </p>
                 </div>
-              </>
+              </div>
             )}
           </motion.div>
         )}

@@ -8,9 +8,12 @@ class TaskFactory:
         return Task(
             description=(
                 f"Conversation history:\n{history_str}\n"
-                f"Classify the customer's latest message: '{user_message}'"
+                f"Customer message: '{user_message}'\n\n"
+                "Luxe is a retail brand for Home, Electronics, Clothing, and Sports. "
+                "Classify the customer's message into exactly one: GREETING, ORDER, KNOWLEDGE, COMPLAINT, COMPLEX, INVALID. "
+                "CRITICAL: If the message is about unrelated topics (cars, medical, etc.), return INVALID."
             ),
-            expected_output="Exactly one of: GREETING, ORDER, KNOWLEDGE, COMPLEX, INVALID",
+            expected_output="Exactly one of: GREETING, ORDER, KNOWLEDGE, COMPLAINT, COMPLEX, INVALID",
             agent=agent
         )
 
@@ -49,8 +52,11 @@ class TaskFactory:
                 "     a) Check if the conversation history already shows the user explicitly confirming THIS order summary.\n"
                 "     b) If NOT yet confirmed: output exactly 'PLACE_ORDER_SUMMARY: [clear summary of items, address, total]'. Do NOT call place_order yet.\n"
                 "     c) If the user just confirmed (e.g., 'yes', 'confirm', 'do it'), call 'place_order' with all details.\n"
-                "3. For other actions (search, track): use the appropriate tool.\n"
-                "4. If no action needed: return 'NOT_APPLICABLE'."
+                "3. If the user is COMPLAINING or frustrated: \n"
+                "   - Use 'submit_complaint' to record their message for the admin team.\n"
+                "   - Try to collect a subject and the main message.\n"
+                "4. For other actions (search, track): use the appropriate tool.\n"
+                "5. If no action needed: return 'NOT_APPLICABLE'."
             ),
             expected_output="Database result, PLACE_ORDER_SUMMARY, CONFIRMATION_REQUIRED, or 'NOT_APPLICABLE'.",
             agent=agent

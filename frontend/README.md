@@ -6,8 +6,8 @@ A premium, high-performance storefront built with Next.js. This application serv
 - **Luxe UI**: A sleek, modern aesthetic tailored for high-end retail.
 - **Full Checkout Flow**: Product browsing, cart management, and order placement.
 - **AI Chat Widget**: A persistent sidebar chat that communicates with the agentic backend.
-- **Secure Authentication**: Integrated with Clerk for JWT-based session management.
-- **Shared Data**: Uses a local SQLite database that the AI backend also accesses to perform real-time actions.
+- **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication and session management.
+- **Cloud Database**: Powered by **AWS RDS PostgreSQL** for production-grade reliability and shared access with the AI backend.
 
 ---
 
@@ -15,7 +15,8 @@ A premium, high-performance storefront built with Next.js. This application serv
 - **Next.js 15+**: (App Router)
 - **TypeScript**: Type-safe development.
 - **Tailwind CSS**: Modern, responsive styling.
-- **Prisma**: Type-safe database access and migrations.
+- **Prisma**: Type-safe database access and migrations for PostgreSQL.
+- **Clerk**: Robust authentication and user management.
 - **Lucide React**: Premium iconography.
 
 ---
@@ -29,8 +30,11 @@ A premium, high-performance storefront built with Next.js. This application serv
     npm install
     ```
 
-2.  **Database**:
-    Initialize the SQLite database and generate the Prisma client:
+2.  **Environment Variables**:
+    Create a `.env` file with your `DATABASE_URL` pointing to your AWS RDS instance and your Clerk keys.
+
+3.  **Database**:
+    Generate the Prisma client and sync the schema:
     ```bash
     npx prisma generate
     npx prisma db push
@@ -45,10 +49,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ---
 
 ## 🏗 Interaction with AI Backend
-The frontend chat component sends the conversation history along with the user's **JWT session token** to `http://localhost:3001/api/v1/chat`. This allows the AI backend to:
-1.  Verify the user's identity.
+The frontend chat component sends the conversation history along with the user's **Clerk JWT session token** to `http://localhost:3001/api/v1/chat`. This allows the AI backend to:
+1.  Verify the user's identity securely.
 2.  Provide personalized support (e.g., "Where is *my* order?").
 3.  Enforce data privacy by masking PII and filtering database queries.
 
-### Database Sharing
-The database file is located at `prisma/dev.db`. The AI backend is configured to read/write to this same file, allowing the agents to see your products and manage your orders instantly.
+### Shared Infrastructure
+The system uses a unified **AWS RDS PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data.

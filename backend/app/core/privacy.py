@@ -1,5 +1,9 @@
 import re
-from typing import Optional
+from typing import Optional, Dict
+from contextvars import ContextVar
+
+# ContextVar to store PII mapping for the current request/thread
+PII_MAPPING: ContextVar[Dict[str, str]] = ContextVar("pii_mapping", default={})
 
 class PrivacyScrubber:
     """
@@ -33,6 +37,45 @@ class PrivacyScrubber:
         # Often LLMs just need to know IF there is an address or what the city is.
         # This masks everything but the general location if possible.
         return "[REDACTED_SHIPPING_ADDRESS]"
+
+    @staticmethod
+    def pseudonymize_text(text: Optional[str]) -> tuple[str, dict[str, str]]:
+        """
+        Replaces PII with unique tokens and returns the mapping.
+        Example: "My email is test@example.com" -> ("My email is [EMAIL_0]", {"[EMAIL_0]": "test@example.com"})
+        """
+        if not text:
+            return "", {}
+        
+        mapping = {}
+        scrubbed = text
+        
+        # 1. Pseudonymize Emails
+        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
+        for i, email in enumerate(emails):
+            token = f"[EMAIL_{i}]"
+            mapping[token] = email
+            scrubbed = scrubbed.replace(email, token)
+            
+        # 2. Pseudonymize Phone Numbers
+        phones = re.findall(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,6}', scrubbed)
+        # findall might return tuples if there are groups, we want the whole match
+        # Let's use finditer for better control
+        phone_matches = list(re.finditer(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,6}', scrubbed))
+        for i, match in enumerate(phone_matches):
+            phone = match.group(0)
+            token = f"[PHONE_{i}]"
+            mapping[token] = phone
+            scrubbed = scrubbed.replace(phone, token)
+            
+        return scrubbed, mapping
+
+    @staticmethod
+    def detokenize(value: str, mapping: dict[str, str]) -> str:
+        """Restores a pseudonymized token to its original value."""
+        if not value or not isinstance(value, str):
+            return value
+        return mapping.get(value, value)
 
     @staticmethod
     def scrub_dict(data: dict, sensitive_fields: list = None) -> dict:

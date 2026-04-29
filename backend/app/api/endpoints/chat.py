@@ -82,7 +82,7 @@ async def chat(
             role="assistant",
             content=final_message,
             user_name=target_user_name,
-            user_id=current_user.user_id,
+            user_id=current_user.user_id or request.user_id,
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             total_tokens=usage.get("total_tokens")
@@ -94,7 +94,7 @@ async def chat(
             role="user",
             content=request.message,
             user_name=target_user_name,
-            user_id=current_user.user_id
+            user_id=current_user.user_id or request.user_id
         )
         
         # Update history for response state
@@ -118,8 +118,17 @@ async def chat(
         return ChatResponse(message=final_message, state=new_state, usage=usage_data)
     
     except Exception as e:
-        logger.error(f"Error in chat endpoint: {e}")
-        raise HTTPException(status_code=500, detail=str(e))
+        error_msg = str(e)
+        logger.error(f"Error in chat endpoint: {error_msg}")
+        
+        # Check for Gemini/LiteLLM quota errors
+        if "429" in error_msg or "RESOURCE_EXHAUSTED" in error_msg or "quota" in error_msg.lower():
+            raise HTTPException(
+                status_code=429,
+                detail="The AI service is currently at capacity or quota has been reached. Please try again in a few moments."
+            )
+            
+        raise HTTPException(status_code=500, detail=error_msg)
 
 @router.post("/chat/greet")
 async def greet(
@@ -143,6 +152,7 @@ async def greet(
             role="assistant", 
             content=final_msg, 
             user_name=display_name,
+            user_id=current_user.user_id or request.user_id,
             prompt_tokens=usage.get("prompt_tokens"),
             completion_tokens=usage.get("completion_tokens"),
             total_tokens=usage.get("total_tokens")
@@ -183,3 +193,28 @@ async def get_history(current_user: UserContext = Depends(get_current_user)):
     except Exception as e:
         logger.error(f"Error fetching history: {e}")
         return {"history": []}
+
+@router.delete("/history", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_history(current_user: UserContext = Depends(get_current_user)):
+    """
+    GDPR Right to Erasure (Article 17).
+    Deletes all chat history associated with the authenticated user.
+    """
+    if not current_user.is_authenticated:
+        raise HTTPException(
+            status_code=status.HTTP_401_UNAUTHORIZED, 
+            detail="You must be logged in to delete chat history."
+        )
+        
+    try:
+        from app.tools.database_tools import delete_chat_history_fn
+        success = await asyncio.to_thread(
+            delete_chat_history_fn,
+            user_id=current_user.user_id
+        )
+        if not success:
+            raise HTTPException(status_code=500, detail="Failed to delete chat history.")
+        return None
+    except Exception as e:
+        logger.error(f"Error deleting history: {e}")
+        raise HTTPException(status_code=500, detail=str(e))

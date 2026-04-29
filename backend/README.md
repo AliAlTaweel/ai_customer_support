@@ -2,36 +2,30 @@
 
 The brain of the Luxe support system. This FastAPI server hosts a team of autonomous AI agents that handle customer inquiries by searching products, managing orders, and querying company policies.
 
-## 🧠 AI Agent Architecture
+## 🧠 Optimized Agent Architecture
 
-We use **CrewAI** to orchestrate a team of specialized agents, each with a focused role and specific tools. The reasoning engine is powered by **Google Gemini 1.5 Flash**.
+We use an optimized **CrewAI** pipeline designed for maximum speed and minimum token usage. The reasoning engine is powered by **Google Gemini 1.5 Flash**.
 
-### 1. Intent Router & Fast-Track
-- **Fast-Track**: Instantly intercepts trivial inputs (greetings, simple confirmations) to save tokens and eliminate LLM latency.
-- **Role**: Categorizes complex user messages (Greeting, Order, Knowledge, Complaint, or Complex).
-- **Goal**: Optimize flow by routing directly to the right specialist.
+### 1. Fast Router (LiteLLM)
+- **Mechanism**: A direct LLM call using LiteLLM (bypassing full Crew overhead) for instant intent classification.
+- **Goal**: Instantly routes simple greetings to static responses and complex queries to the appropriate specialist tools.
 
-### 2. Knowledge Specialist (RAG)
-- **Role**: Expert on company policies.
-- **Tools**: `get_company_faq`.
-- **Constraint**: Returns ONLY factual text from the FAQ; never invents policies.
+### 2. Unified Luxe Specialist
+- **Mechanism**: A single, powerful agent with access to all tools (`get_company_faq`, `search_products`, `order_management`, etc.).
+- **Benefit**: Eliminates task-switching latency and agent handoff overhead.
+- **Workflow**: Performs info gathering and tool execution in a single pass before handing the context to the final responder.
 
-### 3. Order & Admin Specialist
-- **Role**: Transactional and escalation expert.
-- **Tools**: `search_products`, `get_order_details`, `cancel_order`, `place_order`, `submit_complaint`.
-- **Constraint**: Acts directly on the shared **AWS RDS PostgreSQL** database. Enforces **authenticated email filtering** on all order queries.
-
-### 4. Customer Experience Specialist
-- **Role**: The final "voice" of the brand.
-- **Goal**: Synthesizes information into a polished response.
+### 3. Customer Experience Specialist
+- **Mechanism**: Final stage agent that synthesizes gathered data into a warm, on-brand response.
 
 ---
 
-## 🔒 Security & Data Privacy
+## 🔒 Security & GDPR Compliance
 
-- **PII Scrubbing**: The `PrivacyScrubber` utility masks sensitive data (Emails, Names, Addresses) in real-time before they are passed to the LLM.
-- **Authenticated Context**: Agents are aware of the logged-in user's identity (`userId`) via Clerk JWTs, and tools automatically filter database results to only show the user's own data.
-- **SSL Connectivity**: Database connections to AWS RDS are secured via SSL with certificate verification.
+- **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, and addresses are replaced with tokens before being sent to any third-party LLM (Google Gemini).
+- **Detokenization**: The system restores the original data only at the final edge of the response, so the user sees their real info while the LLM remains unaware of it.
+- **Authenticated Context**: Tools automatically filter database queries by the verified `userId` from **Clerk**, preventing cross-user data leaks.
+- **Encryption**: All database communication with AWS RDS is secured via **SSL**.
 
 ---
 

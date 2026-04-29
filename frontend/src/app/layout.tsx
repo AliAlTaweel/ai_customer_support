@@ -58,14 +58,10 @@ export default async function RootLayout({
                 {!userId ? (
                   <div className="flex items-center gap-2">
                     <SignInButton mode="modal">
-                      <button className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors">
-                        Sign In
-                      </button>
+                      <button className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors">Sign In</button>
                     </SignInButton>
                     <SignUpButton mode="modal">
-                      <button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">
-                        Sign Up
-                      </button>
+                      <button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">Sign Up</button>
                     </SignUpButton>
                   </div>
                 ) : (

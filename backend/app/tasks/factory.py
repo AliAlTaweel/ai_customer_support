@@ -48,8 +48,8 @@ class TaskFactory:
                 "   - If ANY detail is missing, ask the user for it politely.\n"
                 "   - Once you have ALL details:\n"
                 "     a) Check if the conversation history already shows the user explicitly confirming THIS order summary.\n"
-                "     b) If NOT yet confirmed: output exactly 'PLACE_ORDER_SUMMARY: [clear summary of items, address, total]'. Do NOT call place_order yet.\n"
-                "     c) If the user just confirmed (e.g., 'yes', 'confirm', 'do it'), call 'place_order' with all details.\n"
+                "     b) If NOT yet confirmed: output exactly 'PLACE_ORDER_SUMMARY: [clear summary]' AND 'PLACE_ORDER_DETAILS: [JSON with items, address, name, email]'. Do NOT call place_order yet.\n"
+                "     c) If the user just confirmed (e.g., 'yes', 'confirm', 'do it'), call 'place_order' with all details including user_id.\n"
                 "3. If the user is COMPLAINING or frustrated: \n"
                 "   - Use 'submit_complaint' to record their message for the admin team.\n"
                 "   - Try to collect a subject and the main message.\n"
@@ -69,7 +69,9 @@ class TaskFactory:
                 f"Conversation so far:\n{history_str}\n\n"
                 f"Customer message: '{user_message}'\n\n"
                 f"Information gathered by specialists:\n{raw_output}\n\n"
-                "Write a warm, professional reply based on the gathered info."
+                "Write a warm, professional reply based on the gathered info. "
+                "CRITICAL: If the specialists have NOT provided a real Order ID or Reference ID from a tool, DO NOT invent one and DO NOT say the order was placed. "
+                "If info is missing, ask for it."
             ),
             expected_output="A single, clean, customer-facing reply (2-4 sentences).",
             agent=agent

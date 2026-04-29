@@ -4,11 +4,18 @@ from sqlalchemy import create_engine, text
 from typing import List, Dict, Any, Optional
 from crewai.tools import tool
 from app.core.config import settings
-from app.core.privacy import PrivacyScrubber
+from app.core.privacy import PrivacyScrubber, PII_MAPPING
 import logging
 import os
 
 logger = logging.getLogger(__name__)
+
+def detokenize_val(val: Any) -> Any:
+    """Helper to detokenize a value using the current request context mapping."""
+    if isinstance(val, str):
+        mapping = PII_MAPPING.get()
+        return PrivacyScrubber.detokenize(val, mapping)
+    return val
 
 # Initialize engine
 def get_db_url():
@@ -32,7 +39,7 @@ def search_products_fn(query: str):
     try:
         with engine.connect() as connection:
             result = connection.execute(
-                text('SELECT name, description, price, category, stock FROM "Product" WHERE name LIKE :query OR category LIKE :query'),
+                text('SELECT name, description, price, category, stock FROM "Product" WHERE name ILIKE :query OR category ILIKE :query'),
                 {"query": f"%{query}%"}
             )
             products = [dict(row._mapping) for row in result]
@@ -152,10 +159,19 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
     'items' should be a list of dictionaries, each with 'product_name' and 'quantity'.
     'shipping_address' is mandatory for delivery.
     """
+    logger.info(f"Placing order for {customer_name} ({customer_email}), UserID: {user_id}")
+    
+    # GDPR: Detokenize input values before DB insertion
+    customer_email = detokenize_val(customer_email)
+    customer_name = detokenize_val(customer_name)
+    shipping_address = detokenize_val(shipping_address)
+
     if not items:
+        logger.warning("Order placement failed: No items provided")
         return "Error: No items provided for the order."
     
     if not shipping_address or shipping_address == "Pending Selection":
+        logger.warning("Order placement failed: Invalid shipping address")
         return "Error: A valid shipping address is required to place an order."
 
     try:
@@ -275,12 +291,14 @@ def get_chat_history_fn(user_id: str = None, user_name: str = None, limit: int =
     """
     try:
         with engine.connect() as connection:
-            if user_id:
-                # Preferred: exact match on immutable user ID
+            if user_id and user_name:
+                # Query by either user_id or user_name (fallback for missing user_id in older rows)
+                query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" WHERE "userId" = :user_id OR ("userId" IS NULL AND "userName" = :user_name) ORDER BY "createdAt" DESC LIMIT :limit')
+                params = {"user_id": user_id, "user_name": user_name, "limit": limit}
+            elif user_id:
                 query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" WHERE "userId" = :user_id ORDER BY "createdAt" DESC LIMIT :limit')
                 params = {"user_id": user_id, "limit": limit}
             elif user_name:
-                # Fallback: name-based (legacy rows without userId)
                 query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" WHERE "userName" = :user_name ORDER BY "createdAt" DESC LIMIT :limit')
                 params = {"user_name": user_name, "limit": limit}
             else:
@@ -317,6 +335,10 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
     Submit a complaint or message to the admin.
     Priority can be LOW, MEDIUM, HIGH, or URGENT.
     """
+    # GDPR: Detokenize input values before DB insertion
+    customer_name = detokenize_val(customer_name)
+    customer_email = detokenize_val(customer_email)
+
     try:
         with engine.begin() as connection:
             complaint_id = str(uuid.uuid4())
@@ -358,3 +380,33 @@ def submit_complaint(subject: str, message: str, customer_name: str = None, cust
     Optional: customer_name, customer_email, user_id, priority.
     """
     return submit_complaint_fn(subject, message, customer_name, customer_email, user_id, priority)
+
+def delete_chat_history_fn(user_id: str) -> bool:
+    """Hard delete all chat messages for a specific user (GDPR Article 17)."""
+    try:
+        with engine.begin() as connection:
+            connection.execute(
+                text('DELETE FROM "ChatMessage" WHERE "userId" = :user_id'),
+                {"user_id": user_id}
+            )
+            return True
+    except Exception as e:
+        logger.error(f"Error deleting chat history: {e}")
+        return False
+
+def purge_old_messages_fn(days: int = 30) -> int:
+    """Delete chat messages older than X days to comply with data retention policies."""
+    try:
+        with engine.begin() as connection:
+            # PostgreSQL/SQLite compatible date subtraction logic
+            result = connection.execute(
+                text("""
+                    DELETE FROM "ChatMessage" 
+                    WHERE "createdAt" < (CURRENT_TIMESTAMP - (INTERVAL '1 day' * :days))
+                """),
+                {"days": days}
+            )
+            return result.rowcount
+    except Exception as e:
+        logger.error(f"Error purging old messages: {e}")
+        return 0

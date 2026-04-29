@@ -10,6 +10,7 @@ from app.core.config import settings
 logger = logging.getLogger(__name__)
 
 _vector_store = None
+_embeddings = None
 
 # ── S3 helpers ──────────────────────────────────────────────────────────────
 
@@ -89,12 +90,16 @@ def _upload_index_to_s3():
 # ── Vector store initialisation ──────────────────────────────────────────────
 
 def get_vector_store():
-    global _vector_store
+    global _vector_store, _embeddings
     if _vector_store is not None:
         return _vector_store
 
     try:
-        embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        if _embeddings is None:
+            logger.info("Initializing HuggingFaceEmbeddings...")
+            _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+        
+        embeddings = _embeddings
         local_path = settings.INDEX_SAVE_PATH
 
         # 1️⃣  Try local cache first (already downloaded this session)

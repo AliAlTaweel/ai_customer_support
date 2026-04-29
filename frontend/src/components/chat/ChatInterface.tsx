@@ -81,6 +81,7 @@ export default function ChatInterface() {
             },
             body: JSON.stringify({
               first_name: user?.firstName || "there",
+              user_id: user?.id,
             }),
           });
 
@@ -134,7 +135,12 @@ export default function ChatInterface() {
         }),
       });
 
-      if (!response.ok) throw new Error("Failed to send message");
+      if (!response.ok) {
+        if (response.status === 429) {
+          throw new Error("QUOTA_EXCEEDED");
+        }
+        throw new Error("Failed to send message");
+      }
 
       const data = await response.json();
       setMessages((prev) => [...prev, { 
@@ -143,11 +149,15 @@ export default function ChatInterface() {
         usage: data.usage 
       }]);
       setState(data.state);
-    } catch (error) {
+    } catch (error: any) {
       console.error("Chat error:", error);
+      const errorMessage = error.message === "QUOTA_EXCEEDED" 
+        ? "I'm sorry, but I've reached my message limit for now. Please try again in a few minutes."
+        : "I'm sorry, I'm having trouble connecting right now. Please try again later.";
+        
       setMessages((prev) => [
         ...prev,
-        { role: "assistant", content: "I'm sorry, I'm having trouble connecting right now. Please try again later." },
+        { role: "assistant", content: errorMessage },
       ]);
     } finally {
       setIsLoading(false);
@@ -310,6 +320,40 @@ export default function ChatInterface() {
                           onClick={() => handleSend("no")}
                         >
                           Nevermind
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {state?.pending_order_summary && !isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="flex flex-col gap-3 p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 mx-2 mb-2"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <Bot className="w-4 h-4" />
+                        <span className="text-xs font-bold uppercase tracking-wider">Confirm Order</span>
+                      </div>
+                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                        {state.pending_order_summary}
+                      </p>
+                      <div className="flex gap-2">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold"
+                          onClick={() => handleSend("yes")}
+                        >
+                          Yes, Place Order
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold bg-background"
+                          onClick={() => handleSend("no")}
+                        >
+                          Cancel
                         </Button>
                       </div>
                     </motion.div>

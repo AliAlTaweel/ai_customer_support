@@ -14,9 +14,9 @@ class Settings(BaseSettings):
     ALLOWED_ORIGINS: list[str] = []   # must be set in .env — empty = no CORS allowed
 
     # LLM Settings
-    OLLAMA_BASE_URL: str = "http://localhost:11434/v1"
-    MANAGER_MODEL: str = "ollama/llama3.1:8b"
-    WORKER_MODEL: str = "ollama/gemma4:e4b"
+    GOOGLE_API_KEY: Optional[str] = None
+    MANAGER_MODEL: str = "gemini/gemini-3.1-flash-lite-preview"
+    WORKER_MODEL: str = "gemini/gemini-3.1-flash-lite-preview"
     EMBEDDING_MODEL: str = "ollama/nomic-embed-text:latest"
 
     # Clerk Auth Settings — MUST be set in .env, no hardcoded values
@@ -26,6 +26,9 @@ class Settings(BaseSettings):
     # Rate Limiting (per authenticated user / per IP for guests)
     RATE_LIMIT_REQUESTS: int = 15   # max requests per window
     RATE_LIMIT_WINDOW_SECONDS: int = 60  # window size in seconds
+
+    # GDPR / Data Retention
+    DATA_RETENTION_DAYS: int = 30
 
     # Database Settings
     DATABASE_URL: Optional[str] = None
@@ -47,3 +50,7 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+if settings.GOOGLE_API_KEY:
+    os.environ["GOOGLE_API_KEY"] = settings.GOOGLE_API_KEY
+

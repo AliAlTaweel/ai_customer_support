@@ -14,6 +14,7 @@ class ChatRequest(BaseModel):
 
 class GreetRequest(BaseModel):
     first_name: str
+    user_id: Optional[str] = None
 
 class TokenUsage(BaseModel):
     total_tokens: int

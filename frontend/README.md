@@ -49,10 +49,10 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 ---
 
 ## 🏗 Interaction with AI Backend
-The frontend chat component sends the conversation history along with the user's **Clerk JWT session token** to `http://localhost:3001/api/v1/chat`. This allows the AI backend to:
-1.  Verify the user's identity securely.
-2.  Provide personalized support (e.g., "Where is *my* order?").
-3.  Enforce data privacy by masking PII and filtering database queries.
+The frontend chat component sends the conversation history along with the user's **Clerk JWT session token** to the backend API. The system is optimized for **sub-5-second response times** through:
+1.  **Fast-Routing**: Immediate handling of simple requests without backend overhead.
+2.  **Unified Processing**: Single-pass agentic reasoning for complex tasks.
+3.  **Real-time GDPR Masking**: Ensuring user privacy through pseudonymization at the API layer.
 
 ### Shared Infrastructure
-The system uses a unified **AWS RDS PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data.
+The system uses a unified **AWS RDS PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.

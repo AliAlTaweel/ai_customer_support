@@ -9,8 +9,7 @@ class AgentFactory:
         # Worker LLM — used by all three specialist agents
         self.worker_llm = LLM(
             model=settings.WORKER_MODEL,
-            base_url=settings.OLLAMA_BASE_URL,
-            api_key=""
+            api_key=settings.GOOGLE_API_KEY
         )
         
         # Shared context to keep agents on-brand
@@ -20,6 +19,28 @@ class AgentFactory:
             "You ONLY handle Luxe-related queries. NEVER provide information about "
             "cars, real estate, medical advice, or other brands. "
             "If a request is unrelated to Luxe, politely decline."
+        )
+    
+    def create_unified_specialist_agent(self):
+        return Agent(
+            role="Luxe Service Specialist",
+            goal="Resolve customer inquiries by retrieving FAQ info, searching products, and managing orders.",
+            backstory=(
+                f"{self.brand_context} "
+                "You are an expert at using tools to find answers and perform actions. "
+                "CRITICAL: If cancelling an order, return 'CONFIRMATION_REQUIRED: [OrderID]' unless user already confirmed. "
+                "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and Items. "
+                "You MUST also include the customer's email in the details. If they are authenticated (VERIFIED), use the email provided in the prompt. "
+                "Once you have all details, output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' then STOP. "
+                "The JSON MUST include keys: customer_email, customer_name, shipping_address, items (list of {product_name, quantity}). "
+                "Do NOT call 'place_order' until the user explicitly confirms. "
+                "If the user is complaining, collect details and use 'submit_complaint'. "
+            ),
+            tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
+            llm=self.worker_llm,
+            verbose=True,
+            allow_delegation=False,
+            max_iter=5
         )
 
     def create_rag_agent(self):
@@ -48,9 +69,10 @@ class AgentFactory:
                 "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and the list of Items. "
                 "Once you have ALL details, you MUST output 'PLACE_ORDER_SUMMARY: [human-readable summary of the order]' and STOP. "
                 "Do NOT call the 'place_order' tool until the user explicitly replies 'yes' or 'confirm'. "
+                "CRITICAL: When calling 'place_order', you MUST pass the 'user_id' provided in the user_info prompt. "
                 "If the user is complaining, frustrated, or asks to speak with a human/admin, you MUST collect the specific message/complaint details first. "
                 "Once you have a clear complaint, use the 'submit_complaint' tool. "
-                "Use the verified user context (email/name) from the prompt whenever possible."
+                "Use the verified user context (email/name/id) from the prompt whenever possible."
             ),
             tools=[search_products, get_order_details, cancel_order, place_order, submit_complaint],
             llm=self.worker_llm,
@@ -66,7 +88,8 @@ class AgentFactory:
             backstory=(
                 f"{self.brand_context} "
                 "Write concise, warm reply based on gathered info. Ignore 'NOT_APPLICABLE' or 'NO_FAQ_RESULT'. "
-                "CRITICAL: If a tool output contains a 'Reference ID', you MUST include that ID in your final response as proof of submission. "
+                "CRITICAL: If a tool output contains an 'Order ID' or 'Reference ID', you MUST include that exact ID in your final response. "
+                "NEVER invent a Reference ID or Order ID. If the specialist has not provided one, do NOT say the action was successful; instead, report the current status or ask for missing info. "
                 "Output only final text. End with offer to help, unless asking for confirmation."
             ),
             llm=self.worker_llm,

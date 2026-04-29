@@ -119,7 +119,7 @@ async def get_current_user(
     - Valid token → Authenticated UserContext
     - Invalid token → HTTP 401
     """
-    if not auth:
+    if not auth or auth.credentials in ("null", "undefined", ""):
         return UserContext(
             user_id=None,
             email=None,
@@ -148,6 +148,9 @@ async def get_current_user(
         or None
     )
 
+    # Debug: log payload to see if sub is present
+    logger.debug(f"Auth Payload: {payload}")
+    
     return UserContext(
         user_id=payload.get("sub"),
         email=payload.get("email"),

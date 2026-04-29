@@ -32,7 +32,7 @@ def search_products_fn(query: str):
     try:
         with engine.connect() as connection:
             result = connection.execute(
-                text("SELECT name, description, price, category, stock FROM Product WHERE name LIKE :query OR category LIKE :query"),
+                text('SELECT name, description, price, category, stock FROM "Product" WHERE name LIKE :query OR category LIKE :query'),
                 {"query": f"%{query}%"}
             )
             products = [dict(row._mapping) for row in result]
@@ -58,15 +58,15 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
             if order_id:
                 # Security: Even with an ID, we filter by the authenticated email if provided
                 if auth_email:
-                    query = text("SELECT * FROM 'Order' WHERE id = :order_id AND customerEmail = :auth_email")
+                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" = :auth_email')
                     params = {"order_id": order_id, "auth_email": auth_email}
                 else:
-                    query = text("SELECT * FROM 'Order' WHERE id = :order_id")
+                    query = text('SELECT * FROM "Order" WHERE id = :order_id')
                     params = {"order_id": order_id}
             elif email:
                 # If searching by email, we use the provided email but could still check against auth_email
                 target_email = auth_email if auth_email else email
-                query = text("SELECT * FROM 'Order' WHERE customerEmail = :email ORDER BY createdAt DESC LIMIT 1")
+                query = text('SELECT * FROM "Order" WHERE "customerEmail" = :email ORDER BY "createdAt" DESC LIMIT 1')
                 params = {"email": target_email}
             else:
                 return "Please provide either an order ID or an email."
@@ -81,7 +81,7 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
             
             # Fetch items
             items_result = connection.execute(
-                text("SELECT p.name, oi.quantity, oi.price FROM OrderItem oi JOIN Product p ON oi.productId = p.id WHERE oi.orderId = :order_id"),
+                text('SELECT p.name, oi.quantity, oi.price FROM "OrderItem" oi JOIN "Product" p ON oi."productId" = p.id WHERE oi."orderId" = :order_id'),
                 {"order_id": order_dict['id']}
             )
             items = [dict(row._mapping) for row in items_result]
@@ -109,10 +109,10 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
         with engine.connect() as connection:
             # Check status and ownership first
             if auth_email:
-                check_query = text("SELECT status, customerEmail FROM 'Order' WHERE id = :order_id AND customerEmail = :auth_email")
+                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" = :auth_email')
                 params = {"order_id": order_id, "auth_email": auth_email}
             else:
-                check_query = text("SELECT status, customerEmail FROM 'Order' WHERE id = :order_id")
+                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id')
                 params = {"order_id": order_id}
                 
             check = connection.execute(check_query, params).fetchone()
@@ -125,9 +125,9 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
                 return f"Cannot cancel order with status: {check_data['status']}. Only PENDING or PROCESSING orders can be cancelled."
             
             # Update status
-            update_query = text("UPDATE 'Order' SET status = 'CANCELLED' WHERE id = :order_id")
+            update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id')
             if auth_email:
-                update_query = text("UPDATE 'Order' SET status = 'CANCELLED' WHERE id = :order_id AND customerEmail = :auth_email")
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "customerEmail" = :auth_email')
             
             connection.execute(update_query, params)
             connection.commit()
@@ -170,7 +170,7 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
                 qty = item.get('quantity', 1)
 
                 product = connection.execute(
-                    text("SELECT id, price, stock FROM Product WHERE name = :name"),
+                    text('SELECT id, price, stock FROM "Product" WHERE name = :name'),
                     {"name": name}
                 ).fetchone()
 
@@ -194,7 +194,7 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
 
             connection.execute(
                 text("""
-                    INSERT INTO 'Order' (id, total, status, createdAt, updatedAt, customerEmail, customerName, shippingAddress, userId)
+                    INSERT INTO "Order" (id, total, status, "createdAt", "updatedAt", "customerEmail", "customerName", "shippingAddress", "userId")
                     VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id)
                 """),
                 {"id": order_id, "total": total_price, "now": now,
@@ -204,12 +204,12 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
 
             for item_data in order_items_to_create:
                 connection.execute(
-                    text("INSERT INTO OrderItem (id, orderId, productId, quantity, price) VALUES (:id, :orderId, :productId, :quantity, :price)"),
+                    text('INSERT INTO "OrderItem" (id, "orderId", "productId", quantity, price) VALUES (:id, :orderId, :productId, :quantity, :price)'),
                     {"id": item_data['id'], "orderId": order_id, "productId": item_data['productId'],
                      "quantity": item_data['quantity'], "price": item_data['price']}
                 )
                 connection.execute(
-                    text("UPDATE Product SET stock = stock - :qty WHERE id = :pid"),
+                    text('UPDATE "Product" SET stock = stock - :qty WHERE id = :pid'),
                     {"qty": item_data['quantity'], "pid": item_data['productId']}
                 )
 
@@ -248,7 +248,7 @@ def save_chat_message_fn(role: str, content: str, user_name: str = None, user_id
         with engine.begin() as connection:
             connection.execute(
                 text("""
-                    INSERT INTO ChatMessage (id, role, content, userName, userId, promptTokens, completionTokens, totalTokens, createdAt)
+                    INSERT INTO "ChatMessage" (id, role, content, "userName", "userId", "promptTokens", "completionTokens", "totalTokens", "createdAt")
                     VALUES (:id, :role, :content, :user_name, :user_id, :prompt, :comp, :total, :now)
                 """),
                 {
@@ -277,14 +277,14 @@ def get_chat_history_fn(user_id: str = None, user_name: str = None, limit: int =
         with engine.connect() as connection:
             if user_id:
                 # Preferred: exact match on immutable user ID
-                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage WHERE userId = :user_id ORDER BY createdAt DESC LIMIT :limit")
+                query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" WHERE "userId" = :user_id ORDER BY "createdAt" DESC LIMIT :limit')
                 params = {"user_id": user_id, "limit": limit}
             elif user_name:
                 # Fallback: name-based (legacy rows without userId)
-                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage WHERE userName = :user_name ORDER BY createdAt DESC LIMIT :limit")
+                query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" WHERE "userName" = :user_name ORDER BY "createdAt" DESC LIMIT :limit')
                 params = {"user_name": user_name, "limit": limit}
             else:
-                query = text("SELECT role, content, promptTokens, completionTokens, totalTokens, createdAt FROM ChatMessage ORDER BY createdAt DESC LIMIT :limit")
+                query = text('SELECT role, content, "promptTokens", "completionTokens", "totalTokens", "createdAt" FROM "ChatMessage" ORDER BY "createdAt" DESC LIMIT :limit')
                 params = {"limit": limit}
             
             result = connection.execute(query, params)
@@ -330,7 +330,7 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
 
             connection.execute(
                 text("""
-                    INSERT INTO Complaint (id, subject, message, customerName, customerEmail, userId, status, priority, createdAt, updatedAt)
+                    INSERT INTO "Complaint" (id, subject, message, "customerName", "customerEmail", "userId", status, priority, "createdAt", "updatedAt")
                     VALUES (:id, :subject, :message, :name, :email, :user_id, 'OPEN', :priority, :now, :now)
                 """),
                 {

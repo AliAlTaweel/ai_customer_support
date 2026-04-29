@@ -56,7 +56,7 @@ export default function AdminDashboard() {
     async function checkAuth() {
       const authorized = await isAdmin();
       if (!authorized) {
-        router.push("/admin/login");
+        router.push("/");
       } else {
         await Promise.all([fetchOrders(), fetchComplaints()]);
       }
@@ -137,7 +137,7 @@ export default function AdminDashboard() {
 
   const handleLogout = async () => {
     await adminLogout();
-    router.push("/admin/login");
+    router.push("/");
   };
 
   const getStatusColor = (status: string) => {

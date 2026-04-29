@@ -8,6 +8,7 @@ import { CartSheet } from "@/components/shop/CartSheet";
 import Link from "next/link";
 import { NavLinks } from "@/components/layout/NavLinks";
 import ChatInterface from "@/components/chat/ChatInterface";
+import { isAdmin } from "@/lib/actions/admin";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -23,6 +24,7 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const { userId } = await auth();
+  const isUserAdmin = await isAdmin();
 
   return (
     <ClerkProvider>
@@ -44,7 +46,7 @@ export default async function RootLayout({
                 <span className="text-xl font-bold font-outfit tracking-tight">LuxeCatalog</span>
               </div>
               <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1 rounded-full border border-primary/5">
-                <NavLinks userId={userId} />
+                <NavLinks userId={userId} isAdmin={isUserAdmin} />
               </nav>
               <div className="flex items-center gap-4">
                 <div className="hidden sm:flex h-10 px-4 items-center rounded-full bg-secondary text-sm text-muted-foreground mr-2">

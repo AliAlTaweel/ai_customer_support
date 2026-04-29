@@ -4,37 +4,26 @@ import prisma from "@/lib/db";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
-const ADMIN_USERNAME = "admin";
-const ADMIN_PASSWORD = "admin";
-const SESSION_COOKIE = "admin_session";
+const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 
-export async function adminLogin(formData: FormData) {
-  const username = formData.get("username") as string;
-  const password = formData.get("password") as string;
-
-  if (username === ADMIN_USERNAME && password === ADMIN_PASSWORD) {
-    const cookieStore = await cookies();
-    cookieStore.set(SESSION_COOKIE, "true", {
-      httpOnly: true,
-      secure: process.env.NODE_ENV === "production",
-      maxAge: 60 * 60 * 24, // 24 hours
-      path: "/",
-    });
-    return { success: true };
-  }
-
-  return { success: false, error: "Invalid username or password" };
-}
+import { currentUser } from "@clerk/nextjs/server";
 
 export async function adminLogout() {
-  const cookieStore = await cookies();
-  cookieStore.delete(SESSION_COOKIE);
   revalidatePath("/admin");
 }
 
 export async function isAdmin() {
-  const cookieStore = await cookies();
-  return cookieStore.get(SESSION_COOKIE)?.value === "true";
+  try {
+    const user = await currentUser();
+    if (user) {
+      const email = user.emailAddresses[0]?.emailAddress;
+      return email?.toLowerCase() === ADMIN_EMAIL?.toLowerCase();
+    }
+  } catch (error) {
+    console.error("Error checking Clerk user in isAdmin:", error);
+  }
+
+  return false;
 }
 
 export async function getAllOrders() {
@@ -105,15 +94,15 @@ export async function getAllComplaints() {
     });
 
     // Ensure proper serialization for Server Actions
-    return { 
-      success: true, 
-      complaints: JSON.parse(JSON.stringify(complaints)) 
+    return {
+      success: true,
+      complaints: JSON.parse(JSON.stringify(complaints))
     };
   } catch (error: any) {
     console.error("[ADMIN ERROR] Failed to fetch complaints:", error);
-    return { 
-      success: false, 
-      error: `Failed to fetch complaints: ${error.message || "Unknown error"}` 
+    return {
+      success: false,
+      error: `Failed to fetch complaints: ${error.message || "Unknown error"}`
     };
   }
 }

@@ -6,15 +6,17 @@ import { cn } from "@/lib/utils";
 
 interface NavLinksProps {
   userId: string | null;
+  isAdmin?: boolean;
 }
 
-export function NavLinks({ userId }: NavLinksProps) {
+export function NavLinks({ userId, isAdmin }: NavLinksProps) {
   const pathname = usePathname();
 
   const links = [
     { href: "/", label: "Home" },
     { href: "/shop", label: "Shop" },
     ...(userId ? [{ href: "/orders", label: "My Orders" }] : []),
+    ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
     { href: "#", label: "Support" },
   ];
 

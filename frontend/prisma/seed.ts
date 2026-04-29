@@ -1,11 +1,11 @@
+import "dotenv/config";
 import { PrismaClient } from "@prisma/client";
-import { PrismaBetterSqlite3 } from "@prisma/adapter-better-sqlite3";
-import { resolve } from "node:path";
+import { PrismaPg } from "@prisma/adapter-pg";
+import { Pool } from "pg";
 
-// Prisma 7 requires driver adapters. 
-// For better-sqlite3, we pass a config object with the database URL.
-const dbPath = resolve(process.cwd(), "prisma/dev.db");
-const adapter = new PrismaBetterSqlite3({ url: `file:${dbPath}` });
+// Initialize Prisma Client with Driver Adapter (Required for Prisma 7)
+const pool = new Pool({ connectionString: process.env.DATABASE_URL });
+const adapter = new PrismaPg(pool);
 const prisma = new PrismaClient({ adapter });
 
 const products = [

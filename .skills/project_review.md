@@ -120,21 +120,21 @@ Development artifacts (`backup/`, `scratch/`) shouldn't be part of the productio
 
 ```
 🔴 CRITICAL (fix before any real users)
-[ ] Pin all dependencies in requirements.txt
-[ ] Restrict CORS to known origin(s)
-[ ] Add auth middleware (API key or session token)
-[ ] Move crew.kickoff() off the async event loop
-[ ] Add rate limiting
+[x] Pin all dependencies in requirements.txt
+[x] Restrict CORS to known origin(s)
+[x] Add auth middleware (API key or session token)
+[x] Move crew.kickoff() off the async event loop
+[x] Add rate limiting
 
 🟡 IMPORTANT (fix before scaling)
-[ ] Replace SQLite with PostgreSQL
-[ ] Fix concurrent request safety (per-request CrewService or stateless design)
-[ ] Add a proper confirmation state field instead of history-based sentinels
-[ ] Write basic unit tests for tool functions
-[ ] Add .gitignore entries for *.json debug outputs and backup/scratch dirs
+[x] Replace SQLite with PostgreSQL (via Docker Compose)
+[x] Fix concurrent request safety (per-request CrewService or stateless design)
+[x] Add a proper confirmation state field instead of history-based sentinels
+[x] Write basic unit tests for tool functions
+[x] Add .gitignore entries for *.json debug outputs and backup/scratch dirs
 
 🟢 POLISH (good to have)
-[ ] Dockerfile + docker-compose
+[x] Dockerfile + docker-compose
 [ ] Make verbose configurable via env
 [ ] Fix the /history route prefix inconsistency
 [ ] Remove or populate the empty tasks/ module

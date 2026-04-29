@@ -76,8 +76,7 @@ class CrewService:
         # ── Step 1: Routing ────────────────────────────────────────────────
         router_task = TaskFactory.create_router_task(
             agent=router_agent,
-            user_message=user_message,
-            history_str=history_str
+            user_message=user_message
         )
         
         router_crew = Crew(agents=[router_agent], tasks=[router_task], verbose=False)
@@ -116,8 +115,7 @@ class CrewService:
         if any(x in intent for x in ["KNOWLEDGE", "COMPLEX"]):
             rag_task = TaskFactory.create_rag_task(
                 agent=rag_specialist,
-                user_message=user_message,
-                user_info=user_info
+                user_message=user_message
             )
             tasks.append(rag_task)
             context.append(rag_task)

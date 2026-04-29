@@ -1,5 +1,6 @@
 import uvicorn
 import logging
+from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from app.api.endpoints import chat
@@ -13,11 +14,29 @@ logging.basicConfig(
 )
 logger = logging.getLogger(__name__)
 
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # ── Startup: pre-warm FAQ vector store ─────────────────────────────────
+    # This loads the HuggingFace embedding model (~11s) once at boot so the
+    # first real user request is not penalised by the cold start.
+    try:
+        from app.tools.faq_tools import get_vector_store
+        logger.info("Pre-warming FAQ vector store...")
+        get_vector_store()
+        logger.info("FAQ vector store ready.")
+    except Exception as e:
+        logger.warning(f"Could not pre-warm FAQ vector store: {e}")
+    yield
+    # ── Shutdown (nothing to clean up) ─────────────────────────────────────
+
+
 app = FastAPI(
     title=settings.PROJECT_NAME,
     version=settings.VERSION,
     docs_url="/docs",
     redoc_url="/redoc",
+    lifespan=lifespan,
 )
 
 # Enable CORS

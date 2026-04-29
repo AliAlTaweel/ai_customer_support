@@ -3,11 +3,10 @@ from crewai import Task
 
 class TaskFactory:
     @staticmethod
-    def create_router_task(agent, user_message: str, history_str: str) -> Task:
-        """Task to classify the user's intent."""
+    def create_router_task(agent, user_message: str) -> Task:
+        """Task to classify the user's intent. History is intentionally excluded to save tokens."""
         return Task(
             description=(
-                f"Conversation history:\n{history_str}\n"
                 f"Customer message: '{user_message}'\n\n"
                 "Luxe is a retail brand for Home, Electronics, Clothing, and Sports. "
                 "Classify the customer's message into exactly one: GREETING, ORDER, KNOWLEDGE, COMPLAINT, COMPLEX, INVALID. "
@@ -18,11 +17,10 @@ class TaskFactory:
         )
 
     @staticmethod
-    def create_rag_task(agent, user_message: str, user_info: str) -> Task:
-        """Task to retrieve information from the FAQ."""
+    def create_rag_task(agent, user_message: str) -> Task:
+        """Task to retrieve information from the FAQ. user_info excluded — agent only needs the question."""
         return Task(
             description=(
-                f"{user_info}"
                 f"Customer message: '{user_message}'\n\n"
                 "Search the company FAQ for information relevant to this message. "
                 "You MUST call the get_company_faq tool with the customer's question as the argument. "

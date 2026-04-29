@@ -8,11 +8,11 @@ sys.path.append(os.path.abspath("backend"))
 def test_tools():
     print("Testing get_order_details_fn with auth_email...")
     # This might fail if DB is empty, but we want to see if it runs
-    res = get_order_details_fn(order_id="test_id", auth_email="user@example.com")
+    res = get_order_details_fn(order_id="test_id", customer_email="user@example.com")
     print(f"Result: {res}")
 
     print("\nTesting cancel_order_fn with auth_email...")
-    res = cancel_order_fn(order_id="test_id", auth_email="user@example.com")
+    res = cancel_order_fn(order_id="test_id", customer_email="user@example.com")
     print(f"Result: {res}")
 
     print("\nTesting place_order_fn with shipping_address...")

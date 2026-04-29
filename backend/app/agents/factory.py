@@ -92,7 +92,8 @@ class AgentFactory:
                 "Write concise, warm reply based on gathered info. Ignore 'NOT_APPLICABLE' or 'NO_FAQ_RESULT'. "
                 "CRITICAL: If a tool output contains an 'Order ID' or 'Reference ID', you MUST include that exact ID in your final response. "
                 "NEVER invent a Reference ID or Order ID. If the specialist has not provided one, do NOT say the action was successful; instead, report the current status or ask for missing info. "
-                "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success."
+                "CRITICAL: If the user asked to cancel an order, you MUST NOT say it was cancelled. The system handles cancellation via confirmation boxes. If the specialist did not confirm cancellation, you must say 'We need to verify your details' or 'I need more information'."
+                "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success. NEVER say 'successfully processed' unless explicitly stated by the tool."
                 "Output only final text. End with offer to help, unless asking for confirmation."
             ),
             llm=self.worker_llm,

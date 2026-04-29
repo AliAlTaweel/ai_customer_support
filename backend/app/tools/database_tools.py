@@ -66,10 +66,18 @@ def search_products(query: str):
 
 def get_order_details_fn(order_id: str = None, email: str = None, customer_email: str = None):
     """Retrieve order details using order ID or customer email."""
+    # Auto-inject AUTH_EMAIL if available to avoid relying on LLM to pass it correctly
+    mapping = PII_MAPPING.get() or {}
+    auth_email = mapping.get("[AUTH_EMAIL]")
+    
     # GDPR: Detokenize inputs
     order_id = detokenize_val(order_id)
     email = detokenize_val(email)
     customer_email = detokenize_val(customer_email)
+    
+    if auth_email and not customer_email and not email:
+        customer_email = auth_email
+        
     logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}")
     try:
         with engine.connect() as connection:
@@ -174,7 +182,7 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
     Cancel an existing order using its Order ID. 
     'confirmed' MUST be set to True to execute the cancellation. 
     ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
-    If 'auth_email' is provided, it must match the order's customer email.
+    If 'customer_email' is provided, it must match the order's customer email.
     Only orders with PENDING or PROCESSING status can be cancelled.
     """
     if not confirmed:

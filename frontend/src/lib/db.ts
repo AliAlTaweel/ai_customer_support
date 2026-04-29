@@ -18,6 +18,7 @@ const prismaClientSingleton = () => {
   } else {
     console.log("[PRISMA DEBUG] Initializing PrismaClient with SQLite adapter...");
     const dbPath = path.join(process.cwd(), "prisma/dev.db");
+    // eslint-disable-next-line @typescript-eslint/no-explicit-any
     const AdapterClass = (PrismaBetterSqlite3 as any).default || PrismaBetterSqlite3;
     const adapter = new AdapterClass({ url: `file:${dbPath}` });
     return new PrismaClient({ adapter });

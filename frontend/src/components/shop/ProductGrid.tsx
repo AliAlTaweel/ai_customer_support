@@ -24,7 +24,7 @@ export function ProductGrid({ products }: ProductGridProps) {
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 border-2 border-dashed rounded-3xl bg-secondary/10">
         <h3 className="text-xl font-semibold mb-2">No products found</h3>
         <p className="text-muted-foreground max-w-xs">
-          Try adjusting your filters to find what you're looking for.
+          Try adjusting your filters to find what you&apos;re looking for.
         </p>
       </div>
     );

@@ -41,7 +41,7 @@ def test_cross_user_access(order_a_id, order_b_id):
     
     # 1. User A tries to view User B's order
     print(f"User A (user_a@example.com) attempting to view Order B ({order_b_id})...")
-    result = get_order_details_fn(order_id=order_b_id, auth_email="user_a@example.com")
+    result = get_order_details_fn(order_id=order_b_id, customer_email="user_a@example.com")
     print(f"Result: {result}")
     if "Order not found or you do not have permission" not in result:
         raise AssertionError(f"Expected permission error, got: {result}")
@@ -49,7 +49,7 @@ def test_cross_user_access(order_a_id, order_b_id):
 
     # 2. User A tries to cancel User B's order
     print(f"User A (user_a@example.com) attempting to cancel Order B ({order_b_id})...")
-    result = cancel_order_fn(order_id=order_b_id, auth_email="user_a@example.com")
+    result = cancel_order_fn(order_id=order_b_id, customer_email="user_a@example.com")
     print(f"Result: {result}")
     if "Order not found or you do not have permission" not in result:
         raise AssertionError(f"Expected permission error, got: {result}")
@@ -57,7 +57,7 @@ def test_cross_user_access(order_a_id, order_b_id):
 
     # 3. User B tries to view User B's order (Authorized)
     print(f"User B (user_b@example.com) attempting to view Order B ({order_b_id})...")
-    result = get_order_details_fn(order_id=order_b_id, auth_email="user_b@example.com")
+    result = get_order_details_fn(order_id=order_b_id, customer_email="user_b@example.com")
     if order_b_id not in result:
         raise AssertionError(f"Expected to see order details, got: {result}")
     print("✅ PASS: User B can view their own order.")

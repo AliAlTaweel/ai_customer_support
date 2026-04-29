@@ -7,6 +7,8 @@ import { Button } from "@/components/ui/button";
 import { ConversationState } from "@/lib/ai/types";
 import { useUser, useAuth } from "@clerk/nextjs";
 
+import ReactMarkdown from "react-markdown";
+
 interface Message {
   role: "user" | "assistant";
   content: string;
@@ -63,7 +65,7 @@ export default function ChatInterface() {
       }
     };
     fetchHistory();
-  }, [user?.firstName]);
+  }, [user?.firstName, getToken, API_URL]);
 
   // Add a dynamic greeting message when the chat opens for the first time
   useEffect(() => {
@@ -108,7 +110,7 @@ export default function ChatInterface() {
       }
     };
     fetchGreeting();
-  }, [isOpen, hasGreeted, user?.firstName, messages.length]);
+  }, [isOpen, hasGreeted, user?.firstName, user?.id, messages.length, getToken, API_URL]);
 
   const handleSend = async (overrideMsg?: string) => {
     const userMsg = overrideMsg || input.trim();
@@ -157,9 +159,9 @@ export default function ChatInterface() {
         usage: data.usage 
       }]);
       setState(data.state);
-    } catch (error: any) {
+    } catch (error: unknown) {
       console.error("Chat error:", error);
-      const errorMessage = error.message === "QUOTA_EXCEEDED" 
+      const errorMessage = (error instanceof Error && error.message === "QUOTA_EXCEEDED") 
         ? "I'm sorry, but I've reached my message limit for now. Please try again in a few minutes."
         : "I'm sorry, I'm having trouble connecting right now. Please try again later.";
         
@@ -196,23 +198,23 @@ export default function ChatInterface() {
               opacity: 1, 
               y: 0, 
               scale: 1,
-              height: isMinimized ? "auto" : "550px",
-              width: "400px"
+              height: isMinimized ? "auto" : "600px",
+              width: "420px"
             }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="bg-background border border-primary/10 shadow-2xl rounded-[2rem] overflow-hidden flex flex-col"
+            className="bg-background border border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden flex flex-col"
           >
             {/* Header */}
-            <div className="relative p-4 bg-primary text-primary-foreground flex items-center justify-between">
+            <div className="relative p-5 bg-primary text-primary-foreground flex items-center justify-between">
               <div className="flex items-center gap-3">
-                <div className="w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm">
+                <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
                   <Bot className="w-6 h-6" />
                 </div>
                 <div>
-                  <h3 className="font-bold text-sm font-outfit">Luxe Assistant</h3>
+                  <h3 className="font-bold text-base font-outfit tracking-tight">Luxe Assistant</h3>
                   <div className="flex items-center gap-1.5">
-                    <div className="w-1.5 h-1.5 rounded-full bg-green-400 animate-pulse" />
-                    <span className="text-[10px] opacity-80 uppercase tracking-widest font-bold">Online</span>
+                    <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
+                    <span className="text-[10px] opacity-90 uppercase tracking-widest font-extrabold">Online Now</span>
                   </div>
                 </div>
               </div>
@@ -220,7 +222,7 @@ export default function ChatInterface() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-white/10 text-primary-foreground"
+                  className="hover:bg-white/10 text-primary-foreground h-9 w-9 rounded-xl"
                   title="Contact Support/Admin"
                   onClick={() => setIsComplaintModalOpen(true)}
                 >
@@ -229,7 +231,7 @@ export default function ChatInterface() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-white/10 text-primary-foreground"
+                  className="hover:bg-white/10 text-primary-foreground h-9 w-9 rounded-xl"
                   onClick={() => setIsMinimized(!isMinimized)}
                 >
                   {isMinimized ? <Maximize2 className="w-4 h-4" /> : <Minimize2 className="w-4 h-4" />}
@@ -237,7 +239,7 @@ export default function ChatInterface() {
                 <Button 
                   variant="ghost" 
                   size="icon" 
-                  className="hover:bg-white/10 text-primary-foreground"
+                  className="hover:bg-white/10 text-primary-foreground h-9 w-9 rounded-xl"
                   onClick={() => setIsOpen(false)}
                 >
                   <X className="w-4 h-4" />
@@ -250,17 +252,19 @@ export default function ChatInterface() {
                 {/* Chat Messages */}
                 <div 
                   ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-4 space-y-4 bg-secondary/5 scrollbar-hide"
+                  className="flex-1 overflow-y-auto p-5 space-y-6 bg-secondary/5 scrollbar-hide"
                 >
                   {messages.length === 0 && (
-                    <div className="text-center py-8 space-y-3">
-                      <div className="w-16 h-16 rounded-3xl bg-primary/10 flex items-center justify-center mx-auto">
-                        <Bot className="w-8 h-8 text-primary" />
+                    <div className="text-center py-12 space-y-4">
+                      <div className="w-20 h-20 rounded-[2.5rem] bg-primary/10 flex items-center justify-center mx-auto shadow-sm">
+                        <Bot className="w-10 h-10 text-primary" />
                       </div>
-                      <h4 className="font-bold font-outfit text-lg">How can I help?</h4>
-                      <p className="text-sm text-muted-foreground px-8">
-                        Ask me about current products, order tracking, or cancellations.
-                      </p>
+                      <div className="space-y-2">
+                        <h4 className="font-bold font-outfit text-xl">How can I help you?</h4>
+                        <p className="text-sm text-muted-foreground px-10 leading-relaxed font-outfit">
+                          Ask me about current products, order tracking, or cancellations. I&apos;m here to assist you!
+                        </p>
+                      </div>
                     </div>
                   )}
 
@@ -269,18 +273,37 @@ export default function ChatInterface() {
                       key={i} 
                       className={`flex ${msg.role === "user" ? "justify-end" : "justify-start"}`}
                     >
-                      <div className={`flex gap-2 max-w-[85%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
-                        <div className={`w-8 h-8 rounded-lg flex items-center justify-center flex-shrink-0 ${msg.role === "user" ? "bg-secondary" : "bg-primary text-primary-foreground"}`}>
-                          {msg.role === "user" ? <User className="w-4 h-4" /> : <Bot className="w-4 h-4" />}
+                      <div className={`flex gap-3 max-w-[88%] ${msg.role === "user" ? "flex-row-reverse" : "flex-row"}`}>
+                        <div className={`w-9 h-9 rounded-xl flex items-center justify-center flex-shrink-0 shadow-sm ${msg.role === "user" ? "bg-secondary text-secondary-foreground" : "bg-primary text-primary-foreground"}`}>
+                          {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                         </div>
-                        <div className={`flex flex-col gap-1 ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                          <div className={`p-3 rounded-2xl text-sm leading-relaxed ${msg.role === "user" ? "bg-primary text-primary-foreground rounded-tr-none" : "bg-background border border-primary/5 rounded-tl-none shadow-sm"}`}>
-                            {msg.content}
+                        <div className={`flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"}`}>
+                          <div className={`p-4 rounded-[1.5rem] text-[0.95rem] leading-[1.6] shadow-sm transition-all duration-300 hover:shadow-md ${
+                            msg.role === "user" 
+                              ? "bg-primary text-primary-foreground rounded-tr-none font-sans" 
+                              : "bg-background border border-primary/5 rounded-tl-none font-outfit text-foreground/90"
+                          }`}>
+                            {msg.role === "assistant" ? (
+                              <div className="prose prose-sm dark:prose-invert max-w-none 
+                                prose-p:leading-relaxed prose-p:my-1 
+                                prose-strong:text-primary prose-strong:font-bold
+                                prose-ul:my-2 prose-li:my-0.5
+                                prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-primary">
+                                <ReactMarkdown>
+                                  {msg.content}
+                                </ReactMarkdown>
+                              </div>
+                            ) : (
+                              msg.content
+                            )}
                           </div>
                           {msg.usage && (
-                            <div className="flex gap-2 px-1 opacity-50 text-[9px] uppercase tracking-tighter font-bold">
+                            <div className="flex gap-2 px-2 opacity-40 text-[9px] uppercase tracking-tighter font-bold">
                               <span>Tokens: {msg.usage.total_tokens}</span>
-                              <span>(In: {msg.usage.prompt_tokens} | Out: {msg.usage.completion_tokens})</span>
+                              <span className="opacity-50">|</span>
+                              <span>In: {msg.usage.prompt_tokens}</span>
+                              <span className="opacity-50">|</span>
+                              <span>Out: {msg.usage.completion_tokens}</span>
                             </div>
                           )}
                         </div>
@@ -428,7 +451,7 @@ export default function ChatInterface() {
                 </AnimatePresence>
 
                 {/* Input Area */}
-                <div className="p-4 border-t border-primary/5 bg-background">
+                <div className="p-5 border-t border-primary/5 bg-background">
                   <div className="relative group">
                     <input
                       type="text"
@@ -436,18 +459,18 @@ export default function ChatInterface() {
                       value={input}
                       onChange={(e) => setInput(e.target.value)}
                       onKeyDown={(e) => e.key === "Enter" && handleSend()}
-                      className="w-full h-12 bg-secondary/30 rounded-2xl pl-4 pr-12 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border border-transparent group-hover:border-primary/10"
+                      className="w-full h-13 bg-secondary/30 rounded-2xl pl-5 pr-14 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 transition-all border border-transparent group-hover:border-primary/10 font-outfit"
                     />
                     <button 
                       onClick={() => handleSend()}
                       disabled={!input.trim() || isLoading}
-                      className="absolute right-2 top-1.5 w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100"
+                      className="absolute right-2 top-2 w-9 h-9 rounded-xl bg-primary text-primary-foreground flex items-center justify-center hover:scale-105 active:scale-95 transition-all disabled:opacity-50 disabled:scale-100 shadow-lg shadow-primary/20"
                     >
                       <Send className="w-4 h-4" />
                     </button>
                   </div>
-                  <p className="text-[10px] text-center mt-3 text-muted-foreground uppercase tracking-widest font-medium">
-                    Powered by Luxe Intelligence
+                  <p className="text-[9px] text-center mt-3 text-muted-foreground uppercase tracking-[0.2em] font-bold opacity-60">
+                    Luxe Intelligence Engine
                   </p>
                 </div>
               </div>

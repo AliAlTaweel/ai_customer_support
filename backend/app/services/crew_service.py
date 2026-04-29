@@ -34,7 +34,7 @@ class CrewService:
             logger.info(f"Ultra-fast-tracking order cancellation for order: {pending_order}")
             result = cancel_order_fn(
                 pending_order, 
-                auth_email="[AUTH_EMAIL]" if is_auth else None,
+                customer_email="[AUTH_EMAIL]" if is_auth else None,
                 user_id=user_id if is_auth else None
             )
             return {
@@ -115,6 +115,16 @@ class CrewService:
         # 1. Known simple greetings
         if clean_msg in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]:
             return self.get_greeting(user_name or "there")
+
+        # 1.5 Fast-Track explicit cancellations to avoid LLM hallucination and reduce latency
+        cancel_match = re.search(r"cancel\s+(?:this\s+)?order\s+([a-f0-9\-]{36})", clean_msg)
+        if cancel_match:
+            order_id = cancel_match.group(1)
+            # Before fast-tracking, optionally check if order is already cancelled to prevent confusing UI, 
+            # but we can rely on cancel_order_fn in the NEXT step to reject it if it's not pending.
+            # So just return the confirmation requirement directly.
+            final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
+            return {"result": final_message, "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}, "state_update": {"pending_confirmation": order_id}}
 
         # 2. Gatekeeper: Catch extremely short or single-character noise
         if len(clean_msg) < 2:

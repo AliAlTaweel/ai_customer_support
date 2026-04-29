@@ -1,9 +1,23 @@
 import re
 from typing import Optional, Dict
 from contextvars import ContextVar
+import logging
+
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+logger = logging.getLogger(__name__)
 
 # ContextVar to store PII mapping for the current request/thread
 PII_MAPPING: ContextVar[Dict[str, str]] = ContextVar("pii_mapping", default={})
+
+try:
+    analyzer = AnalyzerEngine()
+    anonymizer = AnonymizerEngine()
+except Exception as e:
+    logger.error(f"Failed to initialize Presidio: {e}")
+    analyzer = None
+    anonymizer = None
 
 class PrivacyScrubber:
     """
@@ -50,21 +64,35 @@ class PrivacyScrubber:
         mapping = {}
         scrubbed = text
         
-        # 1. Pseudonymize Emails
-        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', text)
+        if analyzer:
+            try:
+                results = analyzer.analyze(text=scrubbed, language='en')
+                sorted_results = sorted(results, key=lambda x: x.start, reverse=True)
+                counts = {}
+                for result in sorted_results:
+                    entity_type = result.entity_type
+                    if entity_type in ['DATE_TIME', 'NRP']:
+                        continue
+                    counts[entity_type] = counts.get(entity_type, 0) + 1
+                    token = f"[{entity_type}_{counts[entity_type]}]"
+                    original_value = scrubbed[result.start:result.end]
+                    mapping[token] = original_value
+                    scrubbed = scrubbed[:result.start] + token + scrubbed[result.end:]
+            except Exception as e:
+                logger.error(f"Presidio error: {e}")
+        
+        # 1. Pseudonymize Emails (Fallback/Regex)
+        emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', scrubbed)
         for i, email in enumerate(emails):
-            token = f"[EMAIL_{i}]"
+            token = f"[EMAIL_REGEX_{i}]"
             mapping[token] = email
             scrubbed = scrubbed.replace(email, token)
             
-        # 2. Pseudonymize Phone Numbers
-        phones = re.findall(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,6}', scrubbed)
-        # findall might return tuples if there are groups, we want the whole match
-        # Let's use finditer for better control
+        # 2. Pseudonymize Phone Numbers (Fallback/Regex)
         phone_matches = list(re.finditer(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,6}', scrubbed))
         for i, match in enumerate(phone_matches):
             phone = match.group(0)
-            token = f"[PHONE_{i}]"
+            token = f"[PHONE_REGEX_{i}]"
             mapping[token] = phone
             scrubbed = scrubbed.replace(phone, token)
             

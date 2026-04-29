@@ -12,26 +12,22 @@ The LLM should never receive raw Personally Identifiable Information (PII). Inst
 ## 2. Implementation Architecture
 
 ### A. The `PrivacyScrubber` Utility
-Create a centralized utility in `app/core/privacy.py` to handle all masking logic.
+Create a centralized utility in `app/core/privacy.py` to handle all masking logic. It uses Microsoft Presidio for advanced NLP entity recognition and Regex as a fallback.
 
 ```python
-import re
+import logging
+from presidio_analyzer import AnalyzerEngine
+from presidio_anonymizer import AnonymizerEngine
+
+analyzer = AnalyzerEngine()
+anonymizer = AnonymizerEngine()
 
 class PrivacyScrubber:
     @staticmethod
-    def mask_email(email: str) -> str:
-        if not email or "@" not in email: return email
-        parts = email.split("@")
-        return f"{parts[0][:2]}***@{parts[1]}"
-
-    @staticmethod
-    def mask_name(name: str) -> str:
-        return "[CUSTOMER_NAME]" if name else "Customer"
-
-    @staticmethod
-    def mask_address(address: str) -> str:
-        # Keep only City/Country if possible, or fully redact
-        return "[REDACTED_SHIPPING_ADDRESS]"
+    def pseudonymize_text(text: str) -> tuple[str, dict]:
+        # Uses Presidio NLP to catch Names and Locations, 
+        # plus Regex fallback for Emails and Phones.
+        pass
 ```
 
 ### B. Integration in `CrewService`

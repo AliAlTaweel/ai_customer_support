@@ -66,6 +66,7 @@ The design is clean and demonstrates real architectural intent: run only what is
 - Legacy `test-key-ali` hardcoded bypass still exists — must be removed before any production deployment.
 
 ### 3.3 `app/services/crew_service.py` ✅ Strong
+- **Data Privacy:** Uses `PrivacyScrubber.pseudonymize_text()` (backed by Microsoft Presidio) to mask all PII before sending it to the LLM.
 - **Fast-track layer** is well-implemented: greetings, noise, and pending confirmations all bypass the LLM entirely (0 tokens).
 - History truncation to last 4 turns is smart; avoids context bloat.
 - Conditional agent/task instantiation (only spin up what the router says is needed) is a clean optimization.
@@ -166,6 +167,7 @@ The design is clean and demonstrates real architectural intent: run only what is
 | SQL injection | ✅ Safe | All queries use SQLAlchemy bound parameters |
 | Cross-user chat history | ✅ Fixed | Filtered by `userId` properly |
 | Transactional integrity | ✅ Fixed | `place_order` wrapped in `engine.begin()` |
+| GDPR PII Scrubbing | ✅ Secured | Presidio NLP used to mask Names and Addresses |
 
 ---
 

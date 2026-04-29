@@ -14,7 +14,12 @@ def detokenize_val(val: Any) -> Any:
     """Helper to detokenize a value using the current request context mapping."""
     if isinstance(val, str):
         mapping = PII_MAPPING.get()
-        return PrivacyScrubber.detokenize(val, mapping)
+        if not mapping:
+            logger.debug(f"Detokenization mapping is empty for value: {val}")
+        detokenized = PrivacyScrubber.detokenize(val, mapping)
+        if detokenized != val:
+            logger.debug(f"Detokenized value: {val} -> [REDACTED]")
+        return detokenized
     return val
 
 # Initialize engine
@@ -36,6 +41,7 @@ engine = create_engine(DATABASE_URL)
 
 def search_products_fn(query: str):
     """Search for products by name, description, or category."""
+    logger.info(f"Searching products with query: {query}")
     try:
         with engine.connect() as connection:
             result = connection.execute(
@@ -58,18 +64,19 @@ def search_products(query: str):
     """
     return search_products_fn(query)
 
-def get_order_details_fn(order_id: str = None, email: str = None, auth_email: str = None):
+def get_order_details_fn(order_id: str = None, email: str = None, customer_email: str = None):
     """Retrieve order details using order ID or customer email."""
     # GDPR: Detokenize inputs
     order_id = detokenize_val(order_id)
     email = detokenize_val(email)
-    auth_email = detokenize_val(auth_email)
+    customer_email = detokenize_val(customer_email)
+    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}")
     try:
         with engine.connect() as connection:
             if order_id:
                 # Security: Even with an ID, we filter by the authenticated email if provided.
                 # If guest, we STILL require an 'email' to match the order.
-                target_filter_email = auth_email or email
+                target_filter_email = customer_email or email
                 
                 if target_filter_email:
                     query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :email')
@@ -77,9 +84,9 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
                 else:
                     # If NO email is provided at all, we reject the lookup for security (prevents order scraping)
                     return "For security reasons, please provide the email address associated with the order."
-            elif auth_email or email:
+            elif customer_email or email:
                 # If searching by email only, we use the provided email
-                target_email = auth_email or email
+                target_email = customer_email or email
                 query = text('SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email ORDER BY "createdAt" DESC LIMIT 1')
                 params = {"email": target_email}
             else:
@@ -110,32 +117,32 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
         return f"Error retrieving order: {str(e)}"
 
 @tool("get_order_details")
-def get_order_details(order_id: str = None, email: str = None, auth_email: str = None):
+def get_order_details(order_id: str = None, email: str = None, customer_email: str = None):
     """
     Retrieve order details using order ID or customer email.
-    If 'auth_email' is provided, results are strictly filtered to that user.
+    If 'customer_email' is provided, results are strictly filtered to that user.
     """
-    return get_order_details_fn(order_id, email, auth_email)
+    return get_order_details_fn(order_id, email, customer_email)
 
-def cancel_order_fn(order_id: str, auth_email: str = None):
+def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = None):
     """Cancel an order given its ID. Only PENDING or PROCESSING orders can be cancelled."""
     # GDPR: Detokenize inputs
     order_id = detokenize_val(order_id)
-    auth_email = detokenize_val(auth_email)
+    customer_email = detokenize_val(customer_email)
+    logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id})")
     try:
         with engine.connect() as connection:
-            # Check status and ownership first
-            target_auth_email = auth_email
-            
-            # If the agent didn't pass auth_email but the user is in the system, 
-            # we check if we have an email at all to verify ownership.
-            if not target_auth_email:
-                return "Error: Ownership verification required. Please provide the customer email associated with the order to proceed with cancellation."
+            # Ownership check: must match either email OR user_id
+            if user_id:
+                check_query = text('SELECT status FROM "Order" WHERE id = :order_id AND "userId" = :user_id')
+                params = {"order_id": order_id, "user_id": user_id}
+            elif customer_email:
+                check_query = text('SELECT status FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :customer_email')
+                params = {"order_id": order_id, "customer_email": customer_email}
+            else:
+                logger.warning(f"Order cancellation ownership check failed: no credentials provided for order {order_id}")
+                return "Error: Ownership verification required. For security, please provide the email address associated with this order to proceed with cancellation."
 
-            # Use ILIKE for case-insensitive email comparison in PostgreSQL
-            check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
-            params = {"order_id": order_id, "auth_email": target_auth_email}
-                
             check = connection.execute(check_query, params).fetchone()
             
             if not check:
@@ -149,8 +156,10 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
             
             # Update status
             update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id')
-            if auth_email:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
+            if user_id:
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "userId" = :user_id')
+            elif customer_email:
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "customerEmail" ILIKE :customer_email')
             
             connection.execute(update_query, params)
             connection.commit()
@@ -160,7 +169,7 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
         return f"Error cancelling order: {str(e)}"
 
 @tool("cancel_order")
-def cancel_order(order_id: str, confirmed: bool = False, auth_email: str = None):
+def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = None):
     """
     Cancel an existing order using its Order ID. 
     'confirmed' MUST be set to True to execute the cancellation. 
@@ -169,9 +178,9 @@ def cancel_order(order_id: str, confirmed: bool = False, auth_email: str = None)
     Only orders with PENDING or PROCESSING status can be cancelled.
     """
     if not confirmed:
-        return f"CANCELLATION NOT EXECUTED: You must ask for confirmation first by returning 'CONFIRMATION_REQUIRED: {order_id}'. Do NOT call this tool with confirmed=False."
+        return f"CONFIRMATION_REQUIRED: {order_id}"
     
-    return cancel_order_fn(order_id, auth_email)
+    return cancel_order_fn(order_id, customer_email)
 
 def place_order_fn(customer_email: str, customer_name: str, items: list, shipping_address: str, user_id: str = None):
     """
@@ -360,6 +369,7 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
     message = detokenize_val(message)
     customer_name = detokenize_val(customer_name)
     customer_email = detokenize_val(customer_email)
+    logger.info(f"Submitting complaint: '{subject}' from {customer_name}")
 
     try:
         with engine.begin() as connection:

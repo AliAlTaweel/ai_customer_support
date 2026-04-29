@@ -114,6 +114,9 @@ class PrivacyScrubber:
                     scrubbed = scrubbed.replace(addr, token)
                     addr_count += 1
             
+        if mapping:
+            logger.info(f"Pseudonymization complete. Tokens created: {list(mapping.keys())}")
+            
         return scrubbed, mapping
 
     @staticmethod

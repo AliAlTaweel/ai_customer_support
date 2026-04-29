@@ -9,7 +9,8 @@ class AgentFactory:
         # Worker LLM — used by all three specialist agents
         self.worker_llm = LLM(
             model=settings.WORKER_MODEL,
-            api_key=settings.GOOGLE_API_KEY
+            api_key=settings.GOOGLE_API_KEY,
+            temperature=1.0
         )
         
         # Shared context to keep agents on-brand
@@ -24,20 +25,22 @@ class AgentFactory:
     def create_unified_specialist_agent(self):
         return Agent(
             role="Luxe Service Specialist",
-            goal="Resolve customer inquiries by retrieving FAQ info, searching products, and managing orders.",
+            goal="Resolve customer inquiries by retrieving FAQ info, searching products, and managing order status.",
             backstory=(
                 f"{self.brand_context} "
-                "You are an expert at using tools to find answers and perform actions. "
-                "CRITICAL: If a user asks to cancel an order, you MUST FIRST output 'CONFIRMATION_REQUIRED: [OrderID]' to ask for their final confirmation. "
-                "You are FORBIDDEN from calling the 'cancel_order' tool until the user has explicitly replied 'yes' or 'confirm' to a PREVIOUS message from you asking for confirmation. "
-                "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and Items. "
-                "You MUST also include the customer's email in the details. If they are authenticated (VERIFIED), use the email provided in the prompt. "
+                "You are an expert at using tools to find answers and verify order status. "
+                "CRITICAL: If a user asks to cancel an order, you MUST retrieve its details using 'get_order_details' first. "
+                "If the order is PENDING or PROCESSING, you MUST output exactly 'CONFIRMATION_REQUIRED: [OrderID]' to trigger the confirmation flow. "
+                "You do NOT have a tool to cancel orders directly; you MUST use the signal. "
+                "CRITICAL: When a user wants to place a new order, you MUST collect: Full Name, Shipping Address, and Items. "
+                "You MUST also include the customer's email. If they are authenticated (VERIFIED), use the email provided in the prompt. "
                 "Once you have all details, output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' then STOP. "
                 "The JSON MUST include keys: customer_email, customer_name, shipping_address, items (list of {product_name, quantity}). "
-                "Do NOT call 'place_order' until the user explicitly confirms. "
+                "You do NOT have a tool to place orders directly; the system will handle it once you output the summary and the user confirms. "
                 "If the user is complaining, collect details and use 'submit_complaint'. "
+                "CRITICAL: NEVER claim success for an action (placement/cancellation) unless the system (not you) has processed it. Your job for orders is ONLY to verify status and generate signals."
             ),
-            tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
+            tools=[get_company_faq, search_products, get_order_details, submit_complaint],
             llm=self.worker_llm,
             verbose=True,
             allow_delegation=False,
@@ -62,20 +65,18 @@ class AgentFactory:
     def create_order_agent(self):
         return Agent(
             role="Transactional Operations Specialist",
-            goal="Execute DB operations for Luxe orders/products or handle complaints.",
+            goal="Manage Luxe order status and handle complaints.",
             backstory=(
                 f"{self.brand_context} "
-                "Use tools to interact with DB. Provide raw summaries. "
-                "CRITICAL: If cancelling an order, return 'CONFIRMATION_REQUIRED: [OrderID]' unless user already confirmed. "
+                "Use tools to verify order status. "
+                "CRITICAL: If a user asks to cancel an order, retrieve details first. If eligible, return 'CONFIRMATION_REQUIRED: [OrderID]'. "
+                "You do NOT have a tool to cancel orders directly. "
                 "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and the list of Items. "
-                "Once you have ALL details, you MUST output 'PLACE_ORDER_SUMMARY: [human-readable summary of the order]' and STOP. "
-                "Do NOT call the 'place_order' tool until the user explicitly replies 'yes' or 'confirm'. "
-                "CRITICAL: When calling 'place_order', you MUST pass the 'user_id' provided in the user_info prompt. "
-                "If the user is complaining, frustrated, or asks to speak with a human/admin, you MUST collect the specific message/complaint details first. "
-                "Once you have a clear complaint, use the 'submit_complaint' tool. "
-                "Use the verified user context (email/name/id) from the prompt whenever possible."
+                "Once you have ALL details, you MUST output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' and STOP. "
+                "You do NOT have a tool to place orders directly. "
+                "If the user is complaining, use the 'submit_complaint' tool after gathering details."
             ),
-            tools=[search_products, get_order_details, cancel_order, place_order, submit_complaint],
+            tools=[search_products, get_order_details, submit_complaint],
             llm=self.worker_llm,
             verbose=True,
             allow_delegation=False,
@@ -91,6 +92,7 @@ class AgentFactory:
                 "Write concise, warm reply based on gathered info. Ignore 'NOT_APPLICABLE' or 'NO_FAQ_RESULT'. "
                 "CRITICAL: If a tool output contains an 'Order ID' or 'Reference ID', you MUST include that exact ID in your final response. "
                 "NEVER invent a Reference ID or Order ID. If the specialist has not provided one, do NOT say the action was successful; instead, report the current status or ask for missing info. "
+                "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success."
                 "Output only final text. End with offer to help, unless asking for confirmation."
             ),
             llm=self.worker_llm,

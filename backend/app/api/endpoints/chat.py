@@ -121,7 +121,12 @@ async def chat(
         
         # Merge state updates if any
         if request.state:
-            new_state.update({k: v for k, v in request.state.items() if k not in new_state})
+            # Exclude transient keys that should only persist if explicitly returned by the service
+            transient_keys = ["pending_confirmation", "pending_order_summary", "pending_order_details"]
+            new_state.update({
+                k: v for k, v in request.state.items() 
+                if k not in new_state and k not in transient_keys
+            })
         new_state.update(state_update)
         
         return ChatResponse(message=final_message, state=new_state, usage=usage_data)

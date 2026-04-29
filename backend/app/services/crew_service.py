@@ -18,8 +18,71 @@ class CrewService:
         from litellm import completion
         state = state or {}
         
+        logger.info(f"Kickoff chat request received. User ID: {user_id}, Authenticated: {user_context.is_authenticated if user_context else False}")
+        
+        # ── SUPER FAST TRACK: Immediate Confirmation Handling ────────────────
+        # We check this BEFORE PII scrubbing and LLM routing to minimize latency (<100ms).
+        clean_msg = user_message.lower().strip().strip('?!.')
+        
+        # Confirmation for order cancellation
+        pending_order = state.get("pending_confirmation")
+        if pending_order and clean_msg in ["yes", "y", "confirm", "sure", "do it"]:
+            from app.tools.database_tools import cancel_order_fn
+            is_auth = user_context and getattr(user_context, 'is_authenticated', False)
+            
+            # Use userId for ownership check if authenticated, fall back to email token
+            logger.info(f"Ultra-fast-tracking order cancellation for order: {pending_order}")
+            result = cancel_order_fn(
+                pending_order, 
+                auth_email="[AUTH_EMAIL]" if is_auth else None,
+                user_id=user_id if is_auth else None
+            )
+            return {
+                "result": result, 
+                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}, 
+                "state_update": {"pending_confirmation": None}
+            }
+        
+        # Confirmation for order placement
+        pending_details = state.get("pending_order_details")
+        if pending_details and clean_msg in ["yes", "y", "confirm", "sure", "do it", "place order"]:
+            from app.tools.database_tools import place_order_fn
+            try:
+                # Ensure identity is attached
+                if "user_id" not in pending_details:
+                    pending_details["user_id"] = user_id
+                
+                if user_context and getattr(user_context, 'is_authenticated', False):
+                    pending_details["customer_email"] = user_context.email
+                
+                logger.info(f"Ultra-fast-tracking order placement for user {user_id}")
+                result = place_order_fn(**pending_details)
+                
+                return {
+                    "result": result, 
+                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}, 
+                    "state_update": {"pending_order_details": None, "pending_order_summary": None}
+                }
+            except Exception as e:
+                logger.error(f"Error in ultra-fast-track order placement: {e}")
+                state["pending_order_details"] = None # Clear to prevent loops
+        
+        # Abort confirmation
+        if (pending_order or pending_details) and clean_msg in ["no", "n", "cancel", "stop", "nevermind"]:
+            logger.info(f"User aborted pending action.")
+            return {
+                "result": "No problem. I've cancelled that action. What else can I help you with?", 
+                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}, 
+                "state_update": {"pending_confirmation": None, "pending_order_details": None, "pending_order_summary": None}
+            }
+
         # GDPR: Pseudonymize raw user input to protect PII from third-party LLM
         scrubbed_message, pii_mapping = PrivacyScrubber.pseudonymize_text(user_message)
+        
+        # GDPR: Merge mapping from state to allow detokenizing tokens from previous turns
+        old_mapping = state.get("pii_mapping", {})
+        pii_mapping.update(old_mapping)
+        
         state["pii_mapping"] = pii_mapping  # Store for state management
         
         # GDPR: Mask sensitive info from session before sending to LLM
@@ -46,58 +109,8 @@ class CrewService:
         if user_id:
             user_info += f"CRITICAL: When placing an order, ALWAYS pass the 'user_id' ({user_id}) to the place_order tool.\n"
             if user_context and getattr(user_context, 'is_authenticated', False):
-                user_info += "CRITICAL: Since user is authenticated, you MUST pass the [AUTH_EMAIL] token to the 'auth_email' parameter of the place_order tool.\n"
+                user_info += "CRITICAL: Since user is authenticated, you MUST pass the [AUTH_EMAIL] token to the 'customer_email' parameter of the place_order tool.\n"
         
-        # ── Fast Track: Regex check for extremely simple greetings ──────────
-        clean_msg = scrubbed_message.lower().strip().strip('?!.')
-        
-        # 0. Fast Track: Pending Confirmation
-        pending_order = state.get("pending_confirmation")
-        if pending_order:
-            zero_usage = {
-                "total_tokens": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "successful_requests": 0,
-            }
-            if clean_msg in ["yes", "y", "confirm", "sure"]:
-                from app.tools.database_tools import cancel_order_fn
-                result = cancel_order_fn(pending_order)
-                return {"result": result, "usage": zero_usage, "state_update": {"pending_confirmation": None}}
-            elif clean_msg in ["no", "n", "cancel", "stop", "nevermind"]:
-                return {"result": "No problem. The order cancellation has been aborted.", "usage": zero_usage, "state_update": {"pending_confirmation": None}}
-
-        # 0b. Fast Track: Pending Order Confirmation
-        pending_details = state.get("pending_order_details")
-        if pending_details and clean_msg in ["yes", "y", "confirm", "sure", "do it", "place order"]:
-            from app.tools.database_tools import place_order_fn
-            try:
-                # Fallback for missing user_id
-                if "user_id" not in pending_details:
-                    pending_details["user_id"] = user_id
-                
-                # Fallback for missing customer_email if user is authenticated
-                if "customer_email" not in pending_details or "pii" in str(pending_details.get("customer_email", "")).lower():
-                    if user_context and getattr(user_context, 'is_authenticated', False):
-                        pending_details["customer_email"] = user_context.email
-                
-                logger.info(f"Fast-tracking order placement for user {user_id}")
-                result = place_order_fn(**pending_details)
-                
-                if "Error" in result:
-                    logger.error(f"Fast-track order placement failed: {result}")
-                    # If it failed, we don't return immediately; we let the crew handle it 
-                    # but we clear the pending state so it doesn't loop.
-                    state["pending_order_details"] = None
-                else:
-                    return {
-                        "result": result, 
-                        "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}, 
-                        "state_update": {"pending_order_details": None, "pending_order_summary": None}
-                    }
-            except Exception as e:
-                logger.error(f"Critical error in fast-track order placement: {e}")
-                state["pending_order_details"] = None
 
         # 1. Known simple greetings
         if clean_msg in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]:
@@ -138,13 +151,14 @@ class CrewService:
                     {"role": "user", "content": scrubbed_message}
                 ],
                 max_tokens=10,
-                temperature=0
+                temperature=1.0
             )
             intent = str(router_response.choices[0].message.content).strip().upper()
             # Safety check: extract the first word if the LLM was wordy
             intent = re.sub(r'[^A-Z]', ' ', intent).split()[0] if intent else "COMPLEX"
+            logger.info(f"Detected intent: {intent}")
         except Exception as e:
-            logger.warning(f"Fast router failed, falling back to COMPLEX: {e}")
+            logger.warning(f"Fast router failed, falling back to COMPLEX: {e}", exc_info=True)
             intent = "COMPLEX"
 
         # ── Step 2: Handle Simple Intent Paths ────────────────────────────
@@ -187,20 +201,18 @@ class CrewService:
                 "   - You MUST collect: customer_name, customer_email, shipping_address, and items.\n"
                 "   - Use the 'user_info' above for name/email if available. Don't ask again if verified.\n"
                 "   - If ANY detail is missing, ask the user for it politely.\n"
-                "   - Once you have ALL details:\n"
-                "     a) Check history: Has the user ALREADY explicitly confirmed THIS order summary (yes/confirm)?\n"
-                "     b) If NOT yet confirmed: You MUST NOT call 'place_order'. Instead, output exactly:\n"
+                "   - Once you have ALL details, you MUST output exactly:\n"
                 "        'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON with items, address, name, email]'.\n"
-                "     c) If they just confirmed, call the 'place_order' tool and return the RESULT.\n"
                 "2. If the user wants to CANCEL an order:\n"
-                "   - Even if the user provides the Order ID, you MUST FIRST ask for confirmation if this is the start of the cancellation request. "
-                "   - Output exactly: 'CONFIRMATION_REQUIRED: [Order ID]' and do NOT call 'cancel_order' yet. "
-                "   - Only call 'cancel_order' (with confirmed=True) if the conversation history shows you already asked for confirmation and the user just said 'yes'.\n"
+                "   - You MUST first retrieve details using 'get_order_details'.\n"
+                "   - If the status is PENDING or PROCESSING, you MUST output exactly: 'CONFIRMATION_REQUIRED: [Order ID]'.\n"
+                "   - You do NOT have a tool to cancel orders; the system will handle it via the 'CONFIRMATION_REQUIRED' signal.\n"
                 "3. For KNOWLEDGE/FAQ: Use 'get_company_faq'.\n"
                 "4. For SEARCH: Use 'search_products'.\n"
                 "5. For COMPLAINTS: Use 'submit_complaint'.\n\n"
-                "CRITICAL: If 'Customer Email' is '[AUTH_EMAIL]', you MUST pass this token to the 'auth_email' parameter of ANY tool you call (cancel_order, get_order_details, etc.). This is required for security verification.\n"
-                "CRITICAL: NEVER invent an Order ID or Reference ID. NEVER claim an order is placed unless you have a success message from the 'place_order' tool."
+                "CRITICAL: If 'Customer Email' is '[AUTH_EMAIL]', you MUST pass this literal string '[AUTH_EMAIL]' to the 'customer_email' parameter of 'get_order_details', 'place_order', or 'submit_complaint'.\n"
+                "CRITICAL: NEVER claim an order is placed or cancelled. Your job is ONLY to collect info and trigger signals. Success is only reported by the system later.\n"
+                "CRITICAL: NEVER invent an Order ID or Reference ID."
             ),
             expected_output="Tool result, PLACE_ORDER_SUMMARY, CONFIRMATION_REQUIRED, or a direct answer.",
             agent=specialist
@@ -225,8 +237,10 @@ class CrewService:
             memory=False
         )
 
+        logger.info(f"Starting unified crew execution for intent: {intent}")
         crew_output = unified_crew.kickoff()
         final_message = str(crew_output).strip()
+        logger.info("Crew execution completed successfully.")
         
         # Extract Token Usage
         usage = {
@@ -266,20 +280,30 @@ class CrewService:
         
         # Order Cancellation Fast-Path
         if "CONFIRMATION_REQUIRED:" in signal_source:
-            match = re.search(r"CONFIRMATION_REQUIRED:\s*([a-f0-9-]+)", signal_source)
+            match = re.search(r"CONFIRMATION_REQUIRED:\s*(\S+)", signal_source)
             order_id = match.group(1) if match else signal_source.split("CONFIRMATION_REQUIRED:")[-1].strip().split()[0]
+            # GDPR: Detokenize the ID before putting it in the UI/state
+            order_id = PrivacyScrubber.detokenize(order_id, pii_mapping)
+            
             final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
             return {"result": final_message, "usage": usage, "state_update": {"pending_confirmation": order_id}}
 
         # Order Placement Fast-Path
         if "PLACE_ORDER_SUMMARY:" in signal_source:
             order_summary = signal_source.split("PLACE_ORDER_SUMMARY:")[-1].split("PLACE_ORDER_DETAILS:")[0].strip()
+            # GDPR: Detokenize summary for the user
+            order_summary = PrivacyScrubber.detokenize(order_summary, pii_mapping)
+            
             order_details = None
             if "PLACE_ORDER_DETAILS:" in signal_source:
                 try:
                     import json
                     details_str = signal_source.split("PLACE_ORDER_DETAILS:")[-1].strip()
                     details_str = re.sub(r'```json\s*|\s*```', '', details_str)
+                    
+                    # GDPR: Detokenize details before parsing JSON
+                    details_str = PrivacyScrubber.detokenize(details_str, pii_mapping)
+                    
                     # Find the first { and last } to extract JSON if there's extra text
                     start = details_str.find('{')
                     end = details_str.rfind('}') + 1

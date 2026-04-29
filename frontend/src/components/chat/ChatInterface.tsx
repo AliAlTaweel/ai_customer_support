@@ -116,6 +116,14 @@ export default function ChatInterface() {
 
     if (!overrideMsg) setInput("");
     setMessages((prev) => [...prev, { role: "user", content: userMsg }]);
+    
+    // Clear any pending confirmation states locally so the UI updates immediately
+    setState(prev => prev ? { 
+      ...prev, 
+      pending_confirmation: undefined, 
+      pending_order_summary: undefined 
+    } : undefined);
+    
     setIsLoading(true);
 
     const token = await getToken();

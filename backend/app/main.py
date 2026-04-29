@@ -7,11 +7,10 @@ from app.api.endpoints import chat
 from app.core.config import settings
 from app.models.chat import HealthResponse
 
+from app.core.logger import setup_logging
+
 # Configure Logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s",
-)
+setup_logging()
 logger = logging.getLogger(__name__)
 
 

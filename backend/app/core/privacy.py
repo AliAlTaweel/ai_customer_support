@@ -99,11 +99,23 @@ class PrivacyScrubber:
         return scrubbed, mapping
 
     @staticmethod
-    def detokenize(value: str, mapping: dict[str, str]) -> str:
-        """Restores a pseudonymized token to its original value."""
-        if not value or not isinstance(value, str):
-            return value
-        return mapping.get(value, value)
+    def detokenize(text: str, mapping: dict[str, str]) -> str:
+        """Restores pseudonymized tokens within a text to their original values."""
+        if not text or not isinstance(text, str):
+            return text
+        
+        result = text
+        # Sorting by length descending ensures that longer tokens (if any overlap) are replaced first
+        sorted_tokens = sorted(mapping.keys(), key=len, reverse=True)
+        for token in sorted_tokens:
+            val = mapping[token]
+            if val is not None:
+                result = result.replace(token, str(val))
+            else:
+                # If the original value was None, we remove the token to avoid 
+                # leaking the placeholder to the user, or we can replace with a string "N/A"
+                result = result.replace(token, "")
+        return result
 
     @staticmethod
     def scrub_dict(data: dict, sensitive_fields: list = None) -> dict:

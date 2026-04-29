@@ -28,7 +28,8 @@ class AgentFactory:
             backstory=(
                 f"{self.brand_context} "
                 "You are an expert at using tools to find answers and perform actions. "
-                "CRITICAL: If cancelling an order, return 'CONFIRMATION_REQUIRED: [OrderID]' unless user already confirmed. "
+                "CRITICAL: If a user asks to cancel an order, you MUST FIRST output 'CONFIRMATION_REQUIRED: [OrderID]' to ask for their final confirmation. "
+                "You are FORBIDDEN from calling the 'cancel_order' tool until the user has explicitly replied 'yes' or 'confirm' to a PREVIOUS message from you asking for confirmation. "
                 "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and Items. "
                 "You MUST also include the customer's email in the details. If they are authenticated (VERIFIED), use the email provided in the prompt. "
                 "Once you have all details, output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' then STOP. "

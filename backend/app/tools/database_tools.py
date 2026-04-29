@@ -60,12 +60,16 @@ def search_products(query: str):
 
 def get_order_details_fn(order_id: str = None, email: str = None, auth_email: str = None):
     """Retrieve order details using order ID or customer email."""
+    # GDPR: Detokenize inputs
+    order_id = detokenize_val(order_id)
+    email = detokenize_val(email)
+    auth_email = detokenize_val(auth_email)
     try:
         with engine.connect() as connection:
             if order_id:
                 # Security: Even with an ID, we filter by the authenticated email if provided
                 if auth_email:
-                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" = :auth_email')
+                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
                     params = {"order_id": order_id, "auth_email": auth_email}
                 else:
                     query = text('SELECT * FROM "Order" WHERE id = :order_id')
@@ -73,7 +77,7 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
             elif email:
                 # If searching by email, we use the provided email but could still check against auth_email
                 target_email = auth_email if auth_email else email
-                query = text('SELECT * FROM "Order" WHERE "customerEmail" = :email ORDER BY "createdAt" DESC LIMIT 1')
+                query = text('SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email ORDER BY "createdAt" DESC LIMIT 1')
                 params = {"email": target_email}
             else:
                 return "Please provide either an order ID or an email."
@@ -112,11 +116,15 @@ def get_order_details(order_id: str = None, email: str = None, auth_email: str =
 
 def cancel_order_fn(order_id: str, auth_email: str = None):
     """Cancel an order given its ID. Only PENDING or PROCESSING orders can be cancelled."""
+    # GDPR: Detokenize inputs
+    order_id = detokenize_val(order_id)
+    auth_email = detokenize_val(auth_email)
     try:
         with engine.connect() as connection:
             # Check status and ownership first
             if auth_email:
-                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" = :auth_email')
+                # Use ILIKE for case-insensitive email comparison in PostgreSQL
+                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
                 params = {"order_id": order_id, "auth_email": auth_email}
             else:
                 check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id')
@@ -128,13 +136,15 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
                 return "Order not found or you do not have permission to cancel it."
             
             check_data = check._mapping
-            if check_data['status'] not in ['PENDING', 'PROCESSING']:
+            current_status = str(check_data['status']).upper().strip()
+            
+            if current_status not in ['PENDING', 'PROCESSING']:
                 return f"Cannot cancel order with status: {check_data['status']}. Only PENDING or PROCESSING orders can be cancelled."
             
             # Update status
             update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id')
             if auth_email:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "customerEmail" = :auth_email')
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\' WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
             
             connection.execute(update_query, params)
             connection.commit()
@@ -144,13 +154,17 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
         return f"Error cancelling order: {str(e)}"
 
 @tool("cancel_order")
-def cancel_order(order_id: str, auth_email: str = None):
+def cancel_order(order_id: str, confirmed: bool = False, auth_email: str = None):
     """
     Cancel an existing order using its Order ID. 
+    'confirmed' MUST be set to True to execute the cancellation. 
+    ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
     If 'auth_email' is provided, it must match the order's customer email.
-    Use this tool ONLY after the customer has explicitly confirmed they want to proceed with the cancellation (e.g., by saying "yes").
     Only orders with PENDING or PROCESSING status can be cancelled.
     """
+    if not confirmed:
+        return f"CANCELLATION NOT EXECUTED: You must ask for confirmation first by returning 'CONFIRMATION_REQUIRED: {order_id}'. Do NOT call this tool with confirmed=False."
+    
     return cancel_order_fn(order_id, auth_email)
 
 def place_order_fn(customer_email: str, customer_name: str, items: list, shipping_address: str, user_id: str = None):
@@ -336,6 +350,8 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
     Priority can be LOW, MEDIUM, HIGH, or URGENT.
     """
     # GDPR: Detokenize input values before DB insertion
+    subject = detokenize_val(subject)
+    message = detokenize_val(message)
     customer_name = detokenize_val(customer_name)
     customer_email = detokenize_val(customer_email)
 

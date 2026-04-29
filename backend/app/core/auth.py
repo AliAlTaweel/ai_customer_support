@@ -153,7 +153,7 @@ async def get_current_user(
     
     return UserContext(
         user_id=payload.get("sub"),
-        email=payload.get("email"),
+        email=payload.get("email") or payload.get("primary_email_address"),
         full_name=full_name,
         is_authenticated=True,
     )

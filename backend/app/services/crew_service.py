@@ -2,6 +2,7 @@ from crewai import Crew, Process, Task
 from app.agents.factory import AgentFactory
 from app.tasks.factory import TaskFactory
 from app.core.privacy import PrivacyScrubber
+from app.core.config import settings
 from typing import List, Dict, Any
 import re
 import logging
@@ -21,10 +22,6 @@ class CrewService:
         scrubbed_message, pii_mapping = PrivacyScrubber.pseudonymize_text(user_message)
         state["pii_mapping"] = pii_mapping  # Store for state management
         
-        # Set context variable for tool-level detokenization
-        from app.core.privacy import PII_MAPPING
-        PII_MAPPING.set(pii_mapping)
-        
         # GDPR: Mask sensitive info from session before sending to LLM
         masked_name = PrivacyScrubber.mask_name(user_name)
         user_info = f"Customer Name: {masked_name}\n" if user_name else ""
@@ -33,12 +30,19 @@ class CrewService:
             user_info += f"Customer Internal ID: {user_id}\n"
         
         if user_context and getattr(user_context, 'is_authenticated', False):
-            masked_email = PrivacyScrubber.mask_email(user_context.email)
-            user_info += f"Customer Email: {masked_email}\n"
+            # Create a dedicated token for the authenticated user's email
+            # This allows tools to detokenize it while keeping it hidden from the LLM logs.
+            auth_email_token = "[AUTH_EMAIL]"
+            pii_mapping[auth_email_token] = user_context.email
+            user_info += f"Customer Email: {auth_email_token}\n"
             user_info += "AUTHENTICATION STATUS: VERIFIED. You do NOT need to ask for their email.\n"
         else:
             user_info += "AUTHENTICATION STATUS: GUEST. You MUST ask for their email/details if they want to place an order.\n"
         
+        # Set context variable for tool-level detokenization (including the new auth token)
+        from app.core.privacy import PII_MAPPING
+        PII_MAPPING.set(pii_mapping)
+
         if user_id:
             user_info += f"CRITICAL: When placing an order, ALWAYS pass the 'user_id' ({user_id}) to the place_order tool.\n"
         
@@ -187,8 +191,9 @@ class CrewService:
                 "        'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON with items, address, name, email]'.\n"
                 "     c) If they just confirmed, call the 'place_order' tool and return the RESULT.\n"
                 "2. If the user wants to CANCEL an order:\n"
-                "   - If not yet asked for confirmation, output exactly: 'CONFIRMATION_REQUIRED: [Order ID]'.\n"
-                "   - If already asked and user says 'yes', call 'cancel_order'.\n"
+                "   - Even if the user provides the Order ID, you MUST FIRST ask for confirmation if this is the start of the cancellation request. "
+                "   - Output exactly: 'CONFIRMATION_REQUIRED: [Order ID]' and do NOT call 'cancel_order' yet. "
+                "   - Only call 'cancel_order' (with confirmed=True) if the conversation history shows you already asked for confirmation and the user just said 'yes'.\n"
                 "3. For KNOWLEDGE/FAQ: Use 'get_company_faq'.\n"
                 "4. For SEARCH: Use 'search_products'.\n"
                 "5. For COMPLAINTS: Use 'submit_complaint'.\n\n"
@@ -296,8 +301,7 @@ class CrewService:
 
         # GDPR: Detokenize the response so the user sees their real info, 
         # while the LLM only processed the pseudonymized tokens.
-        for token, original in pii_mapping.items():
-            final_message = final_message.replace(token, original)
+        final_message = PrivacyScrubber.detokenize(final_message, pii_mapping)
 
         # Post-processing cleanup
         for sentinel in ["NOT_APPLICABLE", "NO_FAQ_RESULT"]:

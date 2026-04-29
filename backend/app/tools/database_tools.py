@@ -67,20 +67,23 @@ def get_order_details_fn(order_id: str = None, email: str = None, auth_email: st
     try:
         with engine.connect() as connection:
             if order_id:
-                # Security: Even with an ID, we filter by the authenticated email if provided
-                if auth_email:
-                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
-                    params = {"order_id": order_id, "auth_email": auth_email}
+                # Security: Even with an ID, we filter by the authenticated email if provided.
+                # If guest, we STILL require an 'email' to match the order.
+                target_filter_email = auth_email or email
+                
+                if target_filter_email:
+                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :email')
+                    params = {"order_id": order_id, "email": target_filter_email}
                 else:
-                    query = text('SELECT * FROM "Order" WHERE id = :order_id')
-                    params = {"order_id": order_id}
-            elif email:
-                # If searching by email, we use the provided email but could still check against auth_email
-                target_email = auth_email if auth_email else email
+                    # If NO email is provided at all, we reject the lookup for security (prevents order scraping)
+                    return "For security reasons, please provide the email address associated with the order."
+            elif auth_email or email:
+                # If searching by email only, we use the provided email
+                target_email = auth_email or email
                 query = text('SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email ORDER BY "createdAt" DESC LIMIT 1')
                 params = {"email": target_email}
             else:
-                return "Please provide either an order ID or an email."
+                return "Please provide either an order ID or your email address."
 
             result = connection.execute(query, params)
             order = result.fetchone()
@@ -122,13 +125,16 @@ def cancel_order_fn(order_id: str, auth_email: str = None):
     try:
         with engine.connect() as connection:
             # Check status and ownership first
-            if auth_email:
-                # Use ILIKE for case-insensitive email comparison in PostgreSQL
-                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
-                params = {"order_id": order_id, "auth_email": auth_email}
-            else:
-                check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id')
-                params = {"order_id": order_id}
+            target_auth_email = auth_email
+            
+            # If the agent didn't pass auth_email but the user is in the system, 
+            # we check if we have an email at all to verify ownership.
+            if not target_auth_email:
+                return "Error: Ownership verification required. Please provide the customer email associated with the order to proceed with cancellation."
+
+            # Use ILIKE for case-insensitive email comparison in PostgreSQL
+            check_query = text('SELECT status, "customerEmail" FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :auth_email')
+            params = {"order_id": order_id, "auth_email": target_auth_email}
                 
             check = connection.execute(check_query, params).fetchone()
             

@@ -88,25 +88,9 @@ def _verify_and_decode(token: str) -> dict:
             # Any failure → treat token as invalid (don't silently fall through)
             raise ValueError(f"JWT verification failed: {e}")
 
-    # ── Unverified fallback (dev mode only) ──────────────────────────────────
-    logger.warning(
-        "CLERK_JWKS_URL is not configured — JWT signature is NOT being verified. "
-        "This is acceptable for local development only."
-    )
-    try:
-        import base64
-        import json
-
-        parts = token.split(".")
-        if len(parts) != 3:
-            raise ValueError("Invalid JWT structure (expected 3 parts)")
-
-        payload_b64 = parts[1]
-        payload_b64 += "=" * (-len(payload_b64) % 4)  # re-pad
-        payload_data = base64.b64decode(payload_b64).decode("utf-8")
-        return json.loads(payload_data)
-    except Exception as e:
-        raise ValueError(f"Could not decode JWT payload: {e}")
+    # ── No Verification Configured ──────────────────────────────────────────
+    logger.error("CLERK_JWKS_URL is not configured. JWT verification is DISABLED. Access denied for safety.")
+    raise ValueError("Authentication system misconfigured: JWKS URL missing.")
 
 
 async def get_current_user(

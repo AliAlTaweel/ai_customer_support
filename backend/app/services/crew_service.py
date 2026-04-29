@@ -45,6 +45,8 @@ class CrewService:
 
         if user_id:
             user_info += f"CRITICAL: When placing an order, ALWAYS pass the 'user_id' ({user_id}) to the place_order tool.\n"
+            if user_context and getattr(user_context, 'is_authenticated', False):
+                user_info += "CRITICAL: Since user is authenticated, you MUST pass the [AUTH_EMAIL] token to the 'auth_email' parameter of the place_order tool.\n"
         
         # ── Fast Track: Regex check for extremely simple greetings ──────────
         clean_msg = scrubbed_message.lower().strip().strip('?!.')
@@ -197,6 +199,7 @@ class CrewService:
                 "3. For KNOWLEDGE/FAQ: Use 'get_company_faq'.\n"
                 "4. For SEARCH: Use 'search_products'.\n"
                 "5. For COMPLAINTS: Use 'submit_complaint'.\n\n"
+                "CRITICAL: If 'Customer Email' is '[AUTH_EMAIL]', you MUST pass this token to the 'auth_email' parameter of ANY tool you call (cancel_order, get_order_details, etc.). This is required for security verification.\n"
                 "CRITICAL: NEVER invent an Order ID or Reference ID. NEVER claim an order is placed unless you have a success message from the 'place_order' tool."
             ),
             expected_output="Tool result, PLACE_ORDER_SUMMARY, CONFIRMATION_REQUIRED, or a direct answer.",

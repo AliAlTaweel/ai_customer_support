@@ -25,8 +25,8 @@ anonymizer = AnonymizerEngine()
 class PrivacyScrubber:
     @staticmethod
     def pseudonymize_text(text: str) -> tuple[str, dict]:
-        # Uses Presidio NLP to catch Names and Locations, 
-        # plus Regex fallback for Emails and Phones.
+        # Uses Presidio NLP to catch Names, 
+        # plus Regex fallback for Emails, Phones, and Physical Addresses.
         pass
 ```
 
@@ -63,8 +63,9 @@ def get_order_details_fn(...):
 2.  **[ ] Data Residency:** Use AWS Regions in the EU (e.g., `eu-central-1` Frankfurt).
 3.  **[ ] Encryption at Rest:** Use Amazon RDS with AES-256 encryption enabled.
 4.  **[ ] Encryption in Transit:** Ensure all API calls (Frontend -> Backend -> Bedrock) use TLS 1.2+.
-5.  **[ ] Right to Erasure:** Implement an endpoint `DELETE /api/v1/user/data` to wipe chat history and PII.
-6.  **[ ] Privacy Notice:** Update the frontend to include a clear notice that AI is used to process requests.
+5.  **[x] Right to Erasure:** Implement an endpoint `DELETE /api/v1/history` to wipe chat history and PII.
+6.  **[x] Storage Limitation (Data Retention):** Implemented an automated background task in `main.py` that purges messages older than 30 days on startup.
+7.  **[x] Privacy Notice:** Update the frontend to include a clear notice that AI is used to process requests.
 
 ---
 

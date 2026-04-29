@@ -12,8 +12,9 @@ This document outlines the phases required to transition the AI Customer Support
 ## Phase 2: Tool Hardening & Address Support
 **Goal:** Ensure tools are secure and support physical delivery.
 - [x] Update `place_order` tool in `database_tools.py` to accept `shipping_address`.
-- [x] Modify `cancel_order` and `get_order_details` to require `authenticated_email`.
-- [x] Update SQL queries to include `WHERE customerEmail = :auth_email` to prevent cross-user data access.
+- [x] Modify `cancel_order` and `get_order_details` to strictly require `authenticated_email` for non-guest lookups.
+- [x] Update SQL queries to include `WHERE customerEmail = :auth_email` to prevent cross-user data access (IDOR protection).
+- [x] Instruct LLM to inject the `[AUTH_EMAIL]` token into tool calls to automate ownership verification.
 
 ## Phase 3: Transactional Agent Refinement
 **Goal:** Guide the user through a secure checkout "interview".

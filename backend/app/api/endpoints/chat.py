@@ -25,8 +25,17 @@ def _check_rate_limit(key: str) -> bool:
     """Returns False if the key has exceeded the rate limit."""
     now = time.time()
     window_start = now - settings.RATE_LIMIT_WINDOW_SECONDS
+    
     with _rate_lock:
+        # Periodic cleanup of the entire store to prevent memory leak (e.g. 5% chance per request)
+        if len(_rate_store) > 1000 or (now % 100 < 5):
+            expired_keys = [k for k, times in _rate_store.items() if not times or max(times) < window_start]
+            for k in expired_keys:
+                del _rate_store[k]
+
+        # Cleanup the specific key
         _rate_store[key] = [t for t in _rate_store[key] if t > window_start]
+        
         if len(_rate_store[key]) >= settings.RATE_LIMIT_REQUESTS:
             return False
         _rate_store[key].append(now)

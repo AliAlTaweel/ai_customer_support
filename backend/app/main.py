@@ -25,8 +25,14 @@ async def lifespan(app: FastAPI):
         logger.info("Pre-warming FAQ vector store...")
         get_vector_store()
         logger.info("FAQ vector store ready.")
+        
+        # ── GDPR: Automated Data Retention ─────────────────────────────────
+        from app.tools.database_tools import purge_old_messages_fn
+        deleted_count = purge_old_messages_fn(days=settings.DATA_RETENTION_DAYS if hasattr(settings, "DATA_RETENTION_DAYS") else 30)
+        if deleted_count > 0:
+            logger.info(f"GDPR Purge: Removed {deleted_count} old chat messages.")
     except Exception as e:
-        logger.warning(f"Could not pre-warm FAQ vector store: {e}")
+        logger.warning(f"Could not complete startup tasks: {e}")
     yield
     # ── Shutdown (nothing to clean up) ─────────────────────────────────────
 

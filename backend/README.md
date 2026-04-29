@@ -22,9 +22,11 @@ We use an optimized **CrewAI** pipeline designed for maximum speed and minimum t
 
 ## 🔒 Security & GDPR Compliance
 
-- **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, and addresses are replaced with tokens before being sent to any third-party LLM (Google Gemini).
-- **Detokenization**: The system restores the original data only at the final edge of the response, so the user sees their real info while the LLM remains unaware of it.
-- **Authenticated Context**: Tools automatically filter database queries by the verified `userId` from **Clerk**, preventing cross-user data leaks.
+- **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, phone numbers, and physical addresses are replaced with tokens before being sent to any LLM.
+- **Detokenization**: The system restores original data only at the final edge of the response.
+- **Strict Authentication**: JWT signatures from Clerk are strictly verified to prevent forgery.
+- **IDOR Protection**: Tools automatically filter database queries by the verified user's email, preventing cross-user data access.
+- **Data Retention**: An automated startup task purges chat messages older than 30 days.
 - **Encryption**: All database communication with AWS RDS is secured via **SSL**.
 
 ---

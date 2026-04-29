@@ -59,11 +59,10 @@ The design is clean and demonstrates real architectural intent: run only what is
 - Models are environment-swappable via `.env` (`WORKER_MODEL`, `MANAGER_MODEL`).
 - `ALLOWED_ORIGINS` is hardcoded to `localhost` — fine for dev; needs parameterization for staging/prod.
 
-### 3.2 `app/core/auth.py` ⚠️ Needs Hardening
+### 3.2 `app/core/auth.py` ✅ Secure
 - `UserContext` Pydantic model is clean.
 - FastAPI `HTTPBearer(auto_error=False)` — gracefully degrades to guest.
-- **Critical gap:** JWT is decoded without signature verification (`base64` decode only). The comment acknowledges this ("BEST PRACTICE: use python-jose…"). Until real JWKS verification is added, a forged token would be accepted.
-- Legacy `test-key-ali` hardcoded bypass still exists — must be removed before any production deployment.
+- **Security Hardened:** JWT signature is now strictly verified using Clerk's JWKS. The unverified dev fallback has been completely removed to prevent authentication bypass vulnerabilities.
 
 ### 3.3 `app/services/crew_service.py` ✅ Strong
 - **Data Privacy:** Uses `PrivacyScrubber.pseudonymize_text()` (backed by Microsoft Presidio) to mask all PII before sending it to the LLM.
@@ -107,7 +106,8 @@ The design is clean and demonstrates real architectural intent: run only what is
 - `/history` endpoint enforces authentication before revealing data — no IDOR risk.
 - Resolved user name prioritizes the JWT claim over the request body.
 - Chat history is persisted asynchronously after every turn (user + assistant messages).
-- `state_update` from `CrewService` (e.g., `pending_confirmation`) is merged into the response state and returned to the frontend — clean stateless-with-client-state pattern.
+- `state_update` from `CrewService` (e.g., `pending_confirmation`) is merged into the response state and returned to the frontend.
+- **Fixed:** The in-memory `_rate_store` now includes an automated cleanup process to prevent unbounded memory growth (Denial of Service risk).
 
 ### 3.9 `app/models/chat.py` ✅
 - Minimal and correct Pydantic v2 models.
@@ -158,9 +158,9 @@ The design is clean and demonstrates real architectural intent: run only what is
 
 | Area | Status | Notes |
 |------|--------|-------|
-| JWT Authentication | ✅ Secure | Verified with python-jose & Clerk JWKS |
+| JWT Authentication | ✅ Secure | Verified with python-jose & Clerk JWKS. Unverified fallback removed. |
 | Test API key bypass | ✅ Removed | `test-key-ali` hardcoded bypass deleted |
-| IDOR on orders | ✅ Fixed | `auth_email` filter on all order queries |
+| IDOR on orders | ✅ Hardened | `auth_email` strictly enforced; LLM instructed to inject `[AUTH_EMAIL]` token. |
 | IDOR on chat history | ✅ Fixed | `/history` uses `userId` matching |
 | CORS | ✅ Secured | Locked to `settings.ALLOWED_ORIGINS` |
 | Shipping address validation | ✅ Done | Rejects empty or placeholder values |

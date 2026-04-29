@@ -96,6 +96,24 @@ class PrivacyScrubber:
             mapping[token] = phone
             scrubbed = scrubbed.replace(phone, token)
             
+        # 3. Pseudonymize potential Addresses (Basic Regex Fallback)
+        # Matches typical patterns like "123 Main St", "Apt 4B", etc.
+        address_patterns = [
+            r'\d+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct)',
+            r'P\.?O\.?\s*Box\s*\d+',
+            r'[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5}'
+        ]
+        addr_count = 0
+        for pattern in address_patterns:
+            matches = re.finditer(pattern, scrubbed, re.IGNORECASE)
+            for match in matches:
+                addr = match.group(0)
+                if addr not in mapping.values():
+                    token = f"[ADDRESS_REGEX_{addr_count}]"
+                    mapping[token] = addr
+                    scrubbed = scrubbed.replace(addr, token)
+                    addr_count += 1
+            
         return scrubbed, mapping
 
     @staticmethod

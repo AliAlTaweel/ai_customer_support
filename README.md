@@ -35,7 +35,7 @@ graph TD
 - **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma.
 - **Backend (`/backend`)**: An optimized agentic AI server powered by CrewAI and FastAPI.
 - **Performance**: Response times reduced by ~70% using **LiteLLM Fast-Routing** and a **Unified Specialist** agent strategy.
-- **Security & GDPR**: Features a robust **PrivacyScrubber** that pseudonymizes data before it reaches any third-party LLM, maintaining strict GDPR compliance.
+- **Security & GDPR**: Features a robust **PrivacyScrubber** that pseudonymizes data (Names, Emails, Phones, Addresses) before it reaches any LLM. Includes an automated 30-day chat history purge to enforce data retention limits.
 - **Infrastructure**: Powered by **AWS RDS PostgreSQL** with secure SSL connectivity and **FAISS** for policy-based RAG.
 
 ---

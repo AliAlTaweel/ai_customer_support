@@ -2,7 +2,6 @@ import logging
 import os
 import sys
 from logging.handlers import RotatingFileHandler
-from app.core.config import settings
 
 def setup_logging():
     """Sets up the logging configuration for the entire application."""

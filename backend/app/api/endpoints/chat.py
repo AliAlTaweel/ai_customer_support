@@ -1,6 +1,6 @@
 from app.models.chat import ChatRequest, ChatResponse, GreetRequest, ChatMessage, TokenUsage
 from app.services.crew_service import CrewService
-from app.tools.database_tools import save_chat_message_fn, get_chat_history_fn
+from app.tools.chat_history import save_chat_message_fn, get_chat_history_fn
 from app.core.auth import get_current_user, UserContext
 from app.core.config import settings
 from fastapi import APIRouter, HTTPException, Depends, Request, status
@@ -122,7 +122,7 @@ async def chat(
         # Merge state updates if any
         if request.state:
             # Exclude transient keys that should only persist if explicitly returned by the service
-            transient_keys = ["pending_confirmation", "pending_order_summary", "pending_order_details"]
+            transient_keys = ["pending_confirmation", "pending_order_summary", "pending_order_details", "pending_checkout", "pending_yes_no"]
             new_state.update({
                 k: v for k, v in request.state.items() 
                 if k not in new_state and k not in transient_keys
@@ -221,7 +221,7 @@ async def delete_history(current_user: UserContext = Depends(get_current_user)):
         )
         
     try:
-        from app.tools.database_tools import delete_chat_history_fn
+        from app.tools.chat_history import delete_chat_history_fn
         success = await asyncio.to_thread(
             delete_chat_history_fn,
             user_id=current_user.user_id

@@ -29,8 +29,7 @@ declare global {
   var prisma: undefined | ReturnType<typeof prismaClientSingleton>;
 }
 
-// Force a fresh instance once to clear any stale global state
-const prisma = prismaClientSingleton();
+const prisma = globalThis.prisma ?? prismaClientSingleton();
 
 export default prisma;
 

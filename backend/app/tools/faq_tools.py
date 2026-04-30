@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-import shutil
 from crewai.tools import tool
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings

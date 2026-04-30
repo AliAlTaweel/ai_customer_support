@@ -60,7 +60,7 @@ def _verify_and_decode(token: str) -> dict:
     if jwks:
         # ── Verified path (production) ────────────────────────────────────────
         try:
-            from jose import jwt, jwk, JWTError
+            from jose import jwt, jwk
 
             header = jwt.get_unverified_header(token)
             kid = header.get("kid")
@@ -137,7 +137,7 @@ async def get_current_user(
     
     return UserContext(
         user_id=payload.get("sub"),
-        email=payload.get("email") or payload.get("primary_email_address"),
+        email=payload.get("email") or payload.get("primary_email_address") or payload.get("email_address"),
         full_name=full_name,
         is_authenticated=True,
     )

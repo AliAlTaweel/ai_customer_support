@@ -67,6 +67,7 @@ class PrivacyScrubber:
         if analyzer:
             try:
                 results = analyzer.analyze(text=scrubbed, language='en')
+                logger.debug(f"Presidio results: {results}")
                 sorted_results = sorted(results, key=lambda x: x.start, reverse=True)
                 counts = {}
                 for result in sorted_results:
@@ -78,6 +79,7 @@ class PrivacyScrubber:
                     original_value = scrubbed[result.start:result.end]
                     mapping[token] = original_value
                     scrubbed = scrubbed[:result.start] + token + scrubbed[result.end:]
+                    logger.debug(f"Scrubbed after {entity_type}: {scrubbed}")
             except Exception as e:
                 logger.error(f"Presidio error: {e}")
         

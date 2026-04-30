@@ -26,7 +26,7 @@ async def lifespan(app: FastAPI):
         logger.info("FAQ vector store ready.")
         
         # ── GDPR: Automated Data Retention ─────────────────────────────────
-        from app.tools.database_tools import purge_old_messages_fn
+        from app.tools.chat_history import purge_old_messages_fn
         deleted_count = purge_old_messages_fn(days=settings.DATA_RETENTION_DAYS if hasattr(settings, "DATA_RETENTION_DAYS") else 30)
         if deleted_count > 0:
             logger.info(f"GDPR Purge: Removed {deleted_count} old chat messages.")

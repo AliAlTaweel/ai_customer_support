@@ -1,6 +1,8 @@
 from crewai import Agent, LLM
 from app.core.config import settings
-from app.tools.database_tools import search_products, get_order_details, cancel_order, place_order, submit_complaint
+from app.tools.product_tools import search_products
+from app.tools.order_tools import get_order_details, cancel_order, place_order
+from app.tools.support_tools import submit_complaint
 from app.tools.faq_tools import get_company_faq
 
 
@@ -10,7 +12,7 @@ class AgentFactory:
         self.worker_llm = LLM(
             model=settings.WORKER_MODEL,
             api_key=settings.GOOGLE_API_KEY,
-            temperature=1.0
+            temperature=0.1
         )
         
         # Shared context to keep agents on-brand
@@ -32,15 +34,14 @@ class AgentFactory:
                 "CRITICAL: If a user asks to cancel an order, you MUST retrieve its details using 'get_order_details' first. "
                 "If the order is PENDING or PROCESSING, you MUST output exactly 'CONFIRMATION_REQUIRED: [OrderID]' to trigger the confirmation flow. "
                 "You do NOT have a tool to cancel orders directly; you MUST use the signal. "
-                "CRITICAL: When a user wants to place a new order, you MUST collect: Full Name, Shipping Address, and Items. "
-                "You MUST also include the customer's email. If they are authenticated (VERIFIED), use the email provided in the prompt. "
-                "Once you have all details, output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' then STOP. "
-                "The JSON MUST include keys: customer_email, customer_name, shipping_address, items (list of {product_name, quantity}). "
-                "You do NOT have a tool to place orders directly; the system will handle it once you output the summary and the user confirms. "
-                "If the user is complaining, collect details and use 'submit_complaint'. "
-                "CRITICAL: NEVER claim success for an action (placement/cancellation) unless the system (not you) has processed it. Your job for orders is ONLY to verify status and generate signals."
+                "CRITICAL: When a user wants to buy a product, follow this 5-step journey: "
+                "1. Search products and list them numbered (1, 2, 3...). Ask user to choose one. "
+                "2. Once chosen, output 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}' to show confirmation buttons with product details. "
+                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [...]}' to open the secure checkout form. "
+                "4. Collect shipping/payment info via the form (handled by system). "
+                "5. Never claim an order is placed yourself; only use signals."
             ),
-            tools=[get_company_faq, search_products, get_order_details, submit_complaint],
+            tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
             llm=self.worker_llm,
             verbose=True,
             allow_delegation=False,
@@ -71,12 +72,15 @@ class AgentFactory:
                 "Use tools to verify order status. "
                 "CRITICAL: If a user asks to cancel an order, retrieve details first. If eligible, return 'CONFIRMATION_REQUIRED: [OrderID]'. "
                 "You do NOT have a tool to cancel orders directly. "
-                "CRITICAL: When placing a new order, you MUST collect: Full Name, Shipping Address, and the list of Items. "
-                "Once you have ALL details, you MUST output 'PLACE_ORDER_SUMMARY: [human-readable summary]' and 'PLACE_ORDER_DETAILS: [JSON]' and STOP. "
-                "You do NOT have a tool to place orders directly. "
-                "If the user is complaining, use the 'submit_complaint' tool after gathering details."
+                "CRITICAL: When a user wants to buy a product, follow this 5-step journey: "
+                "1. Search products and list them numbered (1, 2, 3...). Ask user to choose one. "
+                "2. Once chosen, output 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}' to show confirmation buttons with product details. "
+                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [...]}' to open the secure checkout form. "
+                "4. Collect shipping/payment info via the form (handled by system). "
+                "5. Never claim an order is placed yourself; only use signals."
+                "CRITICAL: Product IDs are NOT Order IDs."
             ),
-            tools=[search_products, get_order_details, submit_complaint],
+            tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
             llm=self.worker_llm,
             verbose=True,
             allow_delegation=False,
@@ -90,10 +94,12 @@ class AgentFactory:
             backstory=(
                 f"{self.brand_context} "
                 "Write concise, warm reply based on gathered info. Ignore 'NOT_APPLICABLE' or 'NO_FAQ_RESULT'. "
-                "CRITICAL: If a tool output contains an 'Order ID' or 'Reference ID', you MUST include that exact ID in your final response. "
-                "NEVER invent a Reference ID or Order ID. If the specialist has not provided one, do NOT say the action was successful; instead, report the current status or ask for missing info. "
+                "CRITICAL: If the Specialist provided a real Order ID or Reference ID from a tool call (like get_order_details or submit_complaint), you MUST include it. "
+                "NEVER invent an Order ID. NEVER misidentify a Product ID (from search_products) as an Order ID. "
+                "If no order exists yet, do NOT mention an Order ID. "
                 "CRITICAL: If the user asked to cancel an order, you MUST NOT say it was cancelled. The system handles cancellation via confirmation boxes. If the specialist did not confirm cancellation, you must say 'We need to verify your details' or 'I need more information'."
-                "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success. NEVER say 'successfully processed' unless explicitly stated by the tool."
+                "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success. NEVER say 'successfully processed' or 'added to order' unless you see a successful tool result or a signal. If the specialist only asked a question, just relay that question.\n"
+                "CRITICAL: If the specialist provided a signal (e.g., YES_NO_REQUIRED: ..., CHECKOUT_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. Do NOT rephrase or omit signals.\n"
                 "Output only final text. End with offer to help, unless asking for confirmation."
             ),
             llm=self.worker_llm,

@@ -2,12 +2,13 @@
 
 import { useState, useRef, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Maximize2, Flag } from "lucide-react";
+import { MessageCircle, X, Send, Bot, User, Loader2, Minimize2, Maximize2, Flag, CheckCircle2, Package } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ConversationState } from "@/lib/ai/types";
 import { useUser, useAuth } from "@clerk/nextjs";
 
 import ReactMarkdown from "react-markdown";
+import CheckoutForm from "./CheckoutForm";
 
 interface Message {
   role: "user" | "assistant";
@@ -19,10 +20,11 @@ interface Message {
   };
 }
 
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+
 export default function ChatInterface() {
   const { user } = useUser();
   const { getToken } = useAuth();
-  const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
   const [isOpen, setIsOpen] = useState(false);
   const [isMinimized, setIsMinimized] = useState(false);
   const [input, setInput] = useState("");
@@ -65,7 +67,7 @@ export default function ChatInterface() {
       }
     };
     fetchHistory();
-  }, [user?.firstName, getToken, API_URL]);
+  }, [user?.firstName, getToken]);
 
   // Add a dynamic greeting message when the chat opens for the first time
   useEffect(() => {
@@ -110,7 +112,7 @@ export default function ChatInterface() {
       }
     };
     fetchGreeting();
-  }, [isOpen, hasGreeted, user?.firstName, user?.id, messages.length, getToken, API_URL]);
+  }, [isOpen, hasGreeted, user?.firstName, user?.id, messages.length, getToken]);
 
   const handleSend = async (overrideMsg?: string) => {
     const userMsg = overrideMsg || input.trim();
@@ -123,7 +125,9 @@ export default function ChatInterface() {
     setState(prev => prev ? { 
       ...prev, 
       pending_confirmation: undefined, 
-      pending_order_summary: undefined 
+      pending_order_summary: undefined,
+      pending_checkout: undefined,
+      pending_yes_no: undefined 
     } : undefined);
     
     setIsLoading(true);
@@ -168,6 +172,47 @@ export default function ChatInterface() {
       setMessages((prev) => [
         ...prev,
         { role: "assistant", content: errorMessage },
+      ]);
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleCheckout = async (details: any) => {
+    setIsLoading(true);
+    // Clear the checkout state immediately so the form closes
+    setState(prev => prev ? { ...prev, pending_checkout: null } : undefined);
+    const token = await getToken();
+    try {
+      const response = await fetch(`${API_URL}/chat/chat`, { 
+        method: "POST",
+        headers: { 
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${token}`
+        },
+        body: JSON.stringify({
+          message: "SYSTEM_PROCESS_ORDER",
+          history: messages,
+          state: { ...state, pending_order_details: details },
+          user_name: user?.firstName || "Guest",
+          user_id: user?.id,
+        }),
+      });
+
+      if (!response.ok) throw new Error("Order placement failed");
+
+      const data = await response.json();
+      setMessages((prev) => [...prev, { 
+        role: "assistant", 
+        content: data.message,
+        usage: data.usage 
+      }]);
+      setState(data.state);
+    } catch (error) {
+      console.error("Checkout error:", error);
+      setMessages((prev) => [
+        ...prev,
+        { role: "assistant", content: "I'm sorry, I encountered an error while processing your order. Please try again." },
       ]);
     } finally {
       setIsLoading(false);
@@ -358,30 +403,66 @@ export default function ChatInterface() {
 
                   {state?.pending_order_summary && !isLoading && (
                     <motion.div 
-                      initial={{ opacity: 0, y: 10 }}
-                      animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col gap-3 p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 mx-2 mb-2"
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col gap-4 p-5 bg-primary/5 rounded-[2.5rem] border border-primary/10 mx-2 mb-4 shadow-xl backdrop-blur-sm"
                     >
                       <div className="flex items-center gap-2 text-primary">
-                        <Bot className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Confirm Order</span>
+                        <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <Package className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-widest">Product Confirmation</span>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                        {state.pending_order_summary}
-                      </p>
-                      <div className="flex gap-2">
+                      
+                      {typeof state.pending_order_summary === 'string' ? (
+                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
+                          {state.pending_order_summary}
+                        </p>
+                      ) : (
+                        <div className="space-y-4">
+                          <div className="flex gap-4">
+                            {state.pending_order_summary.imageUrl && (
+                              <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-white/10 border border-white/10 shadow-inner">
+                                <img 
+                                  src={state.pending_order_summary.imageUrl} 
+                                  alt={state.pending_order_summary.product_name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
+                              <h4 className="font-bold text-lg leading-tight text-foreground/90 font-outfit">
+                                {state.pending_order_summary.product_name}
+                              </h4>
+                              <p className="text-xl font-black text-primary font-sans">
+                                ${(Number(state.pending_order_summary.price) || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {state.pending_order_summary.details && (
+                            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
+                              <p className="text-xs text-muted-foreground/80 leading-relaxed font-outfit line-clamp-3">
+                                {state.pending_order_summary.details}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex gap-3">
                         <Button 
                           variant="default" 
-                          size="sm" 
-                          className="flex-1 rounded-xl h-10 font-bold"
+                          size="lg" 
+                          className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
                           onClick={() => handleSend("yes")}
                         >
-                          Yes, Place Order
+                          Buy Now
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="sm" 
-                          className="flex-1 rounded-xl h-10 font-bold bg-background"
+                          size="lg" 
+                          className="flex-1 rounded-2xl h-12 font-bold bg-background border-primary/10 hover:bg-primary/5 transition-all"
                           onClick={() => handleSend("no")}
                         >
                           Cancel
@@ -389,6 +470,57 @@ export default function ChatInterface() {
                       </div>
                     </motion.div>
                   )}
+
+                  {state?.pending_yes_no && !isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.95 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col gap-4 p-5 bg-primary/5 rounded-[2.5rem] border border-primary/10 mx-2 mb-4 shadow-xl backdrop-blur-sm"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
+                          <CheckCircle2 className="w-4 h-4" />
+                        </div>
+                        <span className="text-xs font-bold uppercase tracking-widest">Confirmation Required</span>
+                      </div>
+                      <p className="text-[15px] font-medium text-foreground/80 leading-relaxed font-outfit">
+                        {state.pending_yes_no}
+                      </p>
+                      <div className="flex gap-3 mt-1">
+                        <Button 
+                          variant="default" 
+                          size="lg" 
+                          className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                          onClick={() => handleSend("yes")}
+                        >
+                          Yes, Proceed
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="lg" 
+                          className="flex-1 rounded-2xl h-12 font-bold bg-background border-primary/10 hover:bg-primary/5 transition-all"
+                          onClick={() => handleSend("no")}
+                        >
+                          Not now
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  <AnimatePresence>
+                    {state?.pending_checkout && (
+                      <CheckoutForm 
+                        key="checkout-form-overlay"
+                        items={state.pending_checkout.items || []}
+                        onSubmit={handleCheckout}
+                        initialEmail={user?.emailAddresses[0]?.emailAddress}
+                        onCancel={() => {
+                          setState(prev => prev ? { ...prev, pending_checkout: null } : undefined);
+                          handleSend("cancel order");
+                        }}
+                      />
+                    )}
+                  </AnimatePresence>
                 </div>
 
                 {/* Complaint Overlay */}

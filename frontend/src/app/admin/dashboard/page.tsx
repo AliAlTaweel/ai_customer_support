@@ -282,7 +282,7 @@ export default function AdminDashboard() {
                       <div className="p-8 flex-1 space-y-6">
                         <div className="flex items-center justify-between">
                           <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Items Ordered</p>
-                          <p className="text-2xl font-bold font-outfit text-primary">${order.total.toFixed(2)}</p>
+                          <p className="text-2xl font-bold font-outfit text-primary">${(Number(order.total) || 0).toFixed(2)}</p>
                         </div>
                         
                         <div className="space-y-3">
@@ -297,7 +297,7 @@ export default function AdminDashboard() {
                                   <p className="text-xs text-muted-foreground">Qty: {item.quantity} × ${item.price}</p>
                                 </div>
                               </div>
-                              <p className="text-sm font-bold">${(item.quantity * item.price).toFixed(2)}</p>
+                              <p className="text-sm font-bold">${((Number(item.quantity) || 0) * (Number(item.price) || 0)).toFixed(2)}</p>
                             </div>
                           ))}
                         </div>

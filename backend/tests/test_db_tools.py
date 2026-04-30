@@ -1,5 +1,6 @@
 import pytest
-from app.tools.database_tools import search_products_fn, place_order_fn, get_order_details_fn
+from app.tools.product_tools import search_products_fn
+from app.tools.order_tools import place_order_fn, get_order_details_fn
 import uuid
 
 def test_search_products_found():

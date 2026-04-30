@@ -32,31 +32,19 @@ class TaskFactory:
         )
 
     @staticmethod
-    def create_order_task(agent, user_message: str, history_str: str, user_info: str) -> Task:
-        """Task to handle order-related operations."""
+    def create_order_task(agent, user_message: str, history_str: str, user_info: str, mission: str = "") -> Task:
+        """Task to handle order-related operations using signals and tools."""
         return Task(
             description=(
-                f"{user_info}"
-                f"Conversation history:\n{history_str}\n"
-                f"Customer message: '{user_message}'\n\n"
-                "1. If the user wants to CANCEL an order: You MUST ALWAYS ask for confirmation first if it's the start of the cancellation request. "
-                "   - Output exactly: 'CONFIRMATION_REQUIRED: [Order ID]' and do NOT call 'cancel_order' yet. "
-                "   - Only call 'cancel_order' if the conversation history shows you already asked for confirmation and the user just said 'yes'.\n"
-                "2. If the user wants to PLACE an order: \n"
-                "   - You MUST have: customer_name, customer_email, shipping_address, and items.\n"
-                "   - Use the 'user_info' above for name/email if available. Don't ask again if verified.\n"
-                "   - If ANY detail is missing, ask the user for it politely.\n"
-                "   - Once you have ALL details:\n"
-                "     a) Check if the conversation history already shows the user explicitly confirming THIS order summary.\n"
-                "     b) If NOT yet confirmed: output exactly 'PLACE_ORDER_SUMMARY: [clear summary]' AND 'PLACE_ORDER_DETAILS: [JSON with items, address, name, email]'. Do NOT call place_order yet.\n"
-                "     c) If the user just confirmed (e.g., 'yes', 'confirm', 'do it'), call 'place_order' with all details including user_id.\n"
-                "3. If the user is COMPLAINING or frustrated: \n"
-                "   - Use 'submit_complaint' to record their message for the admin team.\n"
-                "   - Try to collect a subject and the main message.\n"
-                "4. For other actions (search, track): use the appropriate tool.\n"
-                "5. If no action needed: return 'NOT_APPLICABLE'."
+                f"{user_info}\n"
+                f"History:\n{history_str}\n\n"
+                f"Message: '{user_message}'\n\n"
+                f"YOUR MISSION:\n{mission if mission else 'Resolve the customer inquiry using available tools.'}\n\n"
+                "CRITICAL: If 'Customer Email' is '[AUTH_EMAIL]', you MUST pass this literal string '[AUTH_EMAIL]' to tool parameters.\n"
+                "CRITICAL: NEVER claim an order is placed or cancelled. Your job is ONLY to trigger signals.\n"
+                "CRITICAL: NEVER invent IDs. Use only what tools provide."
             ),
-            expected_output="Database result, PLACE_ORDER_SUMMARY, CONFIRMATION_REQUIRED, or 'NOT_APPLICABLE'.",
+            expected_output="Tool result, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED, CONFIRMATION_REQUIRED, or a direct answer.",
             agent=agent
         )
 
@@ -71,6 +59,7 @@ class TaskFactory:
                 f"Information gathered by specialists:\n{raw_output}\n\n"
                 "Write a warm, professional reply based on the gathered info. "
                 "CRITICAL: If the specialists have NOT provided a real Order ID or Reference ID from a tool, DO NOT invent one and DO NOT say the order was placed. "
+                "NEVER misidentify a Product ID (from a product search) as an Order ID. "
                 "If info is missing, ask for it."
             ),
             expected_output="A single, clean, customer-facing reply (2-4 sentences).",

@@ -297,7 +297,7 @@ export default function ChatInterface() {
                 {/* Chat Messages */}
                 <div 
                   ref={scrollRef}
-                  className="flex-1 overflow-y-auto p-5 space-y-6 bg-secondary/5 scrollbar-hide"
+                  className="flex-1 overflow-y-auto overflow-x-hidden p-5 space-y-6 bg-secondary/5 scrollbar-hide"
                 >
                   {messages.length === 0 && (
                     <div className="text-center py-12 space-y-4">
@@ -323,17 +323,18 @@ export default function ChatInterface() {
                           {msg.role === "user" ? <User className="w-5 h-5" /> : <Bot className="w-5 h-5" />}
                         </div>
                         <div className={`flex flex-col gap-1.5 ${msg.role === "user" ? "items-end" : "items-start"}`}>
-                          <div className={`p-4 rounded-[1.5rem] text-[0.95rem] leading-[1.6] shadow-sm transition-all duration-300 hover:shadow-md ${
+                          <div className={`p-4 rounded-[1.5rem] text-[0.95rem] leading-[1.6] shadow-sm transition-all duration-300 hover:shadow-md break-words overflow-hidden ${
                             msg.role === "user" 
                               ? "bg-primary text-primary-foreground rounded-tr-none font-sans" 
                               : "bg-background border border-primary/5 rounded-tl-none font-outfit text-foreground/90"
                           }`}>
                             {msg.role === "assistant" ? (
-                              <div className="prose prose-sm dark:prose-invert max-w-none 
+                              <div className="prose prose-sm dark:prose-invert max-w-full 
                                 prose-p:leading-relaxed prose-p:my-1 
                                 prose-strong:text-primary prose-strong:font-bold
                                 prose-ul:my-2 prose-li:my-0.5
-                                prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-primary">
+                                prose-code:bg-primary/10 prose-code:px-1 prose-code:rounded prose-code:text-primary
+                                prose-pre:bg-primary/5 prose-pre:p-3 prose-pre:rounded-xl prose-pre:overflow-x-auto">
                                 <ReactMarkdown>
                                   {msg.content}
                                 </ReactMarkdown>
@@ -371,98 +372,28 @@ export default function ChatInterface() {
                     <motion.div 
                       initial={{ opacity: 0, y: 10 }}
                       animate={{ opacity: 1, y: 0 }}
-                      className="flex flex-col gap-3 p-4 bg-primary/5 rounded-[1.5rem] border border-primary/10 mx-2 mb-2"
+                      className="flex flex-col gap-3 p-4 bg-secondary/20 rounded-2xl border border-primary/10 mx-1 mb-2 shadow-sm"
                     >
                       <div className="flex items-center gap-2 text-primary">
                         <Bot className="w-4 h-4" />
-                        <span className="text-xs font-bold uppercase tracking-wider">Confirm Action</span>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Action Required</span>
                       </div>
-                      <p className="text-sm text-muted-foreground leading-relaxed">
-                        Would you like to proceed with the cancellation for order <strong>{state.pending_confirmation}</strong>?
+                      <p className="text-xs text-muted-foreground leading-relaxed">
+                        Would you like to cancel order <strong>{state.pending_confirmation}</strong>?
                       </p>
-                      <div className="flex gap-2">
+                      <div className="flex gap-2 pt-1">
                         <Button 
                           variant="default" 
                           size="sm" 
-                          className="flex-1 rounded-xl h-10 font-bold"
+                          className="flex-1 rounded-xl h-9 text-xs font-bold shadow-md shadow-primary/10"
                           onClick={() => handleSend("yes")}
                         >
-                          Yes, Cancel Order
+                          Confirm
                         </Button>
                         <Button 
                           variant="outline" 
                           size="sm" 
-                          className="flex-1 rounded-xl h-10 font-bold bg-background"
-                          onClick={() => handleSend("no")}
-                        >
-                          Nevermind
-                        </Button>
-                      </div>
-                    </motion.div>
-                  )}
-
-                  {state?.pending_order_summary && !isLoading && (
-                    <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      className="flex flex-col gap-4 p-5 bg-primary/5 rounded-[2.5rem] border border-primary/10 mx-2 mb-4 shadow-xl backdrop-blur-sm"
-                    >
-                      <div className="flex items-center gap-2 text-primary">
-                        <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
-                          <Package className="w-4 h-4" />
-                        </div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Product Confirmation</span>
-                      </div>
-                      
-                      {typeof state.pending_order_summary === 'string' ? (
-                        <p className="text-sm text-muted-foreground leading-relaxed whitespace-pre-wrap">
-                          {state.pending_order_summary}
-                        </p>
-                      ) : (
-                        <div className="space-y-4">
-                          <div className="flex gap-4">
-                            {state.pending_order_summary.imageUrl && (
-                              <div className="w-24 h-24 rounded-2xl overflow-hidden flex-shrink-0 bg-white/10 border border-white/10 shadow-inner">
-                                <img 
-                                  src={state.pending_order_summary.imageUrl} 
-                                  alt={state.pending_order_summary.product_name} 
-                                  className="w-full h-full object-cover"
-                                />
-                              </div>
-                            )}
-                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-1">
-                              <h4 className="font-bold text-lg leading-tight text-foreground/90 font-outfit">
-                                {state.pending_order_summary.product_name}
-                              </h4>
-                              <p className="text-xl font-black text-primary font-sans">
-                                ${(Number(state.pending_order_summary.price) || 0).toFixed(2)}
-                              </p>
-                            </div>
-                          </div>
-                          
-                          {state.pending_order_summary.details && (
-                            <div className="bg-white/5 rounded-2xl p-4 border border-white/10">
-                              <p className="text-xs text-muted-foreground/80 leading-relaxed font-outfit line-clamp-3">
-                                {state.pending_order_summary.details}
-                              </p>
-                            </div>
-                          )}
-                        </div>
-                      )}
-
-                      <div className="flex gap-3">
-                        <Button 
-                          variant="default" 
-                          size="lg" 
-                          className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
-                          onClick={() => handleSend("yes")}
-                        >
-                          Buy Now
-                        </Button>
-                        <Button 
-                          variant="outline" 
-                          size="lg" 
-                          className="flex-1 rounded-2xl h-12 font-bold bg-background border-primary/10 hover:bg-primary/5 transition-all"
+                          className="flex-1 rounded-xl h-9 text-xs font-bold bg-background border-primary/5 hover:bg-primary/5"
                           onClick={() => handleSend("no")}
                         >
                           Cancel
@@ -471,37 +402,107 @@ export default function ChatInterface() {
                     </motion.div>
                   )}
 
-                  {state?.pending_yes_no && !isLoading && (
+                  {state?.pending_order_summary && !isLoading && (
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.95 }}
+                      initial={{ opacity: 0, scale: 0.98 }}
                       animate={{ opacity: 1, scale: 1 }}
-                      className="flex flex-col gap-4 p-5 bg-primary/5 rounded-[2.5rem] border border-primary/10 mx-2 mb-4 shadow-xl backdrop-blur-sm"
+                      className="flex flex-col gap-3.5 p-4 bg-secondary/10 rounded-[2rem] border border-primary/10 mx-1 mb-3 shadow-lg backdrop-blur-sm"
                     >
                       <div className="flex items-center gap-2 text-primary">
-                        <div className="w-8 h-8 rounded-xl bg-primary/20 flex items-center justify-center">
-                          <CheckCircle2 className="w-4 h-4" />
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Package className="w-3.5 h-3.5" />
                         </div>
-                        <span className="text-xs font-bold uppercase tracking-widest">Confirmation Required</span>
+                        <span className="text-[10px] font-extrabold uppercase tracking-[0.1em]">Purchase Details</span>
                       </div>
-                      <p className="text-[15px] font-medium text-foreground/80 leading-relaxed font-outfit">
-                        {state.pending_yes_no}
-                      </p>
-                      <div className="flex gap-3 mt-1">
+                      
+                      {typeof state.pending_order_summary === 'string' ? (
+                        <p className="text-xs text-muted-foreground leading-relaxed break-words">
+                          {state.pending_order_summary}
+                        </p>
+                      ) : (
+                        <div className="space-y-3">
+                          <div className="flex gap-3">
+                            {state.pending_order_summary.imageUrl && (
+                              <div className="w-16 h-16 rounded-xl overflow-hidden flex-shrink-0 bg-white border border-primary/5 shadow-sm">
+                                <img 
+                                  src={state.pending_order_summary.imageUrl} 
+                                  alt={state.pending_order_summary.product_name} 
+                                  className="w-full h-full object-cover"
+                                />
+                              </div>
+                            )}
+                            <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
+                              <h4 className="font-bold text-[15px] leading-tight text-foreground/90 font-outfit truncate">
+                                {state.pending_order_summary.product_name || state.pending_order_summary.name || "Product"}
+                              </h4>
+                              <p className="text-lg font-black text-primary font-sans">
+                                ${(Number(state.pending_order_summary.price || state.pending_order_summary.amount) || 0).toFixed(2)}
+                              </p>
+                            </div>
+                          </div>
+                          
+                          {state.pending_order_summary.details && (
+                            <div className="bg-background/50 rounded-xl p-3 border border-primary/5">
+                              <p className="text-[11px] text-muted-foreground leading-normal font-outfit line-clamp-2">
+                                {state.pending_order_summary.details}
+                              </p>
+                            </div>
+                          )}
+                        </div>
+                      )}
+
+                      <div className="flex gap-2.5 mt-1">
                         <Button 
                           variant="default" 
-                          size="lg" 
-                          className="flex-1 rounded-2xl h-12 font-bold shadow-lg shadow-primary/20 hover:scale-105 active:scale-95 transition-all"
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold shadow-md shadow-primary/10"
                           onClick={() => handleSend("yes")}
                         >
-                          Yes, Proceed
+                          Checkout
                         </Button>
                         <Button 
                           variant="outline" 
-                          size="lg" 
-                          className="flex-1 rounded-2xl h-12 font-bold bg-background border-primary/10 hover:bg-primary/5 transition-all"
+                          size="sm" 
+                          className="flex-1 rounded-xl h-10 font-bold bg-background border-primary/5"
                           onClick={() => handleSend("no")}
                         >
-                          Not now
+                          Maybe Later
+                        </Button>
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {state?.pending_yes_no && !isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, scale: 0.98 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      className="flex flex-col gap-3 p-4 bg-secondary/10 rounded-2xl border border-primary/10 mx-1 mb-3 shadow-md"
+                    >
+                      <div className="flex items-center gap-2 text-primary">
+                        <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <CheckCircle2 className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-bold uppercase tracking-widest">Confirmation</span>
+                      </div>
+                      <p className="text-xs font-medium text-foreground/80 leading-relaxed font-outfit break-words">
+                        {state.pending_yes_no}
+                      </p>
+                      <div className="flex gap-2 pt-1">
+                        <Button 
+                          variant="default" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-9 text-xs font-bold"
+                          onClick={() => handleSend("yes")}
+                        >
+                          Confirm
+                        </Button>
+                        <Button 
+                          variant="outline" 
+                          size="sm" 
+                          className="flex-1 rounded-xl h-9 text-xs font-bold bg-background"
+                          onClick={() => handleSend("no")}
+                        >
+                          Not Now
                         </Button>
                       </div>
                     </motion.div>
@@ -527,36 +528,39 @@ export default function ChatInterface() {
                 <AnimatePresence>
                   {isComplaintModalOpen && (
                     <motion.div 
-                      initial={{ opacity: 0, scale: 0.9 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      exit={{ opacity: 0, scale: 0.9 }}
-                      className="absolute inset-0 bg-background/60 backdrop-blur-md z-30 p-6 flex flex-col items-center justify-center text-center"
+                      initial={{ opacity: 0 }}
+                      animate={{ opacity: 1 }}
+                      exit={{ opacity: 0 }}
+                      className="absolute inset-0 bg-background/40 backdrop-blur-md z-30 p-4 flex items-center justify-center"
                     >
                       <motion.div 
-                        initial={{ y: 20 }}
-                        animate={{ y: 0 }}
-                        className="bg-background border border-primary/20 p-6 rounded-[2rem] shadow-2xl w-full max-w-[320px] space-y-4"
+                        initial={{ opacity: 0, scale: 0.9, y: 10 }}
+                        animate={{ opacity: 1, scale: 1, y: 0 }}
+                        exit={{ opacity: 0, scale: 0.9, y: 10 }}
+                        className="bg-background border border-primary/10 p-5 rounded-[1.5rem] shadow-2xl w-full max-w-[340px] space-y-4"
                       >
-                        <div className="w-12 h-12 rounded-2xl bg-red-500/10 flex items-center justify-center mx-auto">
-                          <Flag className="w-6 h-6 text-red-500" />
-                        </div>
-                        <div>
-                          <h4 className="font-bold font-outfit text-lg text-foreground">Send Feedback</h4>
-                          <p className="text-xs text-muted-foreground">
-                            Please describe your concern or complaint for the administration team.
-                          </p>
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-red-500/10 flex items-center justify-center">
+                            <Flag className="w-5 h-5 text-red-500" />
+                          </div>
+                          <div className="text-left">
+                            <h4 className="font-bold font-outfit text-sm">Send Feedback</h4>
+                            <p className="text-[10px] text-muted-foreground leading-tight">
+                              Your message will be sent to our admin team.
+                            </p>
+                          </div>
                         </div>
                         <textarea 
                           value={complaintText}
                           onChange={(e) => setComplaintText(e.target.value)}
-                          placeholder="Type your complaint here..."
-                          className="w-full h-32 bg-secondary/30 rounded-xl p-3 text-sm focus:outline-none focus:ring-2 focus:ring-primary/20 border border-primary/10 resize-none text-foreground"
+                          placeholder="What can we improve? Describe your issue here..."
+                          className="w-full h-28 bg-secondary/30 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 border border-primary/5 resize-none text-foreground placeholder:opacity-50"
                           autoFocus
                         />
                         <div className="flex gap-2">
                           <Button 
-                            variant="outline" 
-                            className="flex-1 rounded-xl h-10 font-bold"
+                            variant="ghost" 
+                            className="flex-1 rounded-xl h-10 text-xs font-bold hover:bg-primary/5"
                             onClick={() => {
                               setIsComplaintModalOpen(false);
                               setComplaintText("");
@@ -566,7 +570,7 @@ export default function ChatInterface() {
                           </Button>
                           <Button 
                             variant="default" 
-                            className="flex-1 rounded-xl h-10 font-bold"
+                            className="flex-1 rounded-xl h-10 text-xs font-bold shadow-lg shadow-primary/10"
                             disabled={!complaintText.trim()}
                             onClick={() => {
                               handleSend(`I want to send a message to the administration team: ${complaintText}`);
@@ -574,7 +578,7 @@ export default function ChatInterface() {
                               setComplaintText("");
                             }}
                           >
-                            Submit
+                            Send Report
                           </Button>
                         </div>
                       </motion.div>

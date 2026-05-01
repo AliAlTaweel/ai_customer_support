@@ -37,7 +37,7 @@ class AgentFactory:
                 "CRITICAL: When a user wants to buy a product, follow this 5-step journey: "
                 "1. Search products and list them numbered (1, 2, 3...). Ask user to choose one. "
                 "2. Once chosen, output 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}' to show confirmation buttons with product details. "
-                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [...]}' to open the secure checkout form. "
+                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}]}' to open the secure checkout form. "
                 "4. Collect shipping/payment info via the form (handled by system). "
                 "5. Never claim an order is placed yourself; only use signals."
             ),
@@ -75,7 +75,7 @@ class AgentFactory:
                 "CRITICAL: When a user wants to buy a product, follow this 5-step journey: "
                 "1. Search products and list them numbered (1, 2, 3...). Ask user to choose one. "
                 "2. Once chosen, output 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}' to show confirmation buttons with product details. "
-                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [...]}' to open the secure checkout form. "
+                "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}]}' to open the secure checkout form. "
                 "4. Collect shipping/payment info via the form (handled by system). "
                 "5. Never claim an order is placed yourself; only use signals."
                 "CRITICAL: Product IDs are NOT Order IDs."
@@ -99,7 +99,7 @@ class AgentFactory:
                 "If no order exists yet, do NOT mention an Order ID. "
                 "CRITICAL: If the user asked to cancel an order, you MUST NOT say it was cancelled. The system handles cancellation via confirmation boxes. If the specialist did not confirm cancellation, you must say 'We need to verify your details' or 'I need more information'."
                 "CRITICAL: If the specialist reports an ERROR from a tool, you MUST convey that error to the user. DO NOT rephrase an error as a success. NEVER say 'successfully processed' or 'added to order' unless you see a successful tool result or a signal. If the specialist only asked a question, just relay that question.\n"
-                "CRITICAL: If the specialist provided a signal (e.g., YES_NO_REQUIRED: ..., CHECKOUT_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. Do NOT rephrase or omit signals.\n"
+                "CRITICAL: If the specialist provided a signal (e.g., PLACE_ORDER_SUMMARY: ..., YES_NO_REQUIRED: ..., CHECKOUT_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. Do NOT rephrase or omit signals.\n"
                 "Output only final text. End with offer to help, unless asking for confirmation."
             ),
             llm=self.worker_llm,

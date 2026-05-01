@@ -32,11 +32,11 @@ graph TD
     Detokenize -- "Final Reply" --> Frontend
 ```
 
-- **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma.
-- **Backend (`/backend`)**: An optimized agentic AI server powered by CrewAI and FastAPI.
+- **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma. Features a refined checkout flow with interactive AI-driven cards.
+- **Backend (`/backend`)**: An optimized agentic AI server powered by CrewAI and FastAPI. Uses robust regex-based signal extraction for seamless UI integration.
 - **Performance**: Response times reduced by ~70% using **LiteLLM Fast-Routing** and a **Unified Specialist** agent strategy.
-- **Security & GDPR**: Features a robust **PrivacyScrubber** that pseudonymizes data (Names, Emails, Phones, Addresses) before it reaches any LLM. Includes an automated 30-day chat history purge to enforce data retention limits.
-- **Infrastructure**: Powered by **AWS RDS PostgreSQL** with secure SSL connectivity and **FAISS** for policy-based RAG.
+- **Security & GDPR**: Features a robust **PrivacyScrubber** that pseudonymizes data (Names, Emails, Phones, Addresses) before it reaches any LLM. Includes an automated 30-day chat history purge.
+- **Infrastructure**: Powered by **AWS RDS PostgreSQL** with secure SSL connectivity. Now includes **Docker** support for streamlined deployment.
 
 ---
 
@@ -45,8 +45,9 @@ graph TD
 ### 1. Prerequisites
 - **Node.js** (v18+) & **npm**
 - **Python** (3.12+)
+- **Docker** (Optional, for containerized deployment)
 - **AWS RDS PostgreSQL** Instance (or local Postgres)
-- **Google Gemini API Key** (for agent reasoning)
+- **Google Gemini API Key**
 
 ### 2. Database & Frontend Setup
 ```bash
@@ -70,6 +71,12 @@ python run.py
 ```
 The backend will run on [http://localhost:3001](http://localhost:3001).
 
+### 4. Docker Deployment (Recommended)
+You can run the entire stack using Docker Compose:
+```bash
+docker-compose up --build
+```
+
 ---
 
 ## 🛠 Tech Stack
@@ -80,8 +87,9 @@ The backend will run on [http://localhost:3001](http://localhost:3001).
 | **Backend** | FastAPI, CrewAI, LangChain, Gemini 1.5 Flash |
 | **LLMs** | Google Gemini (Primary), Ollama (Local Backup/Specialists) |
 | **Database** | AWS RDS PostgreSQL, Prisma (Frontend), SQLAlchemy (Backend) |
-| **Search** | FAISS, HuggingFace Embeddings (RAG) |
+| **Deployment** | Docker, AWS (ECS/App Runner ready) |
 
 ---
 
 *For detailed technical documentation, please refer to the README files in the respective `/frontend` and `/backend` directories.*
+

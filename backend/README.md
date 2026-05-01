@@ -13,7 +13,7 @@ We use an optimized **CrewAI** pipeline designed for maximum speed and minimum t
 ### 2. Unified Luxe Specialist
 - **Mechanism**: A single, powerful agent with access to all tools (`get_company_faq`, `search_products`, `order_management`, etc.).
 - **Benefit**: Eliminates task-switching latency and agent handoff overhead.
-- **Workflow**: Performs info gathering and tool execution in a single pass before handing the context to the final responder.
+- **Workflow**: Performs info gathering and tool execution in a single pass. Now uses **robust regex-based signal extraction** to reliably communicate with the frontend (e.g., `CHECKOUT_REQUIRED`, `PLACE_ORDER_SUMMARY`).
 
 ### 3. Customer Experience Specialist
 - **Mechanism**: Final stage agent that synthesizes gathered data into a warm, on-brand response.
@@ -37,6 +37,7 @@ We use an optimized **CrewAI** pipeline designed for maximum speed and minimum t
 - **Gemini 1.5 Flash**: Primary LLM for orchestration and reasoning.
 - **SQLAlchemy**: Secure access to AWS RDS PostgreSQL.
 - **FAISS & HuggingFace**: Local vector store and embeddings for RAG.
+- **Docker**: Containerized for easy deployment.
 
 ---
 
@@ -63,14 +64,23 @@ We use an optimized **CrewAI** pipeline designed for maximum speed and minimum t
 ```bash
 python run.py
 ```
-The server runs on `http://localhost:3001`.
+Alternatively, use Docker:
+```bash
+docker build -t luxe-backend .
+docker run -p 3001:3001 --env-file .env luxe-backend
+```
 
 ---
 
 ## 📂 Structure
 - `/app/agents`: CrewAI agent definitions and factory.
 - `/app/tasks`: Task generation factory.
-- `/app/tools`: Custom tools for DB and FAQ access.
-- `/app/services`: Business logic (Crew orchestration).
+- `/app/tools`: Modularized tools for DB and FAQ access.
+    - `base.py`: Shared database session management.
+    - `product_tools.py`: Product search and catalog tools.
+    - `order_tools.py`: Order placement and management.
+    - `support_tools.py`: Company FAQ and policy retrieval.
+- `/app/services`: Business logic (Crew orchestration & signal parsing).
 - `/app/core`: Configuration and security settings (SSL, PII scrubbing).
 - `/faq_index`: Persistent FAISS vector storage.
+

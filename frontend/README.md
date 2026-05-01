@@ -4,8 +4,9 @@ A premium, high-performance storefront built with Next.js. This application serv
 
 ## ✨ Features
 - **Luxe UI**: A sleek, modern aesthetic tailored for high-end retail.
-- **Full Checkout Flow**: Product browsing, cart management, and order placement.
-- **AI Chat Widget**: A persistent sidebar chat that communicates with the agentic backend.
+- **Refined Checkout Flow**: Interactive checkout process with dynamic product cards and real-time order confirmation.
+- **AI Chat Widget**: A persistent sidebar chat that communicates with the agentic backend. Now features **interactive UI signals** for seamless checkout and order summaries directly in the chat.
+- **Expanded Catalog**: Includes premium electronics, high-end laptops, and luxury goods.
 - **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication and session management.
 - **Cloud Database**: Powered by **AWS RDS PostgreSQL** for production-grade reliability and shared access with the AI backend.
 
@@ -38,6 +39,8 @@ A premium, high-performance storefront built with Next.js. This application serv
     ```bash
     npx prisma generate
     npx prisma db push
+    # Optional: Seed the database with products
+    npx prisma db seed
     ```
 
 ### Running the App
@@ -52,7 +55,9 @@ Open [http://localhost:3000](http://localhost:3000) in your browser.
 The frontend chat component sends the conversation history along with the user's **Clerk JWT session token** to the backend API. The system is optimized for **sub-5-second response times** through:
 1.  **Fast-Routing**: Immediate handling of simple requests without backend overhead.
 2.  **Unified Processing**: Single-pass agentic reasoning for complex tasks.
-3.  **Real-time GDPR Masking**: Ensuring user privacy through pseudonymization at the API layer.
+3.  **Signal Parsing**: Robust handling of backend signals (`CHECKOUT_REQUIRED`, `PLACE_ORDER_SUMMARY`) to render interactive UI components directly in the chat.
+4.  **Real-time GDPR Masking**: Ensuring user privacy through pseudonymization at the API layer.
 
 ### Shared Infrastructure
 The system uses a unified **AWS RDS PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.
+

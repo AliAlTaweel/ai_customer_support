@@ -1,7 +1,9 @@
 "use client";
 
+import { useState } from "react";
 import { Product } from "@prisma/client";
 import { ProductCard } from "./ProductCard";
+import { ProductDetailsModal } from "./ProductDetailsModal";
 import { motion } from "framer-motion";
 
 interface ProductGridProps {
@@ -19,6 +21,14 @@ const container = {
 };
 
 export function ProductGrid({ products }: ProductGridProps) {
+  const [selectedProduct, setSelectedProduct] = useState<Product | null>(null);
+  const [isModalOpen, setIsModalOpen] = useState(false);
+
+  const handleShowDetails = (product: Product) => {
+    setSelectedProduct(product);
+    setIsModalOpen(true);
+  };
+
   if (products.length === 0) {
     return (
       <div className="flex flex-col items-center justify-center min-h-[400px] text-center p-8 border-2 border-dashed rounded-3xl bg-secondary/10">
@@ -31,15 +41,27 @@ export function ProductGrid({ products }: ProductGridProps) {
   }
 
   return (
-    <motion.div
-      variants={container}
-      initial="hidden"
-      animate="show"
-      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
-    >
-      {products.map((product) => (
-        <ProductCard key={product.id} product={product} />
-      ))}
-    </motion.div>
+    <>
+      <motion.div
+        variants={container}
+        initial="hidden"
+        animate="show"
+        className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-8"
+      >
+        {products.map((product) => (
+          <ProductCard 
+            key={product.id} 
+            product={product} 
+            onShowDetails={() => handleShowDetails(product)}
+          />
+        ))}
+      </motion.div>
+
+      <ProductDetailsModal
+        product={selectedProduct}
+        isOpen={isModalOpen}
+        onClose={() => setIsModalOpen(false)}
+      />
+    </>
   );
 }

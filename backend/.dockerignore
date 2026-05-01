@@ -1,0 +1,15 @@
+venv_v3/
+__pycache__/
+*.pyc
+.env
+dev.db
+luxe_support.db
+logs/
+server.log
+app.log
+.gitignore
+README.md
+docs/
+scratch_test_tools.py
+test_router.py
+tests/

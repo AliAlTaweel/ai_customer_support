@@ -3,11 +3,12 @@ from app.agents.factory import AgentFactory
 from app.tasks.factory import TaskFactory
 from app.core.privacy import PrivacyScrubber
 from app.core.config import settings
+from app.services.signal_processor import SignalProcessor
+from app.services.fast_track_service import FastTrackService
+from app.services.response_cleaner import ResponseCleaner
 from typing import List, Dict, Any
 import re
 import logging
-import json
-import ast
 
 logger = logging.getLogger(__name__)
 
@@ -15,566 +16,123 @@ logger = logging.getLogger(__name__)
 class CrewService:
     def __init__(self):
         self.agent_factory = AgentFactory()
+        self.signal_processor = SignalProcessor()
+        self.fast_track = FastTrackService()
+        self.cleaner = ResponseCleaner()
 
     def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None, user_context: Any = None, user_id: str = None) -> Dict[str, Any]:
         from litellm import completion
         state = state or {}
-        
-        logger.info(f"Kickoff chat request received. User ID: {user_id}, Message: {user_message}")
-        
-        # ── SUPER FAST TRACK: Immediate Confirmation Handling ────────────────
-        # We check this BEFORE PII scrubbing and LLM routing to minimize latency (<100ms).
         clean_msg = user_message.lower().strip().strip('?!.')
         
-        # Confirmation for order cancellation
-        pending_order = state.get("pending_confirmation")
-        if pending_order and clean_msg in ["yes", "y", "confirm", "sure", "do it"]:
-            from app.tools.order_tools import cancel_order_fn
-            is_auth = user_context and getattr(user_context, 'is_authenticated', False)
-            
-            # GDPR: Ensure PII mapping is available for detokenization (especially for [AUTH_EMAIL])
-            from app.core.privacy import PII_MAPPING
-            pii_mapping = state.get("pii_mapping", {})
-            if is_auth:
-                pii_mapping["[AUTH_EMAIL]"] = user_context.email
-            PII_MAPPING.set(pii_mapping)
-            
-            # Use userId for ownership check if authenticated, fall back to email token
-            logger.info(f"Ultra-fast-tracking order cancellation for order: {pending_order}")
-            result = cancel_order_fn(
-                pending_order, 
-                customer_email="[AUTH_EMAIL]" if is_auth else None,
-                user_id=user_id if is_auth else None
-            )
-            return {
-                "result": result, 
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}, 
-                "state_update": {"pending_confirmation": None}
-            }
+        logger.info(f"Kickoff chat request. User: {user_id}, Message: {user_message[:50]}...")
         
-        # Confirmation for order placement
-        # (Now handled via CHECKOUT_REQUIRED and the frontend form)
-        if user_message == "SYSTEM_PROCESS_ORDER":
-            from app.tools.order_tools import place_order_fn
-            from app.tools.base import detokenize_val
-            details = state.get("pending_order_details")
-            if not details:
-                return {
-                    "result": "I'm sorry, I couldn't find the order details. Please try again.",
-                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
-                    "state_update": {"pending_checkout": None}
-                }
-            
-            # Use authenticated email if available, otherwise check if it's in details
-            is_auth = user_context and getattr(user_context, 'is_authenticated', False)
-            
-            # GDPR: Ensure PII mapping is available for detokenization if needed
-            from app.core.privacy import PII_MAPPING
-            pii_mapping = state.get("pii_mapping", {})
-            PII_MAPPING.set(pii_mapping)
-            
-            # Priority: Authenticated email > Form email > PII mapping email
-            email = user_context.email if is_auth else None
-            if not email:
-                email = details.get("customer_email")
-            
-            if not email:
-                mapping = state.get("pii_mapping", {})
-                for key, val in mapping.items():
-                    if "@" in val:
-                        email = val
-                        break
-            
-            logger.info(f"Processing order checkout. Email: {email}, Auth: {is_auth}, UserID: {user_id}")
-            
-            items = details.get("items", [])
-            for item in items:
-                # detokenize product name just in case the specialist tokenized it
-                item['product_name'] = detokenize_val(item.get('product_name'))
-            
-            if not email:
-                return {
-                    "result": "I'm sorry, but I need your email address to place the order. Could you please provide it?",
-                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
-                    "state_update": {"pending_checkout": details} # Keep the form open or allow retry
-                }
+        # ── Phase 1: Fast-Track (Non-LLM) ────────────────────────────────────
+        fast_response = self.fast_track.handle_immediate_responses(user_message, clean_msg, state, user_context, user_id)
+        if fast_response:
+            return fast_response
 
-            result = place_order_fn(
-                customer_email=email,
-                customer_name=details.get("customer_name"),
-                items=details.get("items"),
-                shipping_address=details.get("shipping_address"),
-                payment_method=details.get("payment_method", "Card"),
-                user_id=user_id if is_auth else None
-            )
-            
-            return {
-                "result": result,
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
-                "state_update": {"pending_checkout": None, "pending_order_details": None}
-            }
-        
-        # Confirmation for purchase summary (Fast-track to checkout)
-        pending_summary = state.get("pending_order_summary")
-        if pending_summary and clean_msg in ["yes", "y", "confirm", "sure", "buy", "proceed", "i want", "i want to buy"]:
-            # Construct the items list for CHECKOUT_REQUIRED
-            # The summary might be a string or a dict.
-            if isinstance(pending_summary, dict):
-                product_name = pending_summary.get("product_name") or pending_summary.get("name") or "Product"
-                price = pending_summary.get("price") or 0.0
-                imageUrl = pending_summary.get("imageUrl")
-                details = pending_summary.get("details")
-                items = [{"product_name": product_name, "quantity": 1, "price": price, "imageUrl": imageUrl, "details": details}]
-            else:
-                items = [{"product_name": str(pending_summary), "quantity": 1, "price": 0.0}]
-            
-            checkout_payload = {"items": items}
-            
-            return {
-                "result": "I've prepared the order details for you. Please fill out the secure checkout form below to complete your purchase.",
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0},
-                "state_update": {"pending_order_summary": None, "pending_checkout": checkout_payload}
-            }
-
-        # Abort confirmation
-        if (pending_order or state.get("pending_checkout") or state.get("pending_yes_no") or pending_summary) and clean_msg in ["no", "n", "cancel", "stop", "nevermind"]:
-            logger.info(f"User aborted pending action.")
-            return {
-                "result": "No problem. I've cancelled that action. What else can I help you with?", 
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}, 
-                "state_update": {"pending_confirmation": None, "pending_order_details": None, "pending_order_summary": None, "pending_checkout": None, "pending_yes_no": None}
-            }
-
-        # GDPR: Pseudonymize raw user input to protect PII from third-party LLM
+        # ── Phase 2: Privacy Pseudonymization ────────────────────────────────
         scrubbed_message, pii_mapping = PrivacyScrubber.pseudonymize_text(user_message)
+        pii_mapping.update(state.get("pii_mapping", {}))
+        state["pii_mapping"] = pii_mapping
         
-        # GDPR: Merge mapping from state to allow detokenizing tokens from previous turns
-        old_mapping = state.get("pii_mapping", {})
-        pii_mapping.update(old_mapping)
-        
-        state["pii_mapping"] = pii_mapping  # Store for state management
-        
-        # GDPR: Mask sensitive info from session before sending to LLM
+        # Prepare User Context for LLM
         masked_name = PrivacyScrubber.mask_name(user_name)
         user_info = f"Customer Name: {masked_name}\n" if user_name else ""
-        
-        if user_id:
-            user_info += f"Customer Internal ID: {user_id}\n"
+        if user_id: user_info += f"Customer Internal ID: {user_id}\n"
         
         if user_context and getattr(user_context, 'is_authenticated', False):
-            # Create a dedicated token for the authenticated user's email
-            # This allows tools to detokenize it while keeping it hidden from the LLM logs.
-            auth_email_token = "[AUTH_EMAIL]"
-            pii_mapping[auth_email_token] = user_context.email
-            user_info += f"Customer Email: {auth_email_token}\n"
-            user_info += "AUTHENTICATION STATUS: VERIFIED. You do NOT need to ask for their email.\n"
+            pii_mapping["[AUTH_EMAIL]"] = user_context.email
+            user_info += "Customer Email: [AUTH_EMAIL]\nAUTHENTICATION STATUS: VERIFIED.\n"
         else:
-            user_info += "AUTHENTICATION STATUS: GUEST. You MUST ask for their email/details if they want to place an order.\n"
+            user_info += "AUTHENTICATION STATUS: GUEST. Ask for details if placing an order.\n"
         
-        # Set context variable for tool-level detokenization (including the new auth token)
         from app.core.privacy import PII_MAPPING
         PII_MAPPING.set(pii_mapping)
 
-        # 1. Known simple greetings
+        # ── Phase 3: Heuristic & Static Routing ──────────────────────────────
         if clean_msg in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]:
-            return self.get_greeting(user_name or "there")
+            return self.fast_track.get_greeting(user_name or "there")
 
-        # 1.5 Fast-Track explicit cancellations to avoid LLM hallucination and reduce latency
+        # Explicit cancellation regex check (Fast-track ID detection)
         cancel_match = re.search(r"cancel\s+(?:this\s+)?order\s+([a-f0-9\-]{36})", clean_msg)
         if cancel_match:
             order_id = cancel_match.group(1)
-            # Before fast-tracking, optionally check if order is already cancelled to prevent confusing UI, 
-            # but we can rely on cancel_order_fn in the NEXT step to reject it if it's not pending.
-            # So just return the confirmation requirement directly.
-            final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
-            return {"result": final_message, "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}, "state_update": {"pending_confirmation": order_id}}
+            msg = f"We can assist with cancelling order {order_id}. Please reply 'yes' to confirm."
+            return {"result": msg, "usage": self._empty_usage(), "state_update": {"pending_confirmation": order_id}}
 
-        # 2. Gatekeeper: Catch extremely short or single-character noise
-        if len(clean_msg) < 2:
-            return self.get_clarification_response()
-            
-        # 3. Gatekeeper: Catch known short nonsense or "test" strings (optional, can be expanded)
+        if len(clean_msg) < 2: return self.fast_track.get_clarification_response()
         if clean_msg in ["test", "bot", "anyone"]:
-            return {
-                "result": "I'm here and ready to help! Could you please tell me more about what you're looking for?",
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
-            }
+            return {"result": "I'm here and ready to help!", "usage": self._empty_usage()}
 
-        # ── Step 1: Fast Routing (LiteLLM) ──────────────────────────────────
-        # We use a direct LLM call instead of a full CrewAI Agent to save ~3s overhead.
-        # GDPR: We still use the scrubbed_message to ensure no PII leaks to the LLM provider.
-        router_prompt = (
-            "You are the Traffic Controller for Luxe, a premium retail brand (Home, Electronics, Clothing, Sports).\n"
-            "Categorize the customer's message into exactly one category: GREETING, PURCHASE, MANAGEMENT, KNOWLEDGE, COMPLAINT, COMPLEX, INVALID.\n"
-            "Categories:\n"
-            "- GREETING: Simple hellos, how are you.\n"
-            "- PURCHASE: Wants to buy, search for products, or place an order.\n"
-            "- MANAGEMENT: Wants to track, cancel, or check details of an existing order.\n"
-            "- KNOWLEDGE: Questions about policies, shipping times, or brand info.\n"
-            "- COMPLAINT: Expressing frustration, reporting issues, or wanting to contact admin.\n"
-            "- COMPLEX: Requests needing multiple steps or combinations.\n"
-            "- INVALID: Off-topic requests (cars, medical, other brands).\n\n"
-            "Output ONLY the category name."
-        )
-        
-        try:
-            router_response = completion(
-                model=settings.WORKER_MODEL,
-                messages=[
-                    {"role": "system", "content": router_prompt},
-                    {"role": "user", "content": scrubbed_message}
-                ],
-                max_tokens=10,
-                temperature=0.0
-            )
-            intent = str(router_response.choices[0].message.content).strip().upper()
-            # Safety check: extract the first word if the LLM was wordy
-            intent = re.sub(r'[^A-Z]', ' ', intent).split()[0] if intent else "COMPLEX"
-            logger.info(f"Detected intent: {intent}")
-        except Exception as e:
-            logger.warning(f"Fast router failed, falling back to COMPLEX: {e}", exc_info=True)
-            intent = "COMPLEX"
+        # ── Phase 4: Intent Routing (LiteLLM) ───────────────────────────────
+        intent = self._route_intent(scrubbed_message)
+        logger.info(f"Detected intent: {intent}")
 
-        # ── Step 2: Handle Simple Intent Paths ────────────────────────────
+        # Handle simple routing overrides
         if "INVALID" in intent:
             if len(user_message.split()) > 3:
-                return {
-                    "result": "I'm sorry, but I can only assist with Luxe products, orders, and company policies. That request seems to be outside of my current scope.",
-                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0}
-                }
-            return self.get_clarification_response()
+                return {"result": "I can only assist with Luxe products and policies.", "usage": self._empty_usage()}
+            return self.fast_track.get_clarification_response()
 
-        if intent == "GREETING" and "ORDER" not in clean_msg and "knowledge" not in clean_msg:
-            # If we have a pending confirmation, we SHOULD NOT short-circuit to a greeting
-            # We let it fall through to the specialist crew so they can handle the context.
-            if any(state.get(k) for k in ["pending_order_summary", "pending_yes_no", "pending_confirmation"]):
-                logger.info(f"Intent was GREETING but state has pending items. Overriding intent to COMPLEX to allow specialist handling.")
-                intent = "PURCHASE" if state.get("pending_order_summary") else "COMPLEX"
-            else:
-                return self.get_greeting(user_name or "there")
+        if intent == "GREETING" and not any(state.get(k) for k in ["pending_order_summary", "pending_yes_no", "pending_confirmation"]):
+            return self.fast_track.get_greeting(user_name or "there")
 
-        # 2b. Fast Track: Simple Complaint (Ask for details before spinning up specialist)
-        is_simple_complaint = (intent == "COMPLAINT" or "admin" in clean_msg or "complain" in clean_msg) and len(user_message.split()) < 8
-        if is_simple_complaint:
-            return {
-                "result": "I'm sorry to hear you're having trouble. I can certainly help you get a message to our administration team. Could you please provide the details of your complaint or the message you'd like to send?",
-                "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}
-            }
+        if (intent == "COMPLAINT" or "admin" in clean_msg) and len(user_message.split()) < 8:
+            return {"result": "I'm sorry to hear that. Could you please provide details of your complaint?", "usage": self._empty_usage()}
 
-        # ── Step 3: Unified Specialist Crew ──────────────────────────────
-        # We use ONE specialist with ALL tools to minimize task switching.
-        if intent in ["PURCHASE", "MANAGEMENT"]:
-            specialist = self.agent_factory.create_order_agent()
-        else:
-            specialist = self.agent_factory.create_unified_specialist_agent()
-        response_specialist = self.agent_factory.create_response_agent()
-
-        # Format recent history
-        history_str = "\n".join(history[-6:]) if history else "No previous conversation."
-
-        # Build Dynamic Specialist Mission based on intent
-        mission = ""
-        # Handle variations and keywords for robustness
-        is_purchase = intent == "PURCHASE" or any(w in scrubbed_message.lower() for w in ["buy", "order", "purchase", "search"])
-        is_management = intent == "MANAGEMENT" or any(w in scrubbed_message.lower() for w in ["cancel", "track", "status", "where is my"])
+        # ── Phase 5: CrewAI Execution ───────────────────────────────────────
+        agent = self.agent_factory.create_order_agent() if intent in ["PURCHASE", "MANAGEMENT"] else self.agent_factory.create_unified_specialist_agent()
+        mission = self._get_mission(intent, scrubbed_message)
         
-        if is_purchase and not is_management:
-            mission = (
-                "1. SEARCH & LIST:\n"
-                "   - Use 'search_products' to find items.\n"
-                "   - Present results in a clear numbered list.\n"
-                "   - Ask the user for a choice.\n"
-                "2. PRODUCT SELECTION:\n"
-                "   - Once selected, output exactly: 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}'\n"
-                "   - CRITICAL: The JSON must be valid. Include the image and price from search results.\n"
-                "3. CHECKOUT:\n"
-                "   - After confirmation, output exactly: 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ...}]}'\n"
-                "   - This triggers the payment form. Do not simulate a successful order yourself."
-            )
-        elif is_management:
-            mission = (
-                "2. CANCEL/TRACK an order:\n"
-                "   - You MUST first retrieve details using 'get_order_details'.\n"
-                "   - Only if the status is PENDING or PROCESSING, you MUST output exactly: 'CONFIRMATION_REQUIRED: [Order ID]'.\n"
-                "   - CRITICAL: Do NOT call 'get_order_details' if the user is asking to BUY a new product.\n"
-                "   - You do NOT have a tool to cancel orders; use the signal."
-            )
-        else:
-            mission = (
-                "3. KNOWLEDGE/FAQ: Use 'get_company_faq'.\n"
-                "4. SEARCH: Use 'search_products'.\n"
-                "5. COMPLAINTS: Use 'submit_complaint'."
-            )
-
-        # Create the specialist task via TaskFactory
-        specialist_task = TaskFactory.create_order_task(
-            agent=specialist,
+        task = TaskFactory.create_order_task(
+            agent=agent,
             user_message=scrubbed_message,
-            history_str=history_str,
+            history_str="\n".join(history[-6:]) if history else "No previous history.",
             user_info=user_info,
             mission=mission
         )
 
-        # ── Step 4: Final Response Task ───────────────────────────────────
-        response_task = TaskFactory.create_response_task(
-            agent=response_specialist,
-            user_message=scrubbed_message,
-            history_str=history_str,
-            user_info=user_info,
-            raw_output="The specialist has gathered the necessary info (order status, product details, or signals). Please review the specialist's task output to write your final response."
-        )
-        response_task.context = [specialist_task]
-
-        # Build and kickoff the unified crew
-        unified_crew = Crew(
-            agents=[specialist, response_specialist],
-            tasks=[specialist_task, response_task],
-            process=Process.sequential,
-            verbose=True,
-            memory=False
-        )
-
-        logger.info(f"Starting unified crew execution for intent: {intent}")
-        crew_output = unified_crew.kickoff()
-        final_message = str(crew_output).strip()
-        logger.info(f"Crew execution completed. Final Message: {final_message[:100]}...")
+        crew = Crew(agents=[agent], tasks=[task], process=Process.sequential, verbose=True)
+        crew_output = crew.kickoff()
         
-        # Extract Token Usage
-        usage = {
-            "total_tokens": 0,
-            "prompt_tokens": 0,
-            "completion_tokens": 0,
-            "successful_requests": 0,
-        }
-        if hasattr(crew_output, "token_usage"):
-            usage = {
-                "total_tokens": getattr(crew_output.token_usage, "total_tokens", 0),
-                "prompt_tokens": getattr(crew_output.token_usage, "prompt_tokens", 0),
-                "completion_tokens": getattr(crew_output.token_usage, "completion_tokens", 0),
-                "successful_requests": getattr(crew_output.token_usage, "successful_requests", 1)
-            }
+        # ── Phase 6: Signal Extraction & Response Cleaning ──────────────────
+        # Check for signals first (they take precedence)
+        signal_result = self.signal_processor.process_all_signals(crew_output, pii_mapping)
+        if signal_result:
+            return signal_result
 
-        # ── Step 5: Fast-Path Result Analysis ─────────────────────────────
-        # Check if ANY task produced a specific signal we need to act on in the state.
-        # We check both the final output and the specialist's specific output.
-        raw_full_output = str(crew_output.raw) if hasattr(crew_output, "raw") else final_message
-        
-        # Check specialist task output specifically for signals
-        specialist_output = ""
-        if hasattr(crew_output, "tasks_output") and crew_output.tasks_output:
-            for task_out in crew_output.tasks_output:
-                # The specialist task is the first one, or we check for signals in any task output
-                t_raw = str(task_out.raw)
-                if "PLACE_ORDER_SUMMARY:" in t_raw or "CONFIRMATION_REQUIRED:" in t_raw or "YES_NO_REQUIRED:" in t_raw:
-                    specialist_output = t_raw
-                    break
-                # Fallback: if it's the first task (specialist), store it as specialist_output
-                if not specialist_output:
-                    specialist_output = t_raw
-        
-        # Combine for signal detection
-        signal_source = raw_full_output + "\n" + specialist_output
-        logger.debug(f"Signal source for detection:\n{signal_source}")
-        
-        # Robust Signal Extraction using Regex
-        def extract_signal(signal_name, source):
-            # Try to match the signal name followed by optional colon/space
-            # Then look for either a JSON block in triple backticks or just the remaining text
-            # Pattern 1: SIGNAL: ```json { ... } ```
-            pattern_markdown = rf"{signal_name}:?\s*```(?:json)?\s*(\{{.*?\}})\s*```"
-            match_md = re.search(pattern_markdown, source, re.IGNORECASE | re.DOTALL)
-            if match_md:
-                return match_md.group(1).strip()
-            
-            # Pattern 2: SIGNAL: { ... } (Raw JSON)
-            pattern_raw_json = rf"{signal_name}:?\s*(\{{.*?\}})"
-            match_raw = re.search(pattern_raw_json, source, re.IGNORECASE | re.DOTALL)
-            if match_raw:
-                return match_raw.group(1).strip()
-
-            # Pattern 3: Fallback for non-JSON signals (like ID strings)
-            pattern_fallback = rf"{signal_name}:?\s*([^\n`]*)"
-            match_fb = re.search(pattern_fallback, source, re.IGNORECASE)
-            if match_fb:
-                return match_fb.group(1).strip()
-            
-            return None
-
-        # Order Cancellation Fast-Path
-        cancel_id = extract_signal("CONFIRMATION_REQUIRED", signal_source)
-        if cancel_id:
-            # Clean up the ID (take first word if it's messy)
-            order_id = cancel_id.split()[0].strip('.,![]{}')
-            # GDPR: Detokenize the ID before putting it in the UI/state
-            order_id = PrivacyScrubber.detokenize(order_id, pii_mapping)
-            
-            final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
-            return {"result": final_message, "usage": usage, "state_update": {"pending_confirmation": order_id}}
-
-        # Generic Yes/No Confirmation Fast-Path
-        yes_no_content = extract_signal("YES_NO_REQUIRED", signal_source)
-        if yes_no_content:
-            # Remove any trailing signals if present
-            question = yes_no_content
-            for s in ["PLACE_ORDER_SUMMARY", "CHECKOUT_REQUIRED", "CONFIRMATION_REQUIRED"]:
-                question = re.split(rf"{s}:?", question, flags=re.IGNORECASE)[0].strip()
-            return {"result": question, "usage": usage, "state_update": {"pending_yes_no": question}}
-
-        # Order Summary Confirmation Fast-Path
-        summary_raw = extract_signal("PLACE_ORDER_SUMMARY", signal_source)
-        if summary_raw:
-            # Remove other signals if present in the summary
-            for s in ["CHECKOUT_REQUIRED", "YES_NO_REQUIRED", "CONFIRMATION_REQUIRED"]:
-                summary_raw = re.split(rf"{s}:?", summary_raw, flags=re.IGNORECASE)[0].strip()
-            
-            # Attempt to parse as JSON for structured product info
-            summary_data = summary_raw
-            try:
-                # Find the first { and last } - non-greedy match for the first object
-                match = re.search(r'(\{.*\})', summary_raw, re.DOTALL)
-                if match:
-                    json_str = match.group(1)
-                    # Try to find the balanced closing brace if there's trailing text
-                    for i in range(len(json_str), 0, -1):
-                        if json_str[i-1] == '}':
-                            try:
-                                summary_data = json.loads(json_str[:i])
-                                break
-                            except:
-                                continue
-                else:
-                    # If no braces found, maybe it's just the product name or it's empty
-                    # If it's the exact signal name itself (leaked from split), ignore it
-                    if summary_raw.upper().strip() == "PLACE_ORDER_SUMMARY":
-                        summary_data = "Please review your order details."
-                    else:
-                        summary_data = summary_raw
-            except:
-                pass # Keep as raw string if JSON parsing fails
-                
-            # GDPR: Detokenize the summary data (whether it's a dict or string)
-            if isinstance(summary_data, dict):
-                for key in ["product_name", "details"]:
-                    if key in summary_data and isinstance(summary_data[key], str):
-                        summary_data[key] = PrivacyScrubber.detokenize(summary_data[key], pii_mapping)
-            else:
-                summary_data = PrivacyScrubber.detokenize(str(summary_data), pii_mapping)
-
-            return {
-                "result": "Please confirm the product details below.", 
-                "usage": usage, 
-                "state_update": {"pending_order_summary": summary_data}
-            }
-
-        # Order Checkout (Form-based) Fast-Path
-        checkout_raw = extract_signal("CHECKOUT_REQUIRED", signal_source)
-        if checkout_raw:
-            checkout_data = None
-            try:
-                # Remove markdown code blocks if present
-                details_raw = re.sub(r'```(?:json)?\s*(.*?)\s*```', r'\1', checkout_raw, flags=re.DOTALL)
-                
-                # Find the actual JSON object - non-greedy search for balanced braces
-                match = re.search(r'(\{.*\})', details_raw, re.DOTALL)
-                if match:
-                    details_str = match.group(1)
-                    for i in range(len(details_str), 0, -1):
-                        if details_str[i-1] == '}':
-                            try:
-                                candidate = details_str[:i].replace('\n', ' ').replace('\r', '').strip()
-                                checkout_data = json.loads(candidate)
-                                break
-                            except:
-                                try:
-                                    checkout_data = ast.literal_eval(candidate)
-                                    break
-                                except:
-                                    continue
-                
-                # Deep-parse 'items' if it's still a string (LLM double-encoding)
-                if checkout_data and "items" in checkout_data:
-                    items_val = checkout_data["items"]
-                    if isinstance(items_val, str):
-                        try:
-                            items_val_cleaned = items_val.replace('\n', ' ').replace('\r', '').strip()
-                            checkout_data["items"] = json.loads(items_val_cleaned)
-                        except:
-                            try:
-                                checkout_data["items"] = ast.literal_eval(items_val)
-                            except:
-                                pass
-            except Exception as e:
-                logger.error(f"Global checkout parsing error: {e}")
-
-            if checkout_data:
-                # GDPR: Detokenize items
-                if "items" in checkout_data and isinstance(checkout_data["items"], list):
-                    for item in checkout_data["items"]:
-                        for key in ["product_name", "details"]:
-                            if key in item and isinstance(item[key], str):
-                                item[key] = PrivacyScrubber.detokenize(item[key], pii_mapping)
-
-                final_message = "I've prepared the order details for you. Please fill out the secure checkout form below to complete your purchase."
-                return {
-                    "result": final_message,
-                    "usage": usage,
-                    "state_update": {
-                        "pending_checkout": checkout_data
-                    }
-                }
-
-
-        # GDPR: Detokenize the response so the user sees their real info, 
-        # while the LLM only processed the pseudonymized tokens.
-        final_message = PrivacyScrubber.detokenize(final_message, pii_mapping)
-
-        # Post-processing cleanup to prevent signal "leakage" into the chat interface
-        # We aggressively remove the signal name AND everything that looks like JSON/Markdown after it
-        signals_to_clean = ["PLACE_ORDER_SUMMARY", "CHECKOUT_REQUIRED", "YES_NO_REQUIRED", "CONFIRMATION_REQUIRED", "NOT_APPLICABLE", "NO_FAQ_RESULT"]
-        for sentinel in signals_to_clean:
-            # 1. Remove the sentinel and everything after it (most common case)
-            final_message = re.split(rf"{sentinel}:?", final_message, flags=re.IGNORECASE)[0].strip()
-        
-        # 2. Final sweep: Remove any lingering JSON-like structures or triple backticks at the very end
-        # This catches cases where the AI might have said "Here it is: ``` {json} ```" without the signal name
-        final_message = re.sub(r"```(?:json)?\s*\{.*\}\s*```", "", final_message, flags=re.DOTALL).strip()
-        final_message = re.sub(r"\{[\s\S]*\"product_name\"[\s\S]*\}", "", final_message).strip()
-        
-        final_message = re.sub(r"(Final Answer:|Final Response:|Agent Output:|Response from \w[\w ]*:)", "", final_message, flags=re.IGNORECASE).strip()
-        final_message = re.sub(r"\n{3,}", "\n\n", final_message).strip()
-
-        if not final_message or len(final_message) < 10:
-            final_message = "I'm sorry, I wasn't able to find a specific answer. How else can I help?"
+        # Final message processing
+        final_message = self.cleaner.clean_and_format(str(crew_output), pii_mapping)
+        usage = self.signal_processor._get_usage(crew_output)
 
         return {"result": final_message, "usage": usage}
 
-    def get_greeting(self, first_name: str) -> Dict[str, Any]:
-        # Optimization: Return a static greeting instead of spinning up a full CrewAI agent.
-        # This reduces token usage from ~700 to 0 and eliminates LLM latency.
-        greeting = (
-            f"Hello {first_name}, welcome to Luxe. As your dedicated assistant, I can help you with "
-            "everything from product discovery and tracking your order to clarifying our company policies. "
-            "Is there anything I can assist you with today?"
+    def _route_intent(self, message: str) -> str:
+        from litellm import completion
+        prompt = (
+            "Categorize the message: GREETING, PURCHASE, MANAGEMENT, KNOWLEDGE, COMPLAINT, COMPLEX, INVALID.\n"
+            "PURCHASE: buy/search. MANAGEMENT: track/cancel orders. INVALID: off-topic.\n"
+            "Output ONLY the category name."
         )
-        
-        return {
-            "result": greeting,
-            "usage": {
-                "total_tokens": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "successful_requests": 0,
-            }
-        }
+        try:
+            resp = completion(model=settings.WORKER_MODEL, messages=[{"role": "system", "content": prompt}, {"role": "user", "content": message}], max_tokens=10, temperature=0.0)
+            intent = str(resp.choices[0].message.content).strip().upper()
+            return re.sub(r'[^A-Z]', ' ', intent).split()[0] if intent else "COMPLEX"
+        except Exception as e:
+            logger.warning(f"Router failed: {e}")
+            return "COMPLEX"
 
-    def get_clarification_response(self) -> Dict[str, Any]:
-        """Return a static response for very short or ambiguous inputs to save tokens."""
-        return {
-            "result": "I didn't quite catch that. Could you please provide a bit more detail so I can assist you better?",
-            "usage": {
-                "total_tokens": 0,
-                "prompt_tokens": 0,
-                "completion_tokens": 0,
-                "successful_requests": 0,
-            }
-        }
+    def _get_mission(self, intent: str, message: str) -> str:
+        is_purchase = intent == "PURCHASE" or any(w in message.lower() for w in ["buy", "order", "purchase", "search"])
+        is_management = intent == "MANAGEMENT" or any(w in message.lower() for w in ["cancel", "track", "status"])
+        
+        if is_purchase and not is_management:
+            return "1. Search products. 2. Output PLACE_ORDER_SUMMARY JSON for choice. 3. Output CHECKOUT_REQUIRED JSON after confirm."
+        if is_management:
+            return "1. Track/check status. 2. If cancelling, get details first. 3. Output CONFIRMATION_REQUIRED: [ID] if eligible."
+        return "Handle knowledge/FAQ, search, or complaints using tools. Write warm response."
+
+    def _empty_usage(self) -> Dict[str, int]:
+        return {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0}

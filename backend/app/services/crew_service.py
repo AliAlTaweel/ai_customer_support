@@ -120,9 +120,11 @@ class CrewService:
             # Construct the items list for CHECKOUT_REQUIRED
             # The summary might be a string or a dict.
             if isinstance(pending_summary, dict):
-                product_name = pending_summary.get("product_name")
-                price = pending_summary.get("price")
-                items = [{"product_name": product_name, "quantity": 1, "price": price}]
+                product_name = pending_summary.get("product_name") or pending_summary.get("name") or "Product"
+                price = pending_summary.get("price") or 0.0
+                imageUrl = pending_summary.get("imageUrl")
+                details = pending_summary.get("details")
+                items = [{"product_name": product_name, "quantity": 1, "price": price, "imageUrl": imageUrl, "details": details}]
             else:
                 items = [{"product_name": str(pending_summary), "quantity": 1, "price": 0.0}]
             
@@ -279,18 +281,15 @@ class CrewService:
         if is_purchase and not is_management:
             mission = (
                 "1. SEARCH & LIST:\n"
-                "   - You MUST first search for the product(s) using 'search_products'.\n"
-                "   - Present the matching products to the user in a clear, NUMBERED LIST (e.g., 1. Product A, 2. Product B).\n"
-                "   - Explicitly ask the user to choose a number to proceed.\n"
-                "2. PRODUCT CONFIRMATION:\n"
-                "   - Once the user chooses a product number, identify that product from your previous search results.\n"
-                "   - You MUST output exactly: 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}' with the specific product details.\n"
-                "   - This will trigger interactive buttons with the image and details.\n"
-                "3. CHECKOUT FLOW:\n"
-                "   - After the user confirms (replies 'yes' or clicks 'Buy' on the summary), you MUST output exactly: 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ...}]}'.\n"
-                "   - This will open the secure checkout form for shipping/payment.\n"
-                "   - CRITICAL: Ensure the JSON inside CHECKOUT_REQUIRED is VALID.\n"
-                "   - CRITICAL: Use signals ONLY. NEVER say 'I've placed your order' yourself."
+                "   - Use 'search_products' to find items.\n"
+                "   - Present results in a clear numbered list.\n"
+                "   - Ask the user for a choice.\n"
+                "2. PRODUCT SELECTION:\n"
+                "   - Once selected, output exactly: 'PLACE_ORDER_SUMMARY: {\"product_name\": \"...\", \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}'\n"
+                "   - CRITICAL: The JSON must be valid. Include the image and price from search results.\n"
+                "3. CHECKOUT:\n"
+                "   - After confirmation, output exactly: 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ...}]}'\n"
+                "   - This triggers the payment form. Do not simulate a successful order yourself."
             )
         elif is_management:
             mission = (
@@ -377,14 +376,35 @@ class CrewService:
         signal_source = raw_full_output + "\n" + specialist_output
         logger.debug(f"Signal source for detection:\n{signal_source}")
         
-        # Helper to check for a signal in text
-        def has_signal(signal, text):
-            return signal in text
-        
+        # Robust Signal Extraction using Regex
+        def extract_signal(signal_name, source):
+            # Try to match the signal name followed by optional colon/space
+            # Then look for either a JSON block in triple backticks or just the remaining text
+            # Pattern 1: SIGNAL: ```json { ... } ```
+            pattern_markdown = rf"{signal_name}:?\s*```(?:json)?\s*(\{{.*?\}})\s*```"
+            match_md = re.search(pattern_markdown, source, re.IGNORECASE | re.DOTALL)
+            if match_md:
+                return match_md.group(1).strip()
+            
+            # Pattern 2: SIGNAL: { ... } (Raw JSON)
+            pattern_raw_json = rf"{signal_name}:?\s*(\{{.*?\}})"
+            match_raw = re.search(pattern_raw_json, source, re.IGNORECASE | re.DOTALL)
+            if match_raw:
+                return match_raw.group(1).strip()
+
+            # Pattern 3: Fallback for non-JSON signals (like ID strings)
+            pattern_fallback = rf"{signal_name}:?\s*([^\n`]*)"
+            match_fb = re.search(pattern_fallback, source, re.IGNORECASE)
+            if match_fb:
+                return match_fb.group(1).strip()
+            
+            return None
+
         # Order Cancellation Fast-Path
-        if "CONFIRMATION_REQUIRED:" in signal_source:
-            match = re.search(r"CONFIRMATION_REQUIRED:\s*(\S+)", signal_source)
-            order_id = match.group(1) if match else signal_source.split("CONFIRMATION_REQUIRED:")[-1].strip().split()[0]
+        cancel_id = extract_signal("CONFIRMATION_REQUIRED", signal_source)
+        if cancel_id:
+            # Clean up the ID (take first word if it's messy)
+            order_id = cancel_id.split()[0].strip('.,![]{}')
             # GDPR: Detokenize the ID before putting it in the UI/state
             order_id = PrivacyScrubber.detokenize(order_id, pii_mapping)
             
@@ -392,30 +412,54 @@ class CrewService:
             return {"result": final_message, "usage": usage, "state_update": {"pending_confirmation": order_id}}
 
         # Generic Yes/No Confirmation Fast-Path
-        if "YES_NO_REQUIRED:" in signal_source:
-            match = re.search(r"YES_NO_REQUIRED:\s*(.*)", signal_source)
-            question = match.group(1).strip() if match else "Would you like to proceed?"
-            # Remove any trailing "YES_NO_REQUIRED:" if it was at the end
-            question = question.split("YES_NO_REQUIRED:")[0].strip()
+        yes_no_content = extract_signal("YES_NO_REQUIRED", signal_source)
+        if yes_no_content:
+            # Remove any trailing signals if present
+            question = yes_no_content
+            for s in ["PLACE_ORDER_SUMMARY", "CHECKOUT_REQUIRED", "CONFIRMATION_REQUIRED"]:
+                question = re.split(rf"{s}:?", question, flags=re.IGNORECASE)[0].strip()
             return {"result": question, "usage": usage, "state_update": {"pending_yes_no": question}}
 
         # Order Summary Confirmation Fast-Path
-        if "PLACE_ORDER_SUMMARY:" in signal_source:
-            summary_raw = signal_source.split("PLACE_ORDER_SUMMARY:")[-1].strip()
+        summary_raw = extract_signal("PLACE_ORDER_SUMMARY", signal_source)
+        if summary_raw:
             # Remove other signals if present in the summary
-            for sentinel in ["CHECKOUT_REQUIRED:", "YES_NO_REQUIRED:", "CONFIRMATION_REQUIRED:"]:
-                summary_raw = summary_raw.split(sentinel)[0].strip()
+            for s in ["CHECKOUT_REQUIRED", "YES_NO_REQUIRED", "CONFIRMATION_REQUIRED"]:
+                summary_raw = re.split(rf"{s}:?", summary_raw, flags=re.IGNORECASE)[0].strip()
             
             # Attempt to parse as JSON for structured product info
             summary_data = summary_raw
             try:
-                # Find the first { and last }
+                # Find the first { and last } - non-greedy match for the first object
                 match = re.search(r'(\{.*\})', summary_raw, re.DOTALL)
                 if match:
-                    summary_data = json.loads(match.group(1))
+                    json_str = match.group(1)
+                    # Try to find the balanced closing brace if there's trailing text
+                    for i in range(len(json_str), 0, -1):
+                        if json_str[i-1] == '}':
+                            try:
+                                summary_data = json.loads(json_str[:i])
+                                break
+                            except:
+                                continue
+                else:
+                    # If no braces found, maybe it's just the product name or it's empty
+                    # If it's the exact signal name itself (leaked from split), ignore it
+                    if summary_raw.upper().strip() == "PLACE_ORDER_SUMMARY":
+                        summary_data = "Please review your order details."
+                    else:
+                        summary_data = summary_raw
             except:
                 pass # Keep as raw string if JSON parsing fails
                 
+            # GDPR: Detokenize the summary data (whether it's a dict or string)
+            if isinstance(summary_data, dict):
+                for key in ["product_name", "details"]:
+                    if key in summary_data and isinstance(summary_data[key], str):
+                        summary_data[key] = PrivacyScrubber.detokenize(summary_data[key], pii_mapping)
+            else:
+                summary_data = PrivacyScrubber.detokenize(str(summary_data), pii_mapping)
+
             return {
                 "result": "Please confirm the product details below.", 
                 "usage": usage, 
@@ -423,54 +467,53 @@ class CrewService:
             }
 
         # Order Checkout (Form-based) Fast-Path
-        if "CHECKOUT_REQUIRED:" in signal_source:
+        checkout_raw = extract_signal("CHECKOUT_REQUIRED", signal_source)
+        if checkout_raw:
             checkout_data = None
             try:
-                # More robust extraction using regex to find the JSON/Dict structure
-                # We look for the first { after CHECKOUT_REQUIRED: and the last } in the source
-                details_raw = signal_source.split("CHECKOUT_REQUIRED:")[-1].strip()
-                
                 # Remove markdown code blocks if present
-                details_raw = re.sub(r'```(?:json)?\s*(.*?)\s*```', r'\1', details_raw, flags=re.DOTALL)
+                details_raw = re.sub(r'```(?:json)?\s*(.*?)\s*```', r'\1', checkout_raw, flags=re.DOTALL)
                 
-                # Find the actual JSON object
+                # Find the actual JSON object - non-greedy search for balanced braces
                 match = re.search(r'(\{.*\})', details_raw, re.DOTALL)
                 if match:
                     details_str = match.group(1)
-                else:
-                    details_str = details_raw
-
-                # Aggressive cleaning for newlines and problematic whitespace
-                details_str_cleaned = details_str.replace('\n', ' ').replace('\r', '').strip()
-                
-                # Try JSON first
-                try:
-                    checkout_data = json.loads(details_str_cleaned)
-                except json.JSONDecodeError:
-                    # Try ast.literal_eval for Python-style dicts (single quotes)
-                    try:
-                        checkout_data = ast.literal_eval(details_str_cleaned)
-                    except Exception as e:
-                        logger.error(f"Failed to parse checkout signal. Error: {e}. Source snippet: {details_str_cleaned[:100]}")
-                        checkout_data = None
+                    for i in range(len(details_str), 0, -1):
+                        if details_str[i-1] == '}':
+                            try:
+                                candidate = details_str[:i].replace('\n', ' ').replace('\r', '').strip()
+                                checkout_data = json.loads(candidate)
+                                break
+                            except:
+                                try:
+                                    checkout_data = ast.literal_eval(candidate)
+                                    break
+                                except:
+                                    continue
                 
                 # Deep-parse 'items' if it's still a string (LLM double-encoding)
                 if checkout_data and "items" in checkout_data:
                     items_val = checkout_data["items"]
                     if isinstance(items_val, str):
                         try:
-                            # Clean items_val too
                             items_val_cleaned = items_val.replace('\n', ' ').replace('\r', '').strip()
                             checkout_data["items"] = json.loads(items_val_cleaned)
                         except:
                             try:
                                 checkout_data["items"] = ast.literal_eval(items_val)
-                            except Exception as e:
-                                logger.warning(f"Failed to parse nested items string: {e}")
+                            except:
+                                pass
             except Exception as e:
-                logger.error(f"Global checkout parsing error: {e}", exc_info=True)
+                logger.error(f"Global checkout parsing error: {e}")
 
             if checkout_data:
+                # GDPR: Detokenize items
+                if "items" in checkout_data and isinstance(checkout_data["items"], list):
+                    for item in checkout_data["items"]:
+                        for key in ["product_name", "details"]:
+                            if key in item and isinstance(item[key], str):
+                                item[key] = PrivacyScrubber.detokenize(item[key], pii_mapping)
+
                 final_message = "I've prepared the order details for you. Please fill out the secure checkout form below to complete your purchase."
                 return {
                     "result": final_message,
@@ -480,14 +523,22 @@ class CrewService:
                     }
                 }
 
+
         # GDPR: Detokenize the response so the user sees their real info, 
         # while the LLM only processed the pseudonymized tokens.
         final_message = PrivacyScrubber.detokenize(final_message, pii_mapping)
 
-        # Post-processing cleanup
-        for sentinel in ["NOT_APPLICABLE", "NO_FAQ_RESULT", "CHECKOUT_REQUIRED:", "YES_NO_REQUIRED:", "CONFIRMATION_REQUIRED:"]:
-            if sentinel in final_message:
-                final_message = final_message.split(sentinel)[0].strip()
+        # Post-processing cleanup to prevent signal "leakage" into the chat interface
+        # We aggressively remove the signal name AND everything that looks like JSON/Markdown after it
+        signals_to_clean = ["PLACE_ORDER_SUMMARY", "CHECKOUT_REQUIRED", "YES_NO_REQUIRED", "CONFIRMATION_REQUIRED", "NOT_APPLICABLE", "NO_FAQ_RESULT"]
+        for sentinel in signals_to_clean:
+            # 1. Remove the sentinel and everything after it (most common case)
+            final_message = re.split(rf"{sentinel}:?", final_message, flags=re.IGNORECASE)[0].strip()
+        
+        # 2. Final sweep: Remove any lingering JSON-like structures or triple backticks at the very end
+        # This catches cases where the AI might have said "Here it is: ``` {json} ```" without the signal name
+        final_message = re.sub(r"```(?:json)?\s*\{.*\}\s*```", "", final_message, flags=re.DOTALL).strip()
+        final_message = re.sub(r"\{[\s\S]*\"product_name\"[\s\S]*\}", "", final_message).strip()
         
         final_message = re.sub(r"(Final Answer:|Final Response:|Agent Output:|Response from \w[\w ]*:)", "", final_message, flags=re.IGNORECASE).strip()
         final_message = re.sub(r"\n{3,}", "\n\n", final_message).strip()

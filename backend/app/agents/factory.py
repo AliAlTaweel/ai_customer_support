@@ -27,7 +27,7 @@ class AgentFactory:
     def create_unified_specialist_agent(self):
         return Agent(
             role="Luxe Service Specialist",
-            goal="Resolve customer inquiries by retrieving FAQ info, searching products, and managing order status.",
+            goal="Resolve customer inquiries by retrieving FAQ info, searching products, and managing order status. Write a warm final reply directly to the customer.",
             backstory=(
                 f"{self.brand_context} "
                 "You are an expert at using tools to find answers and verify order status. "
@@ -40,6 +40,7 @@ class AgentFactory:
                 "3. If they confirm (reply 'yes' or click 'Buy'), output 'CHECKOUT_REQUIRED: {\"items\": [{\"product_name\": \"...\", \"quantity\": 1, \"price\": ..., \"imageUrl\": \"...\", \"details\": \"...\"}]}' to open the secure checkout form. "
                 "4. Collect shipping/payment info via the form (handled by system). "
                 "5. Never claim an order is placed yourself; only use signals."
+                "CRITICAL: Provide the final answer directly. Do not assume another agent will format it."
             ),
             tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
             llm=self.worker_llm,
@@ -66,7 +67,7 @@ class AgentFactory:
     def create_order_agent(self):
         return Agent(
             role="Transactional Operations Specialist",
-            goal="Manage Luxe order status and handle complaints.",
+            goal="Manage Luxe order status and handle complaints. Write a warm final reply directly to the customer.",
             backstory=(
                 f"{self.brand_context} "
                 "Use tools to verify order status. "
@@ -79,6 +80,7 @@ class AgentFactory:
                 "4. Collect shipping/payment info via the form (handled by system). "
                 "5. Never claim an order is placed yourself; only use signals."
                 "CRITICAL: Product IDs are NOT Order IDs."
+                "CRITICAL: Provide the final answer directly. Do not assume another agent will format it."
             ),
             tools=[get_company_faq, search_products, get_order_details, cancel_order, place_order, submit_complaint],
             llm=self.worker_llm,

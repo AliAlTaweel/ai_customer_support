@@ -11,9 +11,10 @@ import { useCart } from "@/lib/store/useCart";
 
 interface ProductCardProps {
   product: Product;
+  onShowDetails: () => void;
 }
 
-export function ProductCard({ product }: ProductCardProps) {
+export function ProductCard({ product, onShowDetails }: ProductCardProps) {
   const addItem = useCart((state) => state.addItem);
   
   const formattedPrice = new Intl.NumberFormat("en-US", {
@@ -32,8 +33,10 @@ export function ProductCard({ product }: ProductCardProps) {
       animate={{ opacity: 1, y: 0 }}
       whileHover={{ y: -5 }}
       transition={{ duration: 0.3 }}
+      onClick={onShowDetails}
+      className="cursor-pointer"
     >
-      <Card className="overflow-hidden border-none bg-secondary/30 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 group">
+      <Card className="overflow-hidden border-none bg-secondary/30 backdrop-blur-sm transition-all duration-300 hover:shadow-2xl hover:shadow-primary/10 group h-full">
         <CardContent className="p-0 relative aspect-square overflow-hidden">
           <Image
             src={product.imageUrl}
@@ -43,14 +46,25 @@ export function ProductCard({ product }: ProductCardProps) {
             className="object-cover transition-transform duration-500 group-hover:scale-110"
           />
           <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center gap-3">
-            <Button size="icon" variant="secondary" className="rounded-full">
+            <Button 
+              size="icon" 
+              variant="secondary" 
+              className="rounded-full"
+              onClick={(e) => {
+                e.stopPropagation();
+                onShowDetails();
+              }}
+            >
               <Eye className="w-5 h-5" />
             </Button>
             <Button 
               size="icon" 
               variant="default" 
               className="rounded-full shadow-lg shadow-primary/20 hover:scale-110 transition-transform"
-              onClick={() => addItem(product)}
+              onClick={(e) => {
+                e.stopPropagation();
+                addItem(product);
+              }}
             >
               <ShoppingCart className="w-5 h-5" />
             </Button>
@@ -60,7 +74,7 @@ export function ProductCard({ product }: ProductCardProps) {
           </Badge>
         </CardContent>
         <CardFooter className="p-5 flex flex-col items-start gap-1">
-          <h3 className="font-semibold text-lg line-clamp-1">{product.name}</h3>
+          <h3 className="font-semibold text-lg line-clamp-1 group-hover:text-primary transition-colors">{product.name}</h3>
           <p className="text-muted-foreground text-sm line-clamp-2 min-h-[40px]">
             {product.description}
           </p>

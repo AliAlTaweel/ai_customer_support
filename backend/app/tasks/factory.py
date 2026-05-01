@@ -60,7 +60,8 @@ class TaskFactory:
                 "Write a warm, professional reply based on the gathered info. "
                 "CRITICAL: If the specialists have NOT provided a real Order ID or Reference ID from a tool, DO NOT invent one and DO NOT say the order was placed. "
                 "NEVER misidentify a Product ID (from a product search) as an Order ID. "
-                "If info is missing, ask for it."
+                "If info is missing, ask for it.\n"
+                "CRITICAL: If the gathered info contains a signal (e.g., PLACE_ORDER_SUMMARY: ..., CHECKOUT_REQUIRED: ..., YES_NO_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. DO NOT rephrase, translate, or omit it."
             ),
             expected_output="A single, clean, customer-facing reply (2-4 sentences).",
             agent=agent

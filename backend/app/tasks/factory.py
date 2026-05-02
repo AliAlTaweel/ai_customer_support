@@ -44,7 +44,7 @@ class TaskFactory:
                 "CRITICAL: NEVER claim an order is placed or cancelled. Your job is ONLY to trigger signals.\n"
                 "CRITICAL: NEVER invent IDs. Use only what tools provide."
             ),
-            expected_output="Tool result, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED, CONFIRMATION_REQUIRED, or a direct answer.",
+            expected_output="Tool result, PRODUCT_LIST, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED, CONFIRMATION_REQUIRED, or a direct answer.",
             agent=agent
         )
 
@@ -61,7 +61,7 @@ class TaskFactory:
                 "CRITICAL: If the specialists have NOT provided a real Order ID or Reference ID from a tool, DO NOT invent one and DO NOT say the order was placed. "
                 "NEVER misidentify a Product ID (from a product search) as an Order ID. "
                 "If info is missing, ask for it.\n"
-                "CRITICAL: If the gathered info contains a signal (e.g., PLACE_ORDER_SUMMARY: ..., CHECKOUT_REQUIRED: ..., YES_NO_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. DO NOT rephrase, translate, or omit it."
+                "CRITICAL: If the gathered info contains a signal (e.g., PRODUCT_LIST: ..., PLACE_ORDER_SUMMARY: ..., CHECKOUT_REQUIRED: ..., YES_NO_REQUIRED: ..., CONFIRMATION_REQUIRED: ...), you MUST include that signal EXACTLY at the very end of your response. DO NOT rephrase, translate, or omit it."
             ),
             expected_output="A single, clean, customer-facing reply (2-4 sentences).",
             agent=agent

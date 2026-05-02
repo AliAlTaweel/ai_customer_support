@@ -9,6 +9,7 @@ import Link from "next/link";
 import { NavLinks } from "@/components/layout/NavLinks";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { isAdmin } from "@/lib/actions/admin";
+import { TooltipProvider } from "@/components/ui/tooltip";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -78,10 +79,12 @@ export default async function RootLayout({
               </div>
             </div>
           </header>
-          <main className="pt-20">
-            {children}
-          </main>
-          <ChatInterface />
+          <TooltipProvider>
+            <main className="pt-20">
+              {children}
+            </main>
+            <ChatInterface />
+          </TooltipProvider>
         </body>
       </html>
     </ClerkProvider>

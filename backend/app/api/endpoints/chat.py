@@ -122,7 +122,10 @@ async def chat(
         # Merge state updates if any
         if request.state:
             # Exclude transient keys that should only persist if explicitly returned by the service
-            transient_keys = ["pending_confirmation", "pending_order_summary", "pending_order_details", "pending_checkout", "pending_yes_no"]
+            transient_keys = [
+                "pending_confirmation", "pending_order_summary", "pending_order_details", 
+                "pending_checkout", "pending_yes_no", "pending_tracking_data", "pending_product_list"
+            ]
             new_state.update({
                 k: v for k, v in request.state.items() 
                 if k not in new_state and k not in transient_keys

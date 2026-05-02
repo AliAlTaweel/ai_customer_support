@@ -12,20 +12,32 @@ class SignalProcessor:
     def extract_signal(signal_name: str, source: str) -> Optional[str]:
         """
         Robustly extracts a signal from the AI output using regex.
-        Supports markdown code blocks and raw JSON/strings.
+        Supports markdown code blocks and raw JSON/strings (objects and arrays).
         """
-        # Pattern 1: SIGNAL: ```json { ... } ```
-        pattern_markdown = rf"{signal_name}:?\s*```(?:json)?\s*(\{{.*?\}})\s*```"
+        # Pattern 1: SIGNAL: ```json [...] or {...} ```
+        pattern_markdown = rf"{signal_name}:?\s*```(?:json)?\s*([\[\{{].*?[\]\}}])\s*```"
         match_md = re.search(pattern_markdown, source, re.IGNORECASE | re.DOTALL)
         if match_md:
             return match_md.group(1).strip()
         
-        # Pattern 2: SIGNAL: { ... } (Raw JSON)
-        pattern_raw_json = rf"{signal_name}:?\s*(\{{.*?\}})"
+        # Pattern 2: SIGNAL: [...] or { ... } (Raw JSON)
+        # We search for the first [ or { after the signal name and then try to find the balancing closing bracket
+        pattern_raw_json = rf"{signal_name}:?\s*([\[\{{].*)"
         match_raw = re.search(pattern_raw_json, source, re.IGNORECASE | re.DOTALL)
         if match_raw:
-            return match_raw.group(1).strip()
-
+            candidate = match_raw.group(1).strip()
+            # Basic balancing for nested structures
+            start_char = candidate[0]
+            end_char = ']' if start_char == '[' else '}'
+            stack = 0
+            for i, char in enumerate(candidate):
+                if char == start_char:
+                    stack += 1
+                elif char == end_char:
+                    stack -= 1
+                    if stack == 0:
+                        return candidate[:i+1]
+        
         # Pattern 3: Fallback for non-JSON signals (like ID strings)
         pattern_fallback = rf"{signal_name}:?\s*([^\n`]*)"
         match_fb = re.search(pattern_fallback, source, re.IGNORECASE)
@@ -46,7 +58,7 @@ class SignalProcessor:
         if hasattr(crew_output, "tasks_output") and crew_output.tasks_output:
             for task_out in crew_output.tasks_output:
                 t_raw = str(task_out.raw)
-                if any(s in t_raw for s in ["PLACE_ORDER_SUMMARY:", "CONFIRMATION_REQUIRED:", "YES_NO_REQUIRED:", "CHECKOUT_REQUIRED:"]):
+                if any(s in t_raw for s in ["PLACE_ORDER_SUMMARY:", "CONFIRMATION_REQUIRED:", "YES_NO_REQUIRED:", "CHECKOUT_REQUIRED:", "PRODUCT_LIST:", "TRACKING_INFO:"]):
                     specialist_output = t_raw
                     break
                 if not specialist_output:
@@ -60,7 +72,14 @@ class SignalProcessor:
         if cancel_id:
             order_id = cancel_id.split()[0].strip('.,![]{}')
             order_id = PrivacyScrubber.detokenize(order_id, pii_mapping)
-            final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
+            
+            # Preserve agent's text if they provided info (e.g. status) alongside the signal
+            agent_text = re.split(r"CONFIRMATION_REQUIRED:?", final_message, flags=re.IGNORECASE)[0].strip()
+            if len(agent_text) > 20:
+                final_message = agent_text
+            else:
+                final_message = f"We can certainly assist you with cancelling order {order_id}. As a final step, we require explicit confirmation before processing this cancellation. Please reply 'yes' to confirm."
+            
             return {"result": final_message, "usage": usage, "state_update": {"pending_confirmation": order_id}}
 
         # 2. Generic Yes/No Confirmation Fast-Path
@@ -82,6 +101,8 @@ class SignalProcessor:
                 for key in ["product_name", "details"]:
                     if key in summary_data and isinstance(summary_data[key], str):
                         summary_data[key] = PrivacyScrubber.detokenize(summary_data[key], pii_mapping)
+                if "estimated_delivery" not in summary_data:
+                    summary_data["estimated_delivery"] = "Arrives in 3-5 business days"
             else:
                 summary_data = PrivacyScrubber.detokenize(str(summary_data), pii_mapping)
 
@@ -107,6 +128,33 @@ class SignalProcessor:
                     "usage": usage,
                     "state_update": {"pending_checkout": checkout_data}
                 }
+        
+        # 5. Product List Fast-Path
+        product_list_raw = self.extract_signal("PRODUCT_LIST", signal_source)
+        if product_list_raw:
+            product_list = self._parse_json_safely(product_list_raw)
+            if isinstance(product_list, list):
+                return {
+                    "result": "I found some products that might interest you. Have a look at these options:",
+                    "usage": usage,
+                    "state_update": {"pending_product_list": product_list, "pending_order_summary": None}
+                }
+        
+        # 6. Tracking Info Fast-Path
+        tracking_raw = self.extract_signal("TRACKING_INFO", signal_source)
+        if tracking_raw:
+            tracking_data = self._parse_json_safely(tracking_raw)
+            if isinstance(tracking_data, dict):
+                # Clean up the agent's text to remove the raw signal
+                agent_text = re.split(r"TRACKING_INFO:?", final_message, flags=re.IGNORECASE)[0].strip()
+                if len(agent_text) < 10:
+                    agent_text = f"I've retrieved the real-time tracking for your order #{tracking_data.get('trackingNumber', 'N/A')}."
+                
+                return {
+                    "result": agent_text,
+                    "usage": usage,
+                    "state_update": {"pending_tracking_data": tracking_data}
+                }
 
         return None
 
@@ -123,11 +171,14 @@ class SignalProcessor:
 
     def _parse_json_safely(self, raw: str) -> Any:
         try:
-            match = re.search(r'(\{.*\})', raw, re.DOTALL)
+            match = re.search(r'(\{.*\}|\[.*\])', raw, re.DOTALL)
             if match:
                 json_str = match.group(1)
+                # Find the corresponding closing character
+                start_char = json_str[0]
+                end_char = '}' if start_char == '{' else ']'
                 for i in range(len(json_str), 0, -1):
-                    if json_str[i-1] == '}':
+                    if json_str[i-1] == end_char:
                         try:
                             return json.loads(json_str[:i])
                         except:

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Dialog as SheetPrimitive } from "@base-ui/react/dialog"
+import { Dialog as SheetPrimitive } from "@base-ui/react"
 import { Slot } from "@radix-ui/react-slot"
 
 import { cn } from "@/lib/utils"
@@ -12,15 +12,22 @@ function Sheet({ ...props }: SheetPrimitive.Root.Props) {
   return <SheetPrimitive.Root data-slot="sheet" {...props} />
 }
 
-interface SheetTriggerProps extends Omit<SheetPrimitive.Trigger.Props, "className"> {
+interface SheetTriggerProps extends SheetPrimitive.Trigger.Props {
   asChild?: boolean
-  className?: string
 }
 
-const SheetTrigger = React.forwardRef<HTMLElement, SheetTriggerProps>(
-  ({ asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : SheetPrimitive.Trigger
-    return <Comp data-slot="sheet-trigger" {...props} ref={ref as any} />
+const SheetTrigger = React.forwardRef<HTMLButtonElement, SheetTriggerProps>(
+  ({ asChild, children, ...props }, ref) => {
+    return (
+      <SheetPrimitive.Trigger
+        data-slot="sheet-trigger"
+        ref={ref}
+        render={asChild ? (children as React.ReactElement) : props.render}
+        {...props}
+      >
+        {asChild ? undefined : children}
+      </SheetPrimitive.Trigger>
+    )
   }
 )
 SheetTrigger.displayName = "SheetTrigger"

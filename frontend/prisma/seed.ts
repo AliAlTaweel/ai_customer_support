@@ -86,8 +86,8 @@ const products = [
     details: "14-inch Liquid Retina XDR display, M3 Pro chip, 16GB Unified Memory, 512GB SSD Storage, Backlit Magic Keyboard with Touch ID.",
   },
   {
-    name: "Zenith Ultra Slim",
-    description: "The ultimate portable companion. 13-inch OLED display, carbon fiber chassis, and 20-hour battery life.",
+    name: "Zenith Ultra Slim Laptop",
+    description: "The ultimate portable companion laptop. 13-inch OLED display, carbon fiber chassis, and 20-hour battery life.",
     price: 1499.00,
     category: "electronics",
     stock: 15,
@@ -95,8 +95,8 @@ const products = [
     details: "13.3-inch OLED 4K display, Intel Core i7-13th Gen, 16GB DDR5 RAM, 1TB NVMe SSD, Ultra-light 0.9kg design, Thunderbolt 4 ports.",
   },
   {
-    name: "Titan Gaming Pro",
-    description: "Unleash your potential. RTX 4080 graphics, 240Hz refresh rate, and advanced liquid cooling.",
+    name: "Titan Gaming Pro Laptop",
+    description: "Unleash your potential with this gaming laptop. RTX 4080 graphics, 240Hz refresh rate, and advanced liquid cooling.",
     price: 2199.00,
     category: "electronics",
     stock: 8,
@@ -104,8 +104,8 @@ const products = [
     details: "17.3-inch QHD 240Hz display, AMD Ryzen 9 7945HX, NVIDIA GeForce RTX 4080 12GB GDDR6, 32GB RAM, 2TB SSD, Per-key RGB Keyboard.",
   },
   {
-    name: "EliteBook Executive",
-    description: "Built for professionals. Enterprise-grade security, spill-resistant keyboard, and dual-array microphones.",
+    name: "EliteBook Executive Laptop",
+    description: "Business laptop built for professionals. Enterprise-grade security, spill-resistant keyboard, and dual-array microphones.",
     price: 1750.00,
     category: "electronics",
     stock: 20,

@@ -1,7 +1,7 @@
 "use client"
 
 import * as React from "react"
-import { Dialog as DialogPrimitive } from "@base-ui/react/dialog"
+import { Dialog as DialogPrimitive } from "@base-ui/react"
 import { Slot } from "@radix-ui/react-slot"
 import { XIcon } from "lucide-react"
 
@@ -12,15 +12,22 @@ function Dialog({ ...props }: DialogPrimitive.Root.Props) {
   return <DialogPrimitive.Root data-slot="dialog" {...props} />
 }
 
-interface DialogTriggerProps extends Omit<DialogPrimitive.Trigger.Props, "className"> {
+interface DialogTriggerProps extends DialogPrimitive.Trigger.Props {
   asChild?: boolean
-  className?: string
 }
 
-const DialogTrigger = React.forwardRef<HTMLElement, DialogTriggerProps>(
-  ({ asChild = false, ...props }, ref) => {
-    const Comp = asChild ? Slot : DialogPrimitive.Trigger
-    return <Comp data-slot="dialog-trigger" {...props} ref={ref as any} />
+const DialogTrigger = React.forwardRef<HTMLButtonElement, DialogTriggerProps>(
+  ({ asChild, children, ...props }, ref) => {
+    return (
+      <DialogPrimitive.Trigger
+        data-slot="dialog-trigger"
+        ref={ref}
+        render={asChild ? (children as React.ReactElement) : props.render}
+        {...props}
+      >
+        {asChild ? undefined : children}
+      </DialogPrimitive.Trigger>
+    )
   }
 )
 DialogTrigger.displayName = "DialogTrigger"

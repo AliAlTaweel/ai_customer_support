@@ -17,5 +17,14 @@ export interface ConversationState {
       details?: string;
     }>;
   } | null;
+  pending_product_list?: Array<{
+    id: string;
+    name: string;
+    description?: string;
+    price: number;
+    imageUrl?: string;
+    category?: string;
+  }> | null;
+  pending_tracking_data?: any | null;
   [key: string]: unknown;
 }

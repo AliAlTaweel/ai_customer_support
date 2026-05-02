@@ -21,6 +21,7 @@ class TokenUsage(BaseModel):
     prompt_tokens: int
     completion_tokens: int
     successful_requests: int = 1
+    response_time: Optional[float] = None
 
 class ChatResponse(BaseModel):
     message: str

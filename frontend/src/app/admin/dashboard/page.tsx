@@ -40,7 +40,7 @@ import {
 } from "lucide-react";
 import { cn } from "@/lib/utils";
 
-type OrderStatus = "PENDING" | "PROCESSING" | "COMPLETED" | "CANCELLED" | "DELIVERED";
+type OrderStatus = "PENDING" | "PROCESSING" | "SHIPPED" | "COMPLETED" | "CANCELLED" | "DELIVERED";
 
 export default function AdminDashboard() {
   const router = useRouter();
@@ -51,6 +51,8 @@ export default function AdminDashboard() {
   const [activeTab, setActiveTab] = useState("orders");
   const [error, setError] = useState<string | null>(null);
   const [isRefreshing, setIsRefreshing] = useState(false);
+  const [showTrackingInput, setShowTrackingInput] = useState<string | null>(null);
+  const [trackingInfo, setTrackingInfo] = useState({ number: "", carrier: "UPS" });
 
   useEffect(() => {
     async function checkAuth() {
@@ -89,11 +91,13 @@ export default function AdminDashboard() {
     setIsRefreshing(false);
   };
 
-  const handleStatusUpdate = async (orderId: string, newStatus: string) => {
+  const handleStatusUpdate = async (orderId: string, newStatus: string, tn?: string, carrier?: string) => {
     setUpdating(orderId);
-    const result = await updateOrderStatus(orderId, newStatus);
+    const result = await updateOrderStatus(orderId, newStatus, tn, carrier);
     if (result.success) {
       await fetchOrders();
+      setShowTrackingInput(null);
+      setTrackingInfo({ number: "", carrier: "UPS" });
     } else {
       alert(result.error);
     }
@@ -146,6 +150,8 @@ export default function AdminDashboard() {
       case "DELIVERED":
       case "RESOLVED":
         return "bg-green-500/10 text-green-500 border-green-500/20";
+      case "SHIPPED":
+        return "bg-purple-500/10 text-purple-500 border-purple-500/20";
       case "PROCESSING":
       case "IN_PROGRESS":
         return "bg-blue-500/10 text-blue-500 border-blue-500/20";
@@ -243,6 +249,7 @@ export default function AdminDashboard() {
                   <div className={cn(
                     "absolute top-0 left-0 w-1 h-full",
                     order.status === "DELIVERED" ? "bg-green-500" : 
+                    order.status === "SHIPPED" ? "bg-purple-500" : 
                     order.status === "CANCELLED" ? "bg-destructive" : "bg-primary"
                   )} />
                   
@@ -319,6 +326,15 @@ export default function AdminDashboard() {
                           <Button 
                             size="sm" 
                             variant="outline" 
+                            disabled={updating === order.id || order.status === "SHIPPED"}
+                            onClick={() => setShowTrackingInput(order.id)}
+                            className="rounded-xl border-white/5 bg-secondary/20 hover:bg-purple-500/20"
+                          >
+                            Shipped
+                          </Button>
+                          <Button 
+                            size="sm" 
+                            variant="outline" 
                             disabled={updating === order.id || order.status === "DELIVERED"}
                             onClick={() => handleStatusUpdate(order.id, "DELIVERED")}
                             className="rounded-xl border-white/5 bg-secondary/20 hover:bg-green-500/20"
@@ -345,6 +361,44 @@ export default function AdminDashboard() {
                             Delete
                           </Button>
                         </div>
+                        
+                        {showTrackingInput === order.id && (
+                          <div className="mt-4 p-4 bg-black/40 rounded-2xl border border-primary/20 space-y-3 animate-in slide-in-from-top-2">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Shipping Details</p>
+                            <input 
+                              placeholder="Tracking #"
+                              className="w-full bg-secondary/50 border border-white/10 rounded-lg p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              value={trackingInfo.number}
+                              onChange={(e) => setTrackingInfo({...trackingInfo, number: e.target.value})}
+                            />
+                            <select 
+                              className="w-full bg-secondary/50 border border-white/10 rounded-lg p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
+                              value={trackingInfo.carrier}
+                              onChange={(e) => setTrackingInfo({...trackingInfo, carrier: e.target.value})}
+                            >
+                              <option value="UPS">UPS</option>
+                              <option value="FedEx">FedEx</option>
+                              <option value="DHL">DHL</option>
+                            </select>
+                            <div className="flex gap-2">
+                              <Button 
+                                size="sm" 
+                                className="flex-1 rounded-lg h-8 text-[10px] font-bold"
+                                onClick={() => handleStatusUpdate(order.id, "SHIPPED", trackingInfo.number, trackingInfo.carrier)}
+                              >
+                                Save
+                              </Button>
+                              <Button 
+                                size="sm" 
+                                variant="ghost"
+                                className="flex-1 rounded-lg h-8 text-[10px] font-bold"
+                                onClick={() => setShowTrackingInput(null)}
+                              >
+                                Cancel
+                              </Button>
+                            </div>
+                          </div>
+                        )}
                       </div>
                     </div>
                   </CardContent>

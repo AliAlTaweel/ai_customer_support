@@ -9,6 +9,7 @@ import { useUser, useAuth } from "@clerk/nextjs";
 
 import ReactMarkdown from "react-markdown";
 import CheckoutForm from "./CheckoutForm";
+import TrackingMap from "./TrackingMap";
 
 interface Message {
   role: "user" | "assistant";
@@ -17,6 +18,7 @@ interface Message {
     total_tokens: number;
     prompt_tokens: number;
     completion_tokens: number;
+    response_time?: number;
   };
 }
 
@@ -127,7 +129,9 @@ export default function ChatInterface() {
       pending_confirmation: undefined, 
       pending_order_summary: undefined,
       pending_checkout: undefined,
-      pending_yes_no: undefined 
+      pending_yes_no: undefined,
+      pending_product_list: undefined,
+      pending_tracking_data: undefined
     } : undefined);
     
     setIsLoading(true);
@@ -228,6 +232,7 @@ export default function ChatInterface() {
             animate={{ scale: 1, opacity: 1 }}
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
+            data-chat-toggle
             className="w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group"
           >
             <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
@@ -344,12 +349,20 @@ export default function ChatInterface() {
                             )}
                           </div>
                           {msg.usage && (
-                            <div className="flex gap-2 px-2 opacity-40 text-[9px] uppercase tracking-tighter font-bold">
-                              <span>Tokens: {msg.usage.total_tokens}</span>
-                              <span className="opacity-50">|</span>
-                              <span>In: {msg.usage.prompt_tokens}</span>
-                              <span className="opacity-50">|</span>
-                              <span>Out: {msg.usage.completion_tokens}</span>
+                            <div className="flex flex-col gap-1 px-2 opacity-40 text-[9px] uppercase tracking-tighter font-bold">
+                              <div className="flex gap-2">
+                                <span>Tokens: {msg.usage.total_tokens}</span>
+                                <span className="opacity-50">|</span>
+                                <span>In: {msg.usage.prompt_tokens}</span>
+                                <span className="opacity-50">|</span>
+                                <span>Out: {msg.usage.completion_tokens}</span>
+                              </div>
+                              {msg.usage.response_time !== undefined && (
+                                <div className="text-[8px] opacity-80 flex items-center gap-1">
+                                  <Loader2 className="w-2 h-2" />
+                                  <span>Response Time: {msg.usage.response_time}s</span>
+                                </div>
+                              )}
                             </div>
                           )}
                         </div>
@@ -438,6 +451,14 @@ export default function ChatInterface() {
                               <p className="text-lg font-black text-primary font-sans">
                                 ${(Number(state.pending_order_summary.price || state.pending_order_summary.amount) || 0).toFixed(2)}
                               </p>
+                              {state.pending_order_summary.estimated_delivery && (
+                                <div className="flex items-center gap-1.5 mt-1">
+                                  <Clock className="w-3 h-3 text-green-500" />
+                                  <span className="text-[10px] font-bold text-green-600 uppercase tracking-tight">
+                                    {state.pending_order_summary.estimated_delivery}
+                                  </span>
+                                </div>
+                              )}
                             </div>
                           </div>
                           
@@ -506,6 +527,70 @@ export default function ChatInterface() {
                         </Button>
                       </div>
                     </motion.div>
+                  )}
+
+                  {state?.pending_product_list && !isLoading && (
+                    <motion.div 
+                      initial={{ opacity: 0, y: 10 }}
+                      animate={{ opacity: 1, y: 0 }}
+                      className="space-y-3 mb-4"
+                    >
+                      <div className="flex items-center gap-2 px-2 text-primary">
+                        <div className="w-6 h-6 rounded-lg bg-primary/10 flex items-center justify-center">
+                          <Package className="w-3.5 h-3.5" />
+                        </div>
+                        <span className="text-[10px] font-extrabold uppercase tracking-widest">Recommended Products</span>
+                      </div>
+                      <div className="flex gap-3 overflow-x-auto pb-4 pt-1 px-1 snap-x scrollbar-hide -mx-1">
+                        {state.pending_product_list.map((product) => (
+                          <motion.div 
+                            key={product.id}
+                            whileHover={{ y: -4 }}
+                            className="flex-shrink-0 w-[240px] snap-start bg-background border border-primary/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
+                          >
+                            <div className="h-32 bg-secondary/20 relative group">
+                              {product.imageUrl ? (
+                                <img 
+                                  src={product.imageUrl} 
+                                  alt={product.name} 
+                                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-110"
+                                />
+                              ) : (
+                                <div className="w-full h-full flex items-center justify-center">
+                                  <Package className="w-8 h-8 text-primary/20" />
+                                </div>
+                              )}
+                              <div className="absolute top-2 right-2 bg-background/90 backdrop-blur-sm px-2.5 py-1 rounded-lg shadow-sm border border-primary/5">
+                                <span className="text-sm font-black text-primary">${product.price}</span>
+                              </div>
+                            </div>
+                            <div className="p-4 space-y-3">
+                              <div className="space-y-1">
+                                <h4 className="font-bold text-[14px] leading-tight text-foreground/90 font-outfit line-clamp-1">
+                                  {product.name}
+                                </h4>
+                                <p className="text-[11px] text-muted-foreground line-clamp-2 font-outfit leading-normal h-8">
+                                  {product.description || "Premium Luxe product quality guaranteed."}
+                                </p>
+                              </div>
+                              <Button 
+                                variant="default" 
+                                size="sm" 
+                                className="w-full rounded-xl h-9 font-bold text-xs shadow-md shadow-primary/5 group/btn"
+                                onClick={() => handleSend(`I want to buy the ${product.name}`)}
+                              >
+                                Select Product
+                                <Send className="w-3 h-3 ml-2 opacity-0 -translate-x-2 group-hover/btn:opacity-100 group-hover/btn:translate-x-0 transition-all" />
+                              </Button>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </div>
+                    </motion.div>
+                  )}
+
+                  {state?.pending_tracking_data && !isLoading && (
+                    <TrackingMap data={state.pending_tracking_data} />
                   )}
 
                   <AnimatePresence>

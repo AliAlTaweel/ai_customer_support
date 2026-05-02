@@ -85,7 +85,7 @@ export default function SupportPage() {
               className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary mb-6"
             >
               <Sparkles className="w-4 h-4" />
-              <span className="text-sm font-semibold uppercase tracking-wider">AI-Powered Support</span>
+              <span className="text-sm font-semibold uppercase tracking-wider">AI-Powered Concierge</span>
             </motion.div>
             <motion.h1 
               initial={{ opacity: 0, y: 20 }}
@@ -216,7 +216,7 @@ export default function SupportPage() {
                     <p className="text-sm font-medium italic mb-2">"Your order is currently in transit and is expected to arrive by 3:00 PM today."</p>
                     <div className="flex items-center gap-2">
                       <div className="w-8 h-8 rounded-full bg-primary flex items-center justify-center text-[10px] font-bold">AI</div>
-                      <span className="text-xs font-bold font-outfit">Luxe Assistant</span>
+                      <span className="text-xs font-bold font-outfit">Luxe Concierge</span>
                     </div>
                  </div>
               </div>
@@ -247,7 +247,7 @@ export default function SupportPage() {
             variant="secondary" 
             className="h-16 px-12 rounded-2xl text-xl font-bold relative z-10 hover:scale-105 transition-transform"
            >
-             Open Support Chat
+             Open Concierge Chat
            </Button>
         </div>
       </section>
@@ -256,7 +256,7 @@ export default function SupportPage() {
       <footer className="py-12 border-t border-primary/5">
         <div className="container mx-auto px-4 text-center">
            <p className="text-xs text-muted-foreground uppercase tracking-widest">
-             © 2026 LuxeCatalog Support. Powered by Advanced Agentic AI.
+             © 2026 LuxeCatalog Concierge. Powered by Advanced Agentic AI.
            </p>
         </div>
       </footer>

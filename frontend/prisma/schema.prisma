@@ -36,6 +36,8 @@ model Order {
   shippingZip     String?
   customerEmail   String?
   customerName    String?
+  trackingNumber  String?
+  carrier         String?     @default("UPS")
   items           OrderItem[]
 }
 

@@ -1,4 +1,5 @@
 import logging
+import re
 from typing import List, Dict, Any, Optional
 
 logger = logging.getLogger(__name__)
@@ -39,8 +40,22 @@ class FastTrackService:
         
         # 3. Purchase Summary Confirmation
         pending_summary = state.get("pending_order_summary")
-        if pending_summary and clean_msg in ["yes", "y", "confirm", "sure", "buy", "proceed", "i want", "i want to buy"]:
-            return self._handle_summary_confirmation(pending_summary)
+        if pending_summary and clean_msg:
+            # Affirmative keywords
+            affirmations = ["yes", "y", "confirm", "sure", "buy", "proceed", "do it", "i want", "i want to buy", "checkout", "place order"]
+            
+            # Check if exactly affirmative or starts with affirmative + short
+            is_affirmative = clean_msg in affirmations or any(clean_msg.startswith(f"{a} ") for a in affirmations)
+            
+            # If it's affirmative, double check for topic mismatch
+            if is_affirmative:
+                summary_name = (pending_summary.get("product_name") or pending_summary.get("name") or "").lower()
+                # If they say "i want to buy laptop" but the summary is a yoga mat, it's NOT a confirmation
+                categories = ["laptop", "mat", "chair", "shoes", "shirt", "watch", "camera", "phone"]
+                mismatch = any(cat in clean_msg and cat not in summary_name for cat in categories)
+                
+                if not mismatch:
+                    return self._handle_summary_confirmation(pending_summary)
 
         # 4. Abort Confirmation
         if (pending_order or state.get("pending_checkout") or state.get("pending_yes_no") or pending_summary) and clean_msg in ["no", "n", "cancel", "stop", "nevermind"]:
@@ -48,15 +63,128 @@ class FastTrackService:
             return {
                 "result": "No problem. I've cancelled that action. What else can I help you with?", 
                 "usage": self._empty_usage(), 
-                "state_update": {"pending_confirmation": None, "pending_order_details": None, "pending_order_summary": None, "pending_checkout": None, "pending_yes_no": None}
+                "state_update": {"pending_confirmation": None, "pending_order_summary": None, "pending_checkout": None, "pending_yes_no": None}
             }
 
+        # 5. Last Order or Specific Order ID Fast-Track
+        status_keywords = ["status", "track", "truck", "where is", "where's", "update on", "check", "lookup", "info"]
+        order_keywords = ["last order", "my order", "recent order", "this order", "the order"]
+        
+        # Check for UUID pattern (specific order ID)
+        uuid_match = re.search(r"([a-f0-9\-]{36})", clean_msg)
+        email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", clean_msg)
+        
+        # Case A: UUID provided or "last order" keywords
+        if uuid_match or (any(sk in clean_msg for sk in status_keywords) and any(ok in clean_msg for ok in order_keywords)):
+            order_id = uuid_match.group(1) if uuid_match else None
+            return self._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
+            
+        # Case B: Email provided for a pending order lookup
+        pending_order_id = state.get("pending_order_id")
+        if pending_order_id and email_match:
+            email = email_match.group(0)
+            logger.info(f"Fast-tracking order lookup with email: {email} for order: {pending_order_id}")
+            return self._handle_status_inquiry(user_context, user_id, state, order_id=pending_order_id, provided_email=email)
+
         return None
+
+    def _handle_status_inquiry(self, user_context, user_id, state, order_id: str = None, provided_email: str = None) -> Optional[Dict[str, Any]]:
+        is_auth = False
+        if user_context:
+            is_auth = getattr(user_context, 'is_authenticated', False) if not isinstance(user_context, dict) else user_context.get('is_authenticated', False)
+        
+        # Fallback to LLM only if we have NO order_id AND no auth AND no provided email
+        if not is_auth and not (user_id and user_id.startswith("user_")) and not order_id and not provided_email:
+            return None
+            
+        from app.tools.order_tools import get_order_details_fn
+        from app.core.privacy import PII_MAPPING
+        
+        pii_mapping = state.get("pii_mapping", {})
+        auth_email = None
+        if is_auth:
+            auth_email = getattr(user_context, 'email', None) if not isinstance(user_context, dict) else user_context.get('email')
+            if auth_email:
+                pii_mapping["[AUTH_EMAIL]"] = auth_email
+        
+        PII_MAPPING.set(pii_mapping)
+        
+        # Call the tool function directly
+        # Use provided_email if we have it, otherwise fallback to [AUTH_EMAIL]
+        result = get_order_details_fn(
+            order_id=order_id, 
+            customer_email=provided_email if provided_email else ("[AUTH_EMAIL]" if auth_email else None),
+            user_id=user_id if (user_id and user_id.startswith("user_")) else None
+        )
+        
+        if "security reasons" in result:
+            return {
+                "result": f"I found order `{order_id}`, but for security, could you please provide the email address associated with it?",
+                "usage": self._empty_usage(),
+                "state_update": {"pending_order_id": order_id}
+            }
+            
+        if "Order not found" in result:
+            return {
+                "result": "I couldn't find that order. Please double-check the Order ID or try searching with your email address.",
+                "usage": self._empty_usage()
+            }
+        
+        if "Error" in result:
+            return None # Fallback to LLM for complex errors
+            
+        # Parse the result string (it's a stringified dict)
+        try:
+            import ast
+            order_data = ast.literal_eval(result)
+            status = order_data.get('status', 'Unknown').upper()
+            order_id = order_data.get('id', 'N/A')
+            created_at = order_data.get('createdAt', '')
+            
+            # Extract date if possible
+            date_str = ""
+            if created_at and "T" in str(created_at):
+                date_str = f" placed on {str(created_at).split('T')[0]}"
+
+            msg = f"Your most recent order (#{order_id}){date_str} is currently **{status}**."
+            
+            state_update = {
+                "pending_order_id": None,
+                "pending_tracking_data": None
+            }
+            
+            if status == "PENDING":
+                msg += " We are preparing it for processing."
+            elif status in ["SHIPPED", "COMPLETED", "DELIVERED"]:
+                if status == "SHIPPED":
+                    msg += " It's on its way to you!"
+                else:
+                    msg += " It has been successfully delivered!"
+                    
+                # Inject Mock Tracking Data
+                try:
+                    from app.services.tracking_service import MockTrackingService
+                    tracking_data = MockTrackingService.get_mock_tracking(order_data)
+                    if tracking_data.get("active"):
+                        import json
+                        msg += f"\n\nTRACKING_INFO: {json.dumps(tracking_data)}"
+                        state_update["pending_tracking_data"] = tracking_data
+                except Exception as te:
+                    logger.warning(f"Failed to generate mock tracking: {te}")
+            
+            return {
+                "result": msg,
+                "usage": self._empty_usage(),
+                "state_update": state_update
+            }
+        except Exception as e:
+            logger.warning(f"Failed to parse fast-track order result: {e}")
+            return None
 
     def _handle_system_process_order(self, state, user_context, user_id) -> Dict[str, Any]:
         from app.tools.order_tools import place_order_fn
         from app.tools.base import detokenize_val
-        details = state.get("pending_order_details")
+        details = state.get("pending_checkout")
         if not details:
             return {
                 "result": "I'm sorry, I couldn't find the order details. Please try again.",
@@ -64,17 +192,37 @@ class FastTrackService:
                 "state_update": {"pending_checkout": None}
             }
         
-        is_auth = user_context and getattr(user_context, 'is_authenticated', False)
+        # Check authentication status
+        is_auth = False
+        if user_context:
+            if isinstance(user_context, dict):
+                is_auth = user_context.get('is_authenticated', False)
+            else:
+                is_auth = getattr(user_context, 'is_authenticated', False)
+        
+        # If user_id is present and looks like a real Clerk ID, treat as auth fallback
+        if not is_auth and user_id and user_id.startswith("user_"):
+            is_auth = True
+        
         from app.core.privacy import PII_MAPPING
         pii_mapping = state.get("pii_mapping", {})
         PII_MAPPING.set(pii_mapping)
         
-        email = user_context.email if is_auth else details.get("customer_email")
+        # Robust email detection
+        email = None
+        if is_auth:
+            email = getattr(user_context, 'email', None) if not isinstance(user_context, dict) else user_context.get('email')
+        
+        if not email:
+            email = details.get("customer_email")
+            
         if not email:
             for val in pii_mapping.values():
-                if "@" in str(val):
+                if isinstance(val, str) and "@" in val:
                     email = val
                     break
+        
+        logger.info(f"System Order Process - Auth: {is_auth}, Email: {email}")
         
         if not email:
             return {
@@ -99,7 +247,7 @@ class FastTrackService:
         return {
             "result": result,
             "usage": self._empty_usage(),
-            "state_update": {"pending_checkout": None, "pending_order_details": None}
+            "state_update": {"pending_checkout": None}
         }
 
     def _handle_summary_confirmation(self, pending_summary) -> Dict[str, Any]:
@@ -108,7 +256,7 @@ class FastTrackService:
             price = pending_summary.get("price") or 0.0
             imageUrl = pending_summary.get("imageUrl")
             details = pending_summary.get("details")
-            items = [{"product_name": product_name, "quantity": 1, "price": price, "imageUrl": imageUrl, "details": details}]
+            items = [{"product_name": product_name, "quantity": 1, "price": price, "imageUrl": imageUrl, "details": details, "estimated_delivery": "Arrives by Friday, May 8"}]
         else:
             items = [{"product_name": str(pending_summary), "quantity": 1, "price": 0.0}]
         

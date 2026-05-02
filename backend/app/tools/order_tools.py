@@ -11,8 +11,8 @@ from app.core.privacy import PrivacyScrubber, PII_MAPPING
 
 logger = logging.getLogger(__name__)
 
-def get_order_details_fn(order_id: str = None, email: str = None, customer_email: str = None):
-    """Retrieve order details using order ID or customer email."""
+def get_order_details_fn(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None):
+    """Retrieve order details using order ID, customer email, or user ID."""
     mapping = PII_MAPPING.get() or {}
     auth_email = mapping.get("[AUTH_EMAIL]")
     
@@ -23,16 +23,22 @@ def get_order_details_fn(order_id: str = None, email: str = None, customer_email
     if auth_email and not customer_email and not email:
         customer_email = auth_email
         
-    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}")
+    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}, UserID: {user_id}")
     try:
         with engine.connect() as connection:
             if order_id:
                 target_filter_email = customer_email or email
-                if target_filter_email:
+                if user_id:
+                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "userId" = :user_id')
+                    params = {"order_id": order_id, "user_id": user_id}
+                elif target_filter_email:
                     query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :email')
                     params = {"order_id": order_id, "email": target_filter_email}
                 else:
                     return "For security reasons, please provide the email address associated with the order."
+            elif user_id:
+                query = text('SELECT * FROM "Order" WHERE "userId" = :user_id ORDER BY "createdAt" DESC LIMIT 1')
+                params = {"user_id": user_id}
             elif customer_email or email:
                 target_email = customer_email or email
                 query = text('SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email ORDER BY "createdAt" DESC LIMIT 1')
@@ -47,6 +53,11 @@ def get_order_details_fn(order_id: str = None, email: str = None, customer_email
                 return "Order not found or you do not have permission to view it."
             
             order_dict = dict(order._mapping)
+            # Ensure datetime is stringified for safety
+            for key, val in order_dict.items():
+                if isinstance(val, (datetime)):
+                    order_dict[key] = val.isoformat()
+
             items_result = connection.execute(
                 text('SELECT p.name, oi.quantity, oi.price FROM "OrderItem" oi JOIN "Product" p ON oi."productId" = p.id WHERE oi."orderId" = :order_id'),
                 {"order_id": order_dict['id']}
@@ -60,12 +71,12 @@ def get_order_details_fn(order_id: str = None, email: str = None, customer_email
         return f"Error retrieving order: {str(e)}"
 
 @tool("get_order_details")
-def get_order_details(order_id: str = None, email: str = None, customer_email: str = None):
+def get_order_details(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None):
     """
-    Retrieve order details using order ID or customer email.
-    If 'customer_email' is provided, results are strictly filtered to that user.
+    Retrieve order details using order ID, customer email, or user ID.
+    If 'customer_email' or 'user_id' is provided, results are strictly filtered to that user.
     """
-    return get_order_details_fn(order_id, email, customer_email)
+    return get_order_details_fn(order_id, email, customer_email, user_id)
 
 def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = None):
     """Cancel an order given its ID. Only PENDING or PROCESSING orders can be cancelled."""
@@ -104,6 +115,8 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
 def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = None):
     """
     Cancel an existing order using its Order ID. 
+    CRITICAL: ONLY call this tool if the user has explicitly asked to CANCEL their order. 
+    Do NOT call this tool for status checks or general inquiries.
     'confirmed' MUST be set to True to execute the cancellation. 
     ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
     If 'customer_email' is provided, it must match the order's customer email.

@@ -3,6 +3,7 @@
 import { motion } from "framer-motion";
 import { Truck, MapPin, Navigation, Package, Clock, ShieldCheck } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Badge } from "@/components/ui/badge";
 import { cn } from "@/lib/utils";
 
 interface TrackingData {
@@ -37,12 +38,15 @@ export default function TrackingMap({ data }: { data: TrackingData }) {
       <div className="flex items-start justify-between relative z-10">
         <div className="space-y-1">
           <div className="flex items-center gap-2">
-            <span className={cn(
-              "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest",
-              data.status === "SHIPPED" ? "bg-green-500/10 text-green-500" : "bg-primary/10 text-primary"
-            )}>
+            <Badge 
+              variant={data.status === "SHIPPED" ? "default" : "secondary"}
+              className={cn(
+                "px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-widest",
+                data.status === "SHIPPED" ? "bg-green-500/10 text-green-500 border-green-500/20" : ""
+              )}
+            >
               {data.status}
-            </span>
+            </Badge>
             <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest opacity-40">Order Tracking</span>
           </div>
           <h4 className="font-outfit font-bold text-lg leading-tight">

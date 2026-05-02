@@ -92,6 +92,7 @@ function OrderCard({ order }: { order: any }) {
   const statusConfig = {
     PENDING: { icon: Clock, color: "bg-yellow-500/10 text-yellow-500", label: "Pending" },
     PROCESSING: { icon: CheckCircle, color: "bg-blue-500/10 text-blue-500", label: "Processing" },
+    SHIPPED: { icon: Truck, color: "bg-purple-500/10 text-purple-500", label: "Shipped" },
     COMPLETED: { icon: CheckCircle, color: "bg-green-500/10 text-green-500", label: "Delivered" },
     CANCELLED: { icon: ExternalLink, color: "bg-red-500/10 text-red-500", label: "Cancelled" },
   };

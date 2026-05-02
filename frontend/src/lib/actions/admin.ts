@@ -50,13 +50,17 @@ export async function getAllOrders() {
   }
 }
 
-export async function updateOrderStatus(orderId: string, status: string) {
+export async function updateOrderStatus(orderId: string, status: string, trackingNumber?: string, carrier?: string) {
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
     await prisma.order.update({
       where: { id: orderId },
-      data: { status },
+      data: { 
+        status,
+        ...(trackingNumber && { trackingNumber }),
+        ...(carrier && { carrier })
+      },
     });
 
     revalidatePath("/admin/dashboard");

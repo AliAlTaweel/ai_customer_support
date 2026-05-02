@@ -98,5 +98,9 @@
   {
     "question": "What does the red trash icon in my order history do?",
     "answer": "During our current development phase, we've provided a delete option (the red trash icon) to help you clean up test orders. Please note that this action is permanent and cannot be undone."
+  },
+  {
+    "question": "What payment methods do you accept?",
+    "answer": "We accept major credit and debit cards, as well as various digital wallets and local payment options depending on your region."
   }
 ]

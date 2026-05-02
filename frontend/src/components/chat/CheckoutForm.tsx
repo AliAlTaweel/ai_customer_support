@@ -4,6 +4,9 @@ import { useState } from "react";
 import { motion } from "framer-motion";
 import { CreditCard, Truck, User, ArrowRight, X, Package, CheckCircle2, Loader2, Mail } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 
 interface CheckoutItem {
   product_name: string;
@@ -120,58 +123,56 @@ export default function CheckoutForm({ items, onSubmit, onCancel, initialEmail }
       <form onSubmit={handleSubmit} className="space-y-3 relative z-10">
         <div className="grid grid-cols-2 gap-3">
           <div className="space-y-1.5">
-            <label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">First Name</label>
-            <input
+            <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">First Name</Label>
+            <Input
               required
               disabled={isSubmitting}
-              type="text"
               placeholder="First Name"
               value={formData.firstName}
               onChange={(e) => setFormData({ ...formData, firstName: e.target.value })}
-              className="w-full h-10 bg-secondary/30 border border-transparent rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
+              className="w-full h-10 bg-secondary/30 border-transparent rounded-xl px-3 text-xs focus-visible:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
             />
           </div>
           <div className="space-y-1.5">
-            <label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Last Name</label>
-            <input
+            <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Last Name</Label>
+            <Input
               required
               disabled={isSubmitting}
-              type="text"
               placeholder="Last Name"
               value={formData.lastName}
               onChange={(e) => setFormData({ ...formData, lastName: e.target.value })}
-              className="w-full h-10 bg-secondary/30 border border-transparent rounded-xl px-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
+              className="w-full h-10 bg-secondary/30 border-transparent rounded-xl px-3 text-xs focus-visible:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
             />
           </div>
         </div>
         
         <div className="space-y-1.5">
-          <label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Email Address</label>
+          <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Email Address</Label>
           <div className="relative">
-            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50" />
-            <input
+            <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-muted-foreground/50 z-10" />
+            <Input
               required
               disabled={isSubmitting}
               type="email"
               placeholder="email@example.com"
               value={formData.email}
               onChange={(e) => setFormData({ ...formData, email: e.target.value })}
-              className="w-full h-10 bg-secondary/30 border border-transparent rounded-xl pl-9 pr-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
+              className="w-full h-10 bg-secondary/30 border-transparent rounded-xl pl-9 pr-3 text-xs focus-visible:ring-primary/10 transition-all placeholder:opacity-30 disabled:opacity-50"
             />
           </div>
         </div>
         
         <div className="space-y-1.5">
-          <label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Shipping Address</label>
+          <Label className="text-[9px] uppercase tracking-widest font-bold opacity-40 ml-1">Shipping Address</Label>
           <div className="relative">
-            <Truck className="absolute left-3 top-3 w-3.5 h-3.5 text-muted-foreground/50" />
-            <textarea
+            <Truck className="absolute left-3 top-3 w-3.5 h-3.5 text-muted-foreground/50 z-10" />
+            <Textarea
               required
               disabled={isSubmitting}
               placeholder="Complete shipping address..."
               value={formData.address}
               onChange={(e) => setFormData({ ...formData, address: e.target.value })}
-              className="w-full h-18 bg-secondary/30 border border-transparent rounded-xl pl-9 pr-3 py-2.5 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 transition-all resize-none placeholder:opacity-30 disabled:opacity-50"
+              className="w-full h-24 bg-secondary/30 border-transparent rounded-xl pl-9 pr-3 py-2.5 text-xs focus-visible:ring-primary/10 transition-all resize-none placeholder:opacity-30 disabled:opacity-50"
             />
           </div>
         </div>

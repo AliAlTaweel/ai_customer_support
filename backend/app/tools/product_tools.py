@@ -11,7 +11,7 @@ def search_products_fn(query: str):
     try:
         with engine.connect() as connection:
             result = connection.execute(
-                text('SELECT id, name, description, price, category, stock, "imageUrl", details FROM "Product" WHERE name ILIKE :query OR category ILIKE :query'),
+                text('SELECT id, name, description, price, category, stock, "imageUrl", details FROM "Product" WHERE name ILIKE :query OR category ILIKE :query OR description ILIKE :query'),
                 {"query": f"%{query}%"}
             )
             products = [dict(row._mapping) for row in result]

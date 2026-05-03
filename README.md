@@ -71,11 +71,12 @@ python run.py
 ```
 The backend will run on [http://localhost:3001](http://localhost:3001).
 
-### 4. Docker Deployment (Recommended)
-You can run the entire stack using Docker Compose:
+### 4. Production Deployment (AWS EC2)
+You can deploy the backend to AWS EC2 using the optimized Docker configuration:
 ```bash
-docker-compose up --build
+docker-compose up --build -d
 ```
+For detailed instructions, see the [Deployment Guide](file:///Users/alial-taweel/.gemini/antigravity/brain/de1f030b-9e87-4dfc-8410-11bf630548e7/deployment_guide.md).
 
 ---
 
@@ -87,7 +88,7 @@ docker-compose up --build
 | **Backend** | FastAPI, CrewAI, LangChain, Gemini 1.5 Flash |
 | **LLMs** | Google Gemini (Primary), Ollama (Local Backup/Specialists) |
 | **Database** | AWS RDS PostgreSQL, Prisma (Frontend), SQLAlchemy (Backend) |
-| **Deployment** | Docker, AWS (ECS/App Runner ready) |
+| **Deployment** | Docker (Multi-stage, Gunicorn), AWS EC2 / RDS |
 
 ---
 

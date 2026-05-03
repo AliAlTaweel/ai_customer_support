@@ -159,9 +159,9 @@ class CrewService:
         prompt = (
             "You are a Traffic Controller. Categorize the user message into exactly ONE of these categories:\n"
             "GREETING: hello, hi, etc.\n"
-            "PURCHASE: search, browse, or buy products.\n"
+            "PURCHASE: search, browse, or buy products. Use this ONLY if they want to see/buy items like laptops, watches, etc.\n"
             "MANAGEMENT: track order, check status, or cancel order.\n"
-            "KNOWLEDGE: questions about store hours, returns, or policies.\n"
+            "KNOWLEDGE: questions about payment methods, return policy, shipping info, store hours, or general company help.\n"
             "COMPLAINT: reporting a problem.\n"
             "INVALID: off-topic (cars, medical, etc).\n\n"
             "Output ONLY the category name in all caps."
@@ -204,7 +204,15 @@ class CrewService:
                 "2. ONLY if the user explicitly and clearly asked to CANCEL, verify eligibility and then output the CONFIRMATION_REQUIRED signal. "
                 "3. If they provide an order ID without 'cancel', assume they want to TRACK it. NEVER assume cancellation intent for typos like 'truck'."
             )
-        return "Handle knowledge/FAQ, search, or complaints using tools. Write warm response."
+        if intent == "COMPLAINT" or "admin" in message.lower() or "court" in message.lower():
+            return (
+                "The user is filing a complaint or sending a message to administration. "
+                "1. Use 'submit_complaint' to record their message. "
+                "2. Provide the 'CMP-' Reference ID to the user. "
+                "3. DO NOT look for or track orders unless the user specifically asks to track a specific 'ORD-' Order ID within the complaint."
+            )
+
+        return "Handle knowledge/FAQ, search, or complaints using tools. Write warm response. Do not assume any order context unless provided."
 
     def get_greeting(self, first_name: str) -> Dict[str, Any]:
         import time

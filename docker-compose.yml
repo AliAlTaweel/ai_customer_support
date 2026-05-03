@@ -1,15 +1,37 @@
 version: '3.8'
+
 services:
   db:
     image: postgres:15
     environment:
-      POSTGRES_USER: luxe_user
-      POSTGRES_PASSWORD: luxe_password
-      POSTGRES_DB: luxe_db
+      POSTGRES_USER: ${DB_USER:-luxe_user}
+      POSTGRES_PASSWORD: ${DB_PASSWORD:-luxe_password}
+      POSTGRES_DB: ${DB_NAME:-luxe_db}
     ports:
       - "5432:5432"
     volumes:
       - postgres_data:/var/lib/postgresql/data
+    restart: unless-stopped
+
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "3001:3001"
+    environment:
+      - DATABASE_URL=postgresql://${DB_USER:-luxe_user}:${DB_PASSWORD:-luxe_password}@db:5432/${DB_NAME:-luxe_db}
+      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+      - GOOGLE_API_KEY=${GOOGLE_API_KEY}
+      - DB_PATH=/app/data/dev.db
+      - FAQ_DATA_PATH=/app/data/faq.json
+      - INDEX_SAVE_PATH=/app/faq_index
+    volumes:
+      - ./backend/data:/app/data
+      - ./backend/faq_index:/app/faq_index
+      - ./FAQ:/app/FAQ_SOURCE:ro
+    depends_on:
+      - db
     restart: unless-stopped
 
 volumes:

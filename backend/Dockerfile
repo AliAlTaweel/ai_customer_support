@@ -1,23 +1,56 @@
+# Stage 1: Build dependencies
+FROM python:3.11-slim AS builder
+
+WORKDIR /app
+
+# Install build dependencies
+RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
+    && rm -rf /var/lib/apt/lists/*
+
+# Install dependencies to a temporary directory
+COPY requirements.txt .
+RUN pip install --no-cache-dir --prefix=/install -r requirements.txt
+RUN pip install --no-cache-dir --prefix=/install gunicorn
+
+# Stage 2: Final image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install system dependencies if any are needed (e.g., for SQLite)
+# Install runtime dependencies (like libpq for postgres)
 RUN apt-get update && apt-get install -y \
-    gcc \
+    libpq5 \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy requirements first to leverage Docker cache
-COPY requirements.txt .
+# Copy installed dependencies from builder
+COPY --from=builder /install /usr/local
 
-# Install Python dependencies
-RUN pip install --no-cache-dir -r requirements.txt
-
-# Copy the rest of the application
+# Copy application code
 COPY . .
 
-# Expose the port the app runs on (usually 8000 for uvicorn, but can be overridden)
-EXPOSE 8000
+# Create directory for local data/logs
+RUN mkdir -p /app/data /app/logs && chmod -R 777 /app/data /app/logs
 
-# Command to run the application (production settings without reload)
-CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+# Set environment variables
+ENV PYTHONDONTWRITEBYTECODE=1 \
+    PYTHONUNBUFFERED=1 \
+    PORT=3001 \
+    PYTHONPATH=/app
+
+# Expose the application port
+EXPOSE 3001
+
+# Healthcheck
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:3001/health || exit 1
+
+# Create a non-root user and switch to it
+RUN useradd -m appuser && chown -R appuser:appuser /app
+USER appuser
+
+# Run the application with gunicorn for production
+# Using uvicorn workers for FastAPI
+CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:3001", "--timeout", "120"]

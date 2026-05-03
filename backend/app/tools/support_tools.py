@@ -17,7 +17,7 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
 
     try:
         with engine.begin() as connection:
-            complaint_id = str(uuid.uuid4())
+            complaint_id = f"CMP-{str(uuid.uuid4())}"
             now = datetime.utcnow().isoformat() + "Z"
             prio = priority.upper() if priority else "MEDIUM"
             if prio not in ["LOW", "MEDIUM", "HIGH", "URGENT"]:
@@ -39,7 +39,7 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
                     "now": now
                 }
             )
-            return f"Your message has been successfully submitted. Reference ID: {complaint_id}."
+            return f"Your message has been successfully submitted. Reference ID: {complaint_id}. (Note: This is a reference for your message, not an order tracking number)."
     except Exception as e:
         logger.error(f"Error submitting complaint: {e}")
         return f"Error submitting complaint: {str(e)}"

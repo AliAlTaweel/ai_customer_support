@@ -113,7 +113,7 @@ export default function ChatInterface() {
           const name = user?.firstName || "there";
           setMessages([{ 
             role: "assistant", 
-            content: `Hello ${name}! I'm the Luxe Concierge team. How can I help you today?` 
+            content: `Hello ${name}! I'm the Luxe Support team. How can I help you today?` 
           }]);
         } finally {
           setIsLoading(false);
@@ -231,7 +231,7 @@ export default function ChatInterface() {
   };
 
   return (
-    <div className="fixed bottom-6 right-6 z-50">
+    <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
       <AnimatePresence>
         {!isOpen && (
           <motion.button
@@ -240,9 +240,9 @@ export default function ChatInterface() {
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
             data-chat-toggle
-            className="w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group"
           >
-            <MessageCircle className="w-8 h-8 group-hover:rotate-12 transition-transform" />
+            <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 group-hover:rotate-12 transition-transform" />
           </motion.button>
         )}
       </AnimatePresence>
@@ -255,11 +255,11 @@ export default function ChatInterface() {
               opacity: 1, 
               y: 0, 
               scale: 1,
-              height: isMinimized ? "auto" : "600px",
-              width: "420px"
+              height: isMinimized ? "auto" : "min(600px, calc(100vh - 100px))",
+              width: "min(420px, calc(100vw - 2rem))"
             }}
             exit={{ opacity: 0, y: 20, scale: 0.95 }}
-            className="bg-background border border-primary/10 shadow-2xl rounded-[2.5rem] overflow-hidden flex flex-col"
+            className="bg-background border border-primary/10 shadow-2xl rounded-[2rem] sm:rounded-[2.5rem] overflow-hidden flex flex-col mt-4"
           >
             <ChatHeader 
               isMinimized={isMinimized}

@@ -116,24 +116,35 @@ def get_vector_store():
             )
             return _vector_store
 
-        # 3️⃣  Build from faq.json and upload to S3
-        if not os.path.exists(settings.FAQ_DATA_PATH):
-            logger.error(f"FAQ data file not found at {settings.FAQ_DATA_PATH}")
-            return None
-
-        logger.info("Building FAISS index from FAQ data...")
-        with open(settings.FAQ_DATA_PATH, "r") as f:
-            faq_data = json.load(f)
-
-        texts = [
-            f"Question: {item['question']}\nAnswer: {item['answer']}"
-            for item in faq_data
-        ]
+        # 3️⃣  Build from Database and upload to S3
+        logger.info("Building FAISS index from FAQ table in database...")
+        from sqlalchemy import text
+        from app.tools.base import engine as db_engine
+        
+        with db_engine.connect() as conn:
+            result = conn.execute(text('SELECT question, answer FROM "FAQ"'))
+            faq_rows = result.fetchall()
+        
+        if not faq_rows:
+            logger.warning("FAQ table is empty! Falling back to faq.json if available...")
+            if os.path.exists(settings.FAQ_DATA_PATH):
+                with open(settings.FAQ_DATA_PATH, "r") as f:
+                    faq_data = json.load(f)
+                texts = [f"Question: {item['question']}\nAnswer: {item['answer']}" for item in faq_data]
+            else:
+                logger.error("No FAQ data found in DB or JSON.")
+                return None
+        else:
+            texts = [
+                f"Question: {row[0]}\nAnswer: {row[1]}"
+                for row in faq_rows
+            ]
+        
         _vector_store = FAISS.from_texts(texts, embeddings)
         _vector_store.save_local(local_path)
         logger.info(f"FAISS index saved locally at {local_path}")
 
-        # Upload to S3 so future restarts skip the build step
+        # Upload to S3
         _upload_index_to_s3()
 
     except Exception as e:

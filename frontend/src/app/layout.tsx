@@ -10,6 +10,8 @@ import { NavLinks } from "@/components/layout/NavLinks";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { isAdmin } from "@/lib/actions/admin";
 import { TooltipProvider } from "@/components/ui/tooltip";
+import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
+import { Menu } from "lucide-react";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -49,6 +51,31 @@ export default async function RootLayout({
               <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1 rounded-full border border-primary/5">
                 <NavLinks userId={userId} isAdmin={isUserAdmin} />
               </nav>
+
+              {/* Mobile Menu */}
+              <div className="flex md:hidden">
+                <Sheet>
+                  <SheetTrigger asChild>
+                    <button className="p-2 hover:bg-secondary rounded-full transition-colors">
+                      <Menu className="w-6 h-6" />
+                    </button>
+                  </SheetTrigger>
+                  <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background border-r border-primary/10">
+                    <SheetTitle className="sr-only">Menu</SheetTitle>
+                    <div className="flex flex-col gap-6 pt-12">
+                      <div className="flex items-center gap-2 px-4">
+                        <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
+                          <span className="text-primary-foreground font-bold text-xl font-outfit">L</span>
+                        </div>
+                        <span className="text-xl font-bold font-outfit tracking-tight">LuxeCatalog</span>
+                      </div>
+                      <div className="flex flex-col gap-2 p-2">
+                        <NavLinks userId={userId} isAdmin={isUserAdmin} />
+                      </div>
+                    </div>
+                  </SheetContent>
+                </Sheet>
+              </div>
               <div className="flex items-center gap-4">
                 <div className="hidden sm:flex h-10 px-4 items-center rounded-full bg-secondary text-sm text-muted-foreground mr-2">
                   Search products...

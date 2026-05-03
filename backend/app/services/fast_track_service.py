@@ -67,15 +67,19 @@ class FastTrackService:
             }
 
         # 5. Last Order or Specific Order ID Fast-Track
-        status_keywords = ["status", "track", "truck", "where is", "where's", "update on", "check", "lookup", "info"]
-        order_keywords = ["last order", "my order", "recent order", "this order", "the order"]
-        
-        # Check for UUID pattern (specific order ID)
-        uuid_match = re.search(r"([a-f0-9\-]{36})", clean_msg)
+        # Check for ID patterns (ORD-uuid or CMP-uuid or raw uuid)
+        uuid_match = re.search(r"((?:ORD-|CMP-)[a-f0-9\-]{36}|[a-f0-9\-]{36})", clean_msg, re.IGNORECASE)
         email_match = re.search(r"[a-zA-Z0-9._%+-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,}", clean_msg)
+
+        # Use regex for whole-word matching to avoid false positives (e.g. 'info' in 'administration')
+        status_regex = r"\b(status|track|truck|where is|where's|update on|check|lookup|info)\b"
+        order_regex = r"\b(last order|my order|recent order|this order|the order)\b"
         
-        # Case A: UUID provided or "last order" keywords
-        if uuid_match or (any(sk in clean_msg for sk in status_keywords) and any(ok in clean_msg for ok in order_keywords)):
+        has_status_kw = re.search(status_regex, clean_msg, re.IGNORECASE)
+        has_order_kw = re.search(order_regex, clean_msg, re.IGNORECASE)
+        
+        # Case A: UUID provided or BOTH status and order keywords present
+        if uuid_match or (has_status_kw and has_order_kw):
             order_id = uuid_match.group(1) if uuid_match else None
             return self._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
             
@@ -86,7 +90,62 @@ class FastTrackService:
             logger.info(f"Fast-tracking order lookup with email: {email} for order: {pending_order_id}")
             return self._handle_status_inquiry(user_context, user_id, state, order_id=pending_order_id, provided_email=email)
 
+        # 6. FAQ Fast-Track (Local Embeddings)
+        faq_keywords = ["payment", "methods", "pay", "return", "shipping", "hours", "contact", "support", "refund", "policy"]
+        if any(kw in clean_msg for kw in faq_keywords) and len(clean_msg.split()) < 15:
+            return self.handle_faq_fast_track(user_message)
+
+        # 7. Complaint Fast-Track
+        # Check for the specific prefix sent by the ComplaintModal
+        complaint_prefix = "I want to send a message to the administration team: "
+        if user_message.startswith(complaint_prefix):
+            complaint_text = user_message[len(complaint_prefix):].strip()
+            if complaint_text:
+                from app.tools.support_tools import submit_complaint_fn
+                is_auth = user_context and getattr(user_context, 'is_authenticated', False)
+                
+                # Get name and email from context
+                customer_name = getattr(user_context, 'full_name', None) if is_auth else None
+                customer_email = getattr(user_context, 'email', None) if is_auth else None
+                
+                logger.info(f"Fast-tracking complaint submission: {complaint_text[:50]}...")
+                result = submit_complaint_fn(
+                    subject="Customer Complaint",
+                    message=complaint_text,
+                    customer_name=customer_name,
+                    customer_email=customer_email,
+                    user_id=user_id
+                )
+                return {
+                    "result": result,
+                    "usage": self._empty_usage()
+                }
+
         return None
+
+    def handle_faq_fast_track(self, question: str) -> Optional[Dict[str, Any]]:
+        """Provides a quick RAG-based response for common FAQ queries."""
+        try:
+            from app.tools.faq_tools import get_company_faq_fn
+            logger.info(f"Attempting FAQ fast-track for: {question}")
+            answer = get_company_faq_fn(question)
+            
+            if "I couldn't find any specific information" in answer or "trouble accessing" in answer:
+                return None
+                
+            # Clean up the answer format for direct display
+            # RAG returns "--- KNOWLEDGE SOURCE 1 --- \n..."
+            clean_answer = re.sub(r"--- KNOWLEDGE SOURCE \d+ ---", "", answer).strip()
+            # If multiple sources, take the first one or combine neatly
+            clean_answer = clean_answer.split("Question:")[1].split("Answer:")[1].strip() if "Answer:" in clean_answer else clean_answer
+            
+            return {
+                "result": clean_answer,
+                "usage": self._empty_usage()
+            }
+        except Exception as e:
+            logger.warning(f"FAQ fast-track failed: {e}")
+            return None
 
     def _handle_status_inquiry(self, user_context, user_id, state, order_id: str = None, provided_email: str = None) -> Optional[Dict[str, Any]]:
         is_auth = False

@@ -24,7 +24,7 @@ export function ChatHeader({
           <Bot className="w-6 h-6" />
         </div>
         <div>
-          <h3 className="font-bold text-base font-outfit tracking-tight">Luxe Concierge</h3>
+          <h3 className="font-bold text-base font-outfit tracking-tight">Luxe Support</h3>
           <div className="flex items-center gap-1.5">
             <div className="w-2 h-2 rounded-full bg-green-400 animate-pulse" />
             <span className="text-[10px] opacity-90 uppercase tracking-widest font-extrabold">Online Now</span>

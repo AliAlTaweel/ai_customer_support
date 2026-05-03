@@ -163,7 +163,7 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
                     "price": product_data['price']
                 })
 
-            order_id = str(uuid.uuid4())
+            order_id = f"ORD-{str(uuid.uuid4())}"
             now = datetime.now().isoformat()
             connection.execute(
                 text("""

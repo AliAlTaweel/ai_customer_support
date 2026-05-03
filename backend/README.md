@@ -64,11 +64,13 @@ We use an optimized **CrewAI** pipeline designed for maximum speed and minimum t
 ```bash
 python run.py
 ```
-Alternatively, use Docker:
+Alternatively, use Docker for production:
 ```bash
 docker build -t luxe-backend .
+# Run with env vars
 docker run -p 3001:3001 --env-file .env luxe-backend
 ```
+For a full production setup (including Postgres) on AWS EC2, refer to the [Deployment Guide](file:///Users/alial-taweel/.gemini/antigravity/brain/de1f030b-9e87-4dfc-8410-11bf630548e7/deployment_guide.md).
 
 ---
 

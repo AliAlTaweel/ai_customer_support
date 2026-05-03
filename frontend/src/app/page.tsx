@@ -181,7 +181,7 @@ export default function Home() {
           </div>
           
           <div>
-            <h5 className="font-bold mb-6 font-outfit uppercase text-xs tracking-widest text-primary">Concierge</h5>
+            <h5 className="font-bold mb-6 font-outfit uppercase text-xs tracking-widest text-primary">Support</h5>
             <ul className="space-y-4 text-sm text-muted-foreground">
               <li><a href="#" className="hover:text-primary transition-colors">Shipping Policy</a></li>
               <li><a href="#" className="hover:text-primary transition-colors">Returns & Exchanges</a></li>

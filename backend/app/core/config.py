@@ -15,13 +15,9 @@ class Settings(BaseSettings):
 
     # LLM Settings
     GOOGLE_API_KEY: Optional[str] = None
-    # MANAGER_MODEL: str = "gemini/gemini-3.1-flash-lite-preview"
-    # WORKER_MODEL: str = "gemini/gemini-3.1-flash-lite-preview"
-    # MANAGER_MODEL: str = "gemini/gemini-1.5-flash-latest"
-    # WORKER_MODEL: str = "gemini/gemini-1.5-flash-latest"
-    MANAGER_MODEL: str = "ollama/llama3.1:8b"
-    WORKER_MODEL: str = "ollama/llama3.1:8b"
-    EMBEDDING_MODEL: str = "ollama/nomic-embed-text:latest"
+    MANAGER_MODEL: str
+    WORKER_MODEL: str
+    EMBEDDING_MODEL: str
 
     # Clerk Auth Settings — MUST be set in .env, no hardcoded values
     CLERK_JWKS_URL: Optional[str] = None
@@ -54,6 +50,11 @@ class Settings(BaseSettings):
     )
 
 settings = Settings()
+
+# Export settings as top-level variables for easier importing
+MANAGER_MODEL = settings.MANAGER_MODEL
+WORKER_MODEL = settings.WORKER_MODEL
+EMBEDDING_MODEL = settings.EMBEDDING_MODEL
 
 if settings.GOOGLE_API_KEY:
     os.environ["GOOGLE_API_KEY"] = settings.GOOGLE_API_KEY

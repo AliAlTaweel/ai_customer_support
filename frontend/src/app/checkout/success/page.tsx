@@ -7,7 +7,11 @@ import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { OrderId } from "@/components/orders/order-id";
 
-export default function CheckoutSuccessPage() {
+import { Suspense } from "react";
+
+export const dynamic = "force-dynamic";
+
+function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
 
@@ -75,3 +79,16 @@ export default function CheckoutSuccessPage() {
     </div>
   );
 }
+
+export default function CheckoutSuccessPage() {
+  return (
+    <Suspense fallback={
+      <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[70vh]">
+        <div className="animate-pulse text-muted-foreground">Loading confirmation...</div>
+      </div>
+    }>
+      <CheckoutSuccessContent />
+    </Suspense>
+  );
+}
+

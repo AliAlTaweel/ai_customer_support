@@ -214,8 +214,10 @@ class FastTrackService:
             
             if status == "PENDING":
                 msg += " We are preparing it for processing."
-            elif status in ["SHIPPED", "COMPLETED", "DELIVERED"]:
-                if status == "SHIPPED":
+            elif status in ["PROCESSING", "SHIPPED", "COMPLETED", "DELIVERED"]:
+                if status == "PROCESSING":
+                    msg += " We are preparing it for shipment."
+                elif status == "SHIPPED":
                     msg += " It's on its way to you!"
                 else:
                     msg += " It has been successfully delivered!"

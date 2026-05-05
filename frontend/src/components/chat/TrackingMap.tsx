@@ -127,7 +127,9 @@ export default function TrackingMap({ data }: { data: TrackingData }) {
           </div>
           <div className="min-w-0">
             <span className="text-[8px] font-bold text-muted-foreground uppercase block">Current Location</span>
-            <span className="text-[10px] font-bold truncate block">{data.origin.name.split(',')[0]} Transit</span>
+            <span className="text-[10px] font-bold truncate block">
+              {data.origin?.name ? `${data.origin.name.split(',')[0]} Transit` : "In Transit"}
+            </span>
           </div>
         </div>
         <div className="bg-background/50 p-3 rounded-xl border border-primary/5 flex items-center gap-3">

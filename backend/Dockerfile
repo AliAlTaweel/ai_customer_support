@@ -58,4 +58,4 @@ USER appuser
 
 # Run the application with gunicorn for production
 # Using uvicorn workers for FastAPI
-CMD ["gunicorn", "-w", "4", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:3001", "--timeout", "120"]
+CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:3001", "--timeout", "120"]

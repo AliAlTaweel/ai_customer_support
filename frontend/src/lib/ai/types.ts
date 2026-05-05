@@ -3,15 +3,20 @@ export interface ConversationState {
   pending_order_summary?: string | {
     text?: string;
     product_name: string;
+    name?: string;
     imageUrl?: string;
     details?: string;
     price: number;
+    amount?: number;
+    estimated_delivery?: string;
   } | null;
   pending_yes_no?: string | null;
   pending_checkout?: {
     items: Array<{
       product_name: string;
+      name?: string;
       price: number;
+      amount?: number;
       quantity: number;
       imageUrl?: string;
       details?: string;

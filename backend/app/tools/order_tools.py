@@ -103,7 +103,9 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
             if current_status not in ['PENDING', 'PROCESSING']:
                 return f"Cannot cancel order with status: {check_data['status']}. Only PENDING or PROCESSING orders can be cancelled."
             
-            update_query = text(f"UPDATE \"Order\" SET status = 'CANCELLED' {str(check_query).split('FROM \"Order\"')[1]}")
+            # Construct update query by reusing the WHERE clause from check_query
+            where_clause = str(check_query).split('FROM "Order"')[1]
+            update_query = text(f"UPDATE \"Order\" SET status = 'CANCELLED' {where_clause}")
             connection.execute(update_query, params)
             connection.commit()
             return f"Order {order_id} has been successfully cancelled."

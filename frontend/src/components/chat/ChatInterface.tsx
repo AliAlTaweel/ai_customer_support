@@ -161,10 +161,17 @@ export default function ChatInterface() {
       });
 
       if (!response.ok) {
+        const errorData = await response.json().catch(() => ({}));
+        console.error("Backend Error Response:", {
+          status: response.status,
+          statusText: response.statusText,
+          data: errorData
+        });
+        
         if (response.status === 429) {
           throw new Error("QUOTA_EXCEEDED");
         }
-        throw new Error("Failed to send message");
+        throw new Error(`Failed to send message: ${response.status} ${response.statusText}`);
       }
 
       const data = await response.json();
@@ -175,10 +182,10 @@ export default function ChatInterface() {
       }]);
       setState(data.state);
     } catch (error: unknown) {
-      console.error("Chat error:", error);
+      console.error("Chat error details:", error);
       const errorMessage = (error instanceof Error && error.message === "QUOTA_EXCEEDED") 
         ? "I'm sorry, but I've reached my message limit for now. Please try again in a few minutes."
-        : "I'm sorry, I'm having trouble connecting right now. Please try again later.";
+        : `I'm sorry, I'm having trouble connecting (Error: ${error instanceof Error ? error.message : "Unknown"}). Please try again later.`;
         
       setMessages((prev) => [
         ...prev,

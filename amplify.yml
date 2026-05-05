@@ -6,14 +6,6 @@ applications:
         preBuild:
           commands:
             - nvm use 20
-            - |
-              if [ -n "$AWS_COMMIT_ID" ]; then
-                CHANGES=$(git diff --name-only $AWS_COMMIT_ID^ $AWS_COMMIT_ID)
-                if ! echo "$CHANGES" | grep -E "^(frontend/|amplify.yml|package.json)"; then
-                  echo "No frontend changes detected. Skipping build."
-                  exit 0
-                fi
-              fi
             - npm ci
         build:
           commands:

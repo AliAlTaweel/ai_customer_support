@@ -85,6 +85,7 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
     logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id})")
     try:
         with engine.connect() as connection:
+            # 1. Fetch current status and verify ownership
             if user_id:
                 check_query = text('SELECT status FROM "Order" WHERE id = :order_id AND "userId" = :user_id')
                 params = {"order_id": order_id, "user_id": user_id}
@@ -98,14 +99,16 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
             if not check:
                 return "Order not found or you do not have permission to cancel it."
             
-            check_data = check._mapping
-            current_status = str(check_data['status']).upper().strip()
+            current_status = str(check[0]).upper().strip()
             if current_status not in ['PENDING', 'PROCESSING']:
-                return f"Cannot cancel order with status: {check_data['status']}. Only PENDING or PROCESSING orders can be cancelled."
+                return f"Cannot cancel order with status: {current_status}. Only PENDING or PROCESSING orders can be cancelled."
             
-            # Construct update query by reusing the WHERE clause from check_query
-            where_clause = str(check_query).split('FROM "Order"')[1]
-            update_query = text(f"UPDATE \"Order\" SET status = 'CANCELLED' {where_clause}")
+            # 2. Perform the update using a clean, separate query
+            if user_id:
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id = :order_id AND "userId" = :user_id')
+            else:
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id = :order_id AND "customerEmail" ILIKE :customer_email')
+                
             connection.execute(update_query, params)
             connection.commit()
             return f"Order {order_id} has been successfully cancelled."

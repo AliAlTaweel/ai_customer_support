@@ -26,8 +26,16 @@ export default async function RootLayout({
 }: Readonly<{
   children: React.ReactNode;
 }>) {
-  const { userId } = await auth();
-  const isUserAdmin = await isAdmin();
+  let userId: string | null = null;
+  let isUserAdmin = false;
+
+  try {
+    const authResult = await auth();
+    userId = authResult.userId;
+    isUserAdmin = await isAdmin();
+  } catch (error) {
+    console.error("[LAYOUT ERROR] Failed to fetch auth state:", error);
+  }
 
   return (
     <ClerkProvider>

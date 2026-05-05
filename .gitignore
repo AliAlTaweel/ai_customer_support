@@ -1,0 +1,15 @@
+# SSH Keys
+luxe-ec2-key-1.pem
+*.pem
+
+# Environment Variables
+.env
+*.env
+
+# OS files
+.DS_Store
+
+# Dependencies
+node_modules/
+__pycache__/
+*.pyc

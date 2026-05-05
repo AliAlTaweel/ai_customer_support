@@ -1,5 +1,5 @@
 import { auth } from "@clerk/nextjs/server";
-import prisma from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import { Package, Clock, CheckCircle, Truck, ExternalLink, Calendar } from "lucide-react";
 import Image from "next/image";
 import Link from "next/link";
@@ -18,6 +18,7 @@ export default async function OrdersPage() {
     );
   }
 
+  const prisma = await getPrisma();
   const orders = await prisma.order.findMany({
     where: { userId },
     include: {

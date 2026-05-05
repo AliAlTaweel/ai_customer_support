@@ -1,9 +1,10 @@
 "use server";
 
-import prisma from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 
 export async function getProducts(category?: string) {
   try {
+    const prisma = await getPrisma();
     const products = await prisma.product.findMany({
       where: category && category !== "all" ? { category } : {},
       orderBy: { createdAt: "desc" },
@@ -17,6 +18,7 @@ export async function getProducts(category?: string) {
 
 export async function getProductById(id: string) {
   try {
+    const prisma = await getPrisma();
     const product = await prisma.product.findUnique({
       where: { id },
     });
@@ -29,6 +31,7 @@ export async function getProductById(id: string) {
 
 export async function getCategories() {
   try {
+    const prisma = await getPrisma();
     const categories = await prisma.product.findMany({
       select: { category: true },
       distinct: ["category"],

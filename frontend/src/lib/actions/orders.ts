@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import { revalidatePath } from "next/cache";
 
@@ -29,6 +29,8 @@ export async function createOrder(
     const { userId } = await auth();
     const user = await currentUser();
     const customerEmail = user?.emailAddresses[0]?.emailAddress;
+
+    const prisma = await getPrisma();
 
     // Start a transaction to ensure atomicity
     const order = await prisma.$transaction(async (tx) => {
@@ -83,4 +85,3 @@ export async function createOrder(
     return { success: false, error: "Failed to process order. Please try again." };
   }
 }
-

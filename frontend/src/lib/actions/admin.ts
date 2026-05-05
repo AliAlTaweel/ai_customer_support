@@ -1,6 +1,6 @@
 "use server";
 
-import prisma from "@/lib/db";
+import { getPrisma } from "@/lib/db";
 import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
@@ -30,6 +30,7 @@ export async function getAllOrders() {
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     const orders = await prisma.order.findMany({
       include: {
         items: {
@@ -54,6 +55,7 @@ export async function updateOrderStatus(orderId: string, status: string, trackin
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     await prisma.order.update({
       where: { id: orderId },
       data: { 
@@ -75,6 +77,7 @@ export async function deleteOrder(orderId: string) {
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     await prisma.order.delete({
       where: { id: orderId },
     });
@@ -91,6 +94,7 @@ export async function getAllComplaints() {
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     const complaints = await prisma.complaint.findMany({
       orderBy: {
         createdAt: "desc",
@@ -115,6 +119,7 @@ export async function updateComplaintStatus(complaintId: string, status: string)
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     await prisma.complaint.update({
       where: { id: complaintId },
       data: { status },
@@ -132,6 +137,7 @@ export async function deleteComplaint(complaintId: string) {
   if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
 
   try {
+    const prisma = await getPrisma();
     await prisma.complaint.delete({
       where: { id: complaintId },
     });

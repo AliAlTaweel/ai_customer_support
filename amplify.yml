@@ -9,6 +9,17 @@ applications:
             - npm ci
         build:
           commands:
+            - touch .env.production
+            - echo "DATABASE_URL=${DATABASE_URL}" >> .env.production
+            - echo "CLERK_SECRET_KEY=${CLERK_SECRET_KEY}" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=${NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY}" >> .env.production
+            - echo "ADMIN_EMAIL=${ADMIN_EMAIL}" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/" >> .env.production
+            - echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.production
+            - echo "NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}" >> .env.production
             - npx prisma generate
             - npm run build
       artifacts:

@@ -10,16 +10,23 @@ class MockTrackingService:
         status = order_data.get("status", "PENDING").upper()
         order_id = order_data.get("id", "UNKNOWN")
         
-        # If not shipped or completed, return basic info
-        if status not in ["SHIPPED", "COMPLETED", "DELIVERED"]:
+        # If not processing, shipped or completed, return basic info
+        if status not in ["PROCESSING", "SHIPPED", "COMPLETED", "DELIVERED"]:
             return {
                 "active": False,
-                "message": f"Tracking will be available once the order is shipped."
+                "message": f"Tracking will be available once the order is processed."
             }
         
         # If COMPLETED or DELIVERED, set progress to 100%
         is_completed = status in ["COMPLETED", "DELIVERED"]
-        progress = 1.0 if is_completed else random.uniform(0.3, 0.8)
+        is_processing = status == "PROCESSING"
+        
+        if is_completed:
+            progress = 1.0
+        elif is_processing:
+            progress = 0.1
+        else:
+            progress = random.uniform(0.3, 0.8)
         
         # Mock coordinates for a path (Origin: NYC, Destination: User's mock location)
         # In a real app, you'd geocode the shippingAddress
@@ -34,21 +41,33 @@ class MockTrackingService:
         current_lat = origin["lat"] + (destination["lat"] - origin["lat"]) * progress
         current_lng = origin["lng"] + (destination["lng"] - origin["lng"]) * progress
         
+        milestones = []
+        if is_processing:
+            milestones = [
+                {"status": "Order Received", "time": "Today", "completed": True},
+                {"status": "Processing", "time": "Now", "completed": True},
+                {"status": "Picked Up", "time": "Waiting", "completed": False},
+                {"status": "In Transit", "time": "Waiting", "completed": False}
+            ]
+        else:
+            milestones = [
+                {"status": "Label Created", "time": "2 days ago", "completed": True},
+                {"status": "Picked Up", "time": "Yesterday", "completed": True},
+                {"status": "In Transit", "time": "Today", "completed": True},
+                {"status": "Out for Delivery", "time": "Tomorrow", "completed": is_completed}
+            ]
+
         return {
             "active": True,
             "status": status,
-            "deliveryMessage": "Delivered successfully" if is_completed else "Your package is on schedule",
+            "deliveryMessage": "Preparing your order" if is_processing else ("Delivered successfully" if is_completed else "Your package is on schedule"),
             "trackingNumber": order_data.get("trackingNumber") or f"1Z{order_id[:6].upper()}{random.randint(1000, 9999)}",
             "carrier": order_data.get("carrier") or "UPS",
-            "estimatedDelivery": "Delivered" if is_completed else "Tomorrow by 7:00 PM",
+            "estimatedDelivery": "Estimated Tomorrow" if is_processing else ("Delivered" if is_completed else "Tomorrow by 7:00 PM"),
             "origin": origin,
             "destination": destination,
             "currentLocation": {"lat": current_lat, "lng": current_lng},
             "progress": progress,
-            "milestones": [
-                {"status": "Label Created", "time": "2 days ago", "completed": True},
-                {"status": "Picked Up", "time": "Yesterday", "completed": True},
-                {"status": "In Transit", "time": "Today", "completed": True},
-                {"status": "Out for Delivery", "time": "Tomorrow", "completed": False}
-            ]
+            "milestones": milestones
         }
+

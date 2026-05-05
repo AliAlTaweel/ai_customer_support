@@ -100,8 +100,8 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
                 return "Order not found or you do not have permission to cancel it."
             
             current_status = str(check[0]).upper().strip()
-            if current_status not in ['PENDING', 'PROCESSING']:
-                return f"Cannot cancel order with status: {current_status}. Only PENDING or PROCESSING orders can be cancelled."
+            if current_status not in ['PENDING', 'PROCESSING', 'SHIPPED']:
+                return f"Cannot cancel order with status: {current_status}. Only PENDING, PROCESSING, or SHIPPED orders can be cancelled."
             
             # 2. Perform the update using a clean, separate query
             if user_id:
@@ -125,7 +125,7 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
     'confirmed' MUST be set to True to execute the cancellation. 
     ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
     If 'customer_email' is provided, it must match the order's customer email.
-    Only orders with PENDING or PROCESSING status can be cancelled.
+    Only orders with PENDING, PROCESSING, or SHIPPED status can be cancelled.
     """
     if not confirmed:
         return f"CONFIRMATION_REQUIRED: {order_id}"

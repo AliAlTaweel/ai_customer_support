@@ -10,7 +10,9 @@ import { Label } from "@/components/ui/label";
 
 interface CheckoutItem {
   product_name: string;
+  name?: string;
   price: number;
+  amount?: number;
   quantity: number;
   imageUrl?: string;
   details?: string;
@@ -46,7 +48,7 @@ export default function CheckoutForm({ items, onSubmit, onCancel, initialEmail }
       shipping_address: formData.address,
       payment_method: formData.paymentMethod,
       items: safeItems.map(item => ({
-        product_name: item.product_name || (item as any).name || "Product",
+        product_name: item.product_name || item.name || "Product",
         quantity: item.quantity
       }))
     };
@@ -109,10 +111,10 @@ export default function CheckoutForm({ items, onSubmit, onCancel, initialEmail }
                 </div>
               )}
               <div className="flex-1 min-w-0 flex flex-col justify-center">
-                <h5 className="font-bold text-xs truncate">{item.product_name || (item as any).name || "Product"}</h5>
+                <h5 className="font-bold text-xs truncate">{item.product_name || item.name || "Product"}</h5>
                 <div className="flex items-center justify-between mt-0.5">
                   <span className="text-[9px] opacity-60">Qty: {item.quantity}</span>
-                  <span className="font-bold text-xs text-primary">${(Number(item?.price || (item as any).amount) || 0).toFixed(2)}</span>
+                  <span className="font-bold text-xs text-primary">${(Number(item?.price || item?.amount) || 0).toFixed(2)}</span>
                 </div>
               </div>
             </div>

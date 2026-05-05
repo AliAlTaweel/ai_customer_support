@@ -11,8 +11,14 @@ logger = logging.getLogger(__name__)
 # ContextVar to store PII mapping for the current request/thread
 PII_MAPPING: ContextVar[Dict[str, str]] = ContextVar("pii_mapping", default={})
 
+# Configure Presidio to use the small Spacy model to match our optimized Docker image
+nlp_config = {
+    "nlp_engine_name": "spacy",
+    "models": [{"lang_code": "en", "model_name": "en_core_web_sm"}],
+}
+
 try:
-    analyzer = AnalyzerEngine()
+    analyzer = AnalyzerEngine(nlp_engine_config=nlp_config)
     anonymizer = AnonymizerEngine()
 except Exception as e:
     logger.error(f"Failed to initialize Presidio: {e}")

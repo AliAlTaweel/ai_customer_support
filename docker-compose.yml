@@ -21,7 +21,8 @@ services:
       - "3001:3001"
     environment:
       - DATABASE_URL=postgresql://${DB_USER:-luxe_user}:${DB_PASSWORD:-luxe_password}@db:5432/${DB_NAME:-luxe_db}
-      - ALLOWED_ORIGINS=${ALLOWED_ORIGINS:-*}
+    env_file:
+      - ./backend/.env
       - GOOGLE_API_KEY=${GOOGLE_API_KEY}
       - DB_PATH=/app/data/dev.db
       - FAQ_DATA_PATH=/app/data/faq.json

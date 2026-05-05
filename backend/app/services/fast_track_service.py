@@ -74,12 +74,15 @@ class FastTrackService:
         # Use regex for whole-word matching to avoid false positives (e.g. 'info' in 'administration')
         status_regex = r"\b(status|track|truck|where is|where's|update on|check|lookup|info)\b"
         order_regex = r"\b(last order|my order|recent order|this order|the order)\b"
+        cancel_regex = r"\b(cancel|stop|abort|delete|refund|return)\b"
         
         has_status_kw = re.search(status_regex, clean_msg, re.IGNORECASE)
         has_order_kw = re.search(order_regex, clean_msg, re.IGNORECASE)
+        has_cancel_kw = re.search(cancel_regex, clean_msg, re.IGNORECASE)
         
         # Case A: UUID provided or BOTH status and order keywords present
-        if uuid_match or (has_status_kw and has_order_kw):
+        # BUT: Do not fast-track if they are asking to cancel or other specific actions
+        if (uuid_match or (has_status_kw and has_order_kw)) and not has_cancel_kw:
             order_id = uuid_match.group(1) if uuid_match else None
             return self._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
             

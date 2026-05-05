@@ -10,6 +10,13 @@ class MockTrackingService:
         status = order_data.get("status", "PENDING").upper()
         order_id = order_data.get("id", "UNKNOWN")
         
+        # Handle Cancelled orders
+        if status == "CANCELLED":
+            return {
+                "active": False,
+                "message": "This order has been cancelled. Tracking information is no longer available."
+            }
+
         # If not processing, shipped or completed, return basic info
         if status not in ["PROCESSING", "SHIPPED", "COMPLETED", "DELIVERED"]:
             return {

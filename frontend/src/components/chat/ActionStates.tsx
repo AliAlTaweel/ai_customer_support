@@ -82,16 +82,16 @@ export function PendingOrderSummary({ state, onSend }: { state: ConversationStat
             )}
             <div className="flex-1 min-w-0 flex flex-col justify-center gap-0.5">
               <h4 className="font-bold text-[15px] leading-tight text-foreground/90 font-outfit truncate">
-                {summary.product_name || summary.name || "Product"}
+                {summary.product_name || (summary as any).name || "Product"}
               </h4>
               <p className="text-lg font-black text-primary font-sans">
-                ${(Number(summary.price || summary.amount) || 0).toFixed(2)}
+                ${(Number(summary.price || (summary as any).amount) || 0).toFixed(2)}
               </p>
-              {summary.estimated_delivery && (
+              {(summary as any).estimated_delivery && (
                 <div className="flex items-center gap-1.5 mt-1">
                   <Clock className="w-3 h-3 text-green-500" />
                   <span className="text-[10px] font-bold text-green-600 uppercase tracking-tight">
-                    {summary.estimated_delivery}
+                    {(summary as any).estimated_delivery}
                   </span>
                 </div>
               )}

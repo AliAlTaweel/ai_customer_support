@@ -1,7 +1,7 @@
 "use client";
 
 import Image from "next/image";
-import { Product } from "@prisma/client";
+import { Product } from "../../generated/client";
 import { motion, AnimatePresence } from "framer-motion";
 import {
   Dialog,

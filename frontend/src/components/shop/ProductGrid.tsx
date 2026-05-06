@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Product } from "@prisma/client";
+import { Product } from "../../generated/client";
 import { ProductCard } from "./ProductCard";
 import { ProductDetailsModal } from "./ProductDetailsModal";
 import { motion } from "framer-motion";

@@ -18,6 +18,7 @@ applications:
             - echo "NEXT_PUBLIC_CLERK_SIGN_UP_URL=/sign-up" >> .env.production
             - echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_IN_URL=/" >> .env.production
             - echo "NEXT_PUBLIC_CLERK_AFTER_SIGN_UP_URL=/" >> .env.production
+            - echo "NEXT_PUBLIC_CLERK_PROXY_URL=https://d1s8t1kufg9t1w.amplifyapp.com/--clerk" >> .env.production
             - echo "NEXT_PUBLIC_API_URL=${NEXT_PUBLIC_API_URL}" >> .env.production
             - echo "NEXT_PUBLIC_API_KEY=${NEXT_PUBLIC_API_KEY}" >> .env.production
             - npx prisma generate

@@ -3,8 +3,23 @@ import { clerkMiddleware, createRouteMatcher } from "@clerk/nextjs/server";
 const isPublicRoute = createRouteMatcher(["/", "/shop(.*)", "/sign-in(.*)", "/sign-up(.*)", "/--clerk(.*)", "/__clerk(.*)"]);
 
 export const proxy = clerkMiddleware(async (auth, request) => {
-  if (!isPublicRoute(request)) {
-    await auth.protect();
+  if (!process.env.CLERK_SECRET_KEY) {
+    return new Response(JSON.stringify({
+      error: "CLERK_SECRET_KEY is missing in Next.js Middleware environment",
+      envKeys: Object.keys(process.env).filter(k => !k.toLowerCase().includes("key") && !k.toLowerCase().includes("secret"))
+    }), { status: 500, headers: { "content-type": "application/json" } });
+  }
+  
+  try {
+    if (!isPublicRoute(request)) {
+      await auth.protect();
+    }
+  } catch (error: any) {
+    return new Response(JSON.stringify({
+      error: "Clerk Middleware execution failed",
+      message: error.message,
+      stack: error.stack
+    }), { status: 500, headers: { "content-type": "application/json" } });
   }
 });
 

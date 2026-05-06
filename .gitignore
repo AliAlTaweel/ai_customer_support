@@ -13,3 +13,8 @@ luxe-ec2-key-1.pem
 node_modules/
 __pycache__/
 *.pyc
+
+# Logs
+*-access-logs.csv
+*.csv
+*.log

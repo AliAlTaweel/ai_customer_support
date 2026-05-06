@@ -11,8 +11,14 @@ async function proxyToClerk(request: Request): Promise<Response> {
 
   const headers = new Headers(request.headers);
   
-  // Set Clerk proxy required headers
-  headers.set("Clerk-Proxy-Url", "https://d1s8t1kufg9t1w.amplifyapp.com/--clerk");
+  // Remove headers that cause fetch to fail or cause Host mismatches with target
+  headers.delete("host");
+  headers.delete("connection");
+  headers.delete("content-length");
+  
+  // Dynamically resolve the request host (covers both apex and subdomains)
+  const requestHost = request.headers.get("host") || "d1s8t1kufg9t1w.amplifyapp.com";
+  headers.set("Clerk-Proxy-Url", `https://${requestHost}/--clerk`);
   
   const secretKey = process.env.CLERK_SECRET_KEY;
   if (!secretKey) {
@@ -27,7 +33,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
     headers.set("X-Forwarded-For", forwardedFor);
   }
   
-  headers.set("X-Forwarded-Host", "d1s8t1kufg9t1w.amplifyapp.com");
+  headers.set("X-Forwarded-Host", requestHost);
   headers.set("X-Forwarded-Proto", "https");
 
   const init: RequestInit = {

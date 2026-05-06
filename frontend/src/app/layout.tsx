@@ -8,7 +8,7 @@ import { CartSheet } from "@/components/shop/CartSheet";
 import Link from "next/link";
 import { NavLinks } from "@/components/layout/NavLinks";
 import ChatInterface from "@/components/chat/ChatInterface";
-import { isAdmin } from "@/lib/actions/admin";
+import { isAdmin } from "@/lib/actions/isAdmin";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";

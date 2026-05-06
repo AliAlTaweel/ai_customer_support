@@ -15,6 +15,9 @@ export const proxy = clerkMiddleware(async (auth, request) => {
       await auth.protect();
     }
   } catch (error: any) {
+    if (error?.message === "NEXT_REDIRECT" || error?.digest === "NEXT_REDIRECT") {
+      throw error;
+    }
     return new Response(JSON.stringify({
       error: "Clerk Middleware execution failed",
       message: error.message,

@@ -39,7 +39,7 @@ export default async function RootLayout({
     }
 
     return (
-      <ClerkProvider>
+      <ClerkProvider proxyUrl={process.env.NEXT_PUBLIC_CLERK_PROXY_URL}>
         <html lang="en" className="dark" suppressHydrationWarning>
           <body
             suppressHydrationWarning

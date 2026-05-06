@@ -37,10 +37,12 @@ async function proxyToClerk(request: Request): Promise<Response> {
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
-    // @ts-ignore
-    init.body = request.body;
-    // @ts-ignore
-    init.duplex = "half";
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json") || contentType.includes("application/x-www-form-urlencoded") || contentType.includes("text/")) {
+      init.body = await request.text();
+    } else {
+      init.body = await request.arrayBuffer();
+    }
   }
 
   try {

@@ -1,7 +1,7 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  serverExternalPackages: ['@prisma/client', '@prisma/adapter-pg', 'pg', 'better-sqlite3'],
+  serverExternalPackages: ['better-sqlite3'],
   async rewrites() {
     return [
       {

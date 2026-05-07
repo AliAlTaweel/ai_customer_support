@@ -32,7 +32,10 @@ interface Message {
   };
 }
 
-const API_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const rawApiUrl = process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001/api/v1";
+const API_URL = typeof window !== "undefined" && window.location.protocol === "https:" && rawApiUrl.startsWith("http:")
+  ? "/api/v1"
+  : rawApiUrl;
 
 export default function ChatInterface() {
   const { user } = useUser();

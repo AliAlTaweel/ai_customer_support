@@ -215,10 +215,10 @@ class FastTrackService:
                 "pending_tracking_data": None
             }
             
-            if status == "PENDING":
-                msg += " We are preparing it for processing."
-            elif status in ["PROCESSING", "SHIPPED", "COMPLETED", "DELIVERED"]:
-                if status == "PROCESSING":
+            if status in ["PENDING", "PROCESSING", "SHIPPED", "COMPLETED", "DELIVERED"]:
+                if status == "PENDING":
+                    msg += " We are preparing it for processing."
+                elif status == "PROCESSING":
                     msg += " We are preparing it for shipment."
                 elif status == "SHIPPED":
                     msg += " It's on its way to you!"

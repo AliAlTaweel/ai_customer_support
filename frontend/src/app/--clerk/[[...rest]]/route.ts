@@ -22,6 +22,14 @@ async function proxyToClerk(request: Request): Promise<Response> {
   // Dynamically resolve the request host (covers both apex and subdomains)
   const requestHost = request.headers.get("host") || "d1s8t1kufg9t1w.amplifyapp.com";
   const secretKey = process.env.CLERK_SECRET_KEY || "";
+  
+  if (!secretKey) {
+    return new Response(JSON.stringify({
+      error: "CLERK_SECRET_KEY is empty or missing in Route Handler environment",
+      envKeys: Object.keys(process.env).filter(k => !k.toLowerCase().includes("key") && !k.toLowerCase().includes("secret"))
+    }), { status: 500, headers: { "content-type": "application/json" } });
+  }
+
   headers.set("Clerk-Proxy-Url", `https://${requestHost}/--clerk`);
   headers.set("Clerk-Secret-Key", secretKey);
 

@@ -16,6 +16,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { Input } from "@/components/ui/input";
 import { 
   ShoppingBag, 
   Clock, 
@@ -365,7 +366,7 @@ export default function AdminDashboard() {
                         {showTrackingInput === order.id && (
                           <div className="mt-4 p-4 bg-black/40 rounded-2xl border border-primary/20 space-y-3 animate-in slide-in-from-top-2">
                             <p className="text-[10px] font-bold uppercase tracking-widest text-primary">Shipping Details</p>
-                            <input 
+                            <Input 
                               placeholder="Tracking #"
                               className="w-full bg-secondary/50 border border-white/10 rounded-lg p-2 text-xs focus:ring-1 focus:ring-primary outline-none"
                               value={trackingInfo.number}
@@ -467,34 +468,42 @@ export default function AdminDashboard() {
                         <div className="pt-4 border-t border-white/5 space-y-2">
                           <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Change Status</p>
                           <div className="flex flex-wrap gap-2">
-                            <button 
+                            <Button 
+                              variant="outline"
+                              size="icon"
                               onClick={() => handleComplaintStatusUpdate(complaint.id, "OPEN")}
-                              className={cn("p-2 rounded-lg border border-white/5 transition-all hover:bg-yellow-500/10", complaint.status === "OPEN" && "bg-yellow-500/20 border-yellow-500/20")}
+                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-yellow-500/10 rounded-lg", complaint.status === "OPEN" && "bg-yellow-500/20 border-yellow-500/20")}
                               title="Mark as Open"
                             >
                               <Clock className="w-4 h-4 text-yellow-500" />
-                            </button>
-                            <button 
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              size="icon"
                               onClick={() => handleComplaintStatusUpdate(complaint.id, "IN_PROGRESS")}
-                              className={cn("p-2 rounded-lg border border-white/5 transition-all hover:bg-blue-500/10", complaint.status === "IN_PROGRESS" && "bg-blue-500/20 border-blue-500/20")}
+                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-blue-500/10 rounded-lg", complaint.status === "IN_PROGRESS" && "bg-blue-500/20 border-blue-500/20")}
                               title="Mark as In Progress"
                             >
                               <Loader2 className="w-4 h-4 text-blue-500" />
-                            </button>
-                            <button 
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              size="icon"
                               onClick={() => handleComplaintStatusUpdate(complaint.id, "RESOLVED")}
-                              className={cn("p-2 rounded-lg border border-white/5 transition-all hover:bg-green-500/10", complaint.status === "RESOLVED" && "bg-green-500/20 border-green-500/20")}
+                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-green-500/10 rounded-lg", complaint.status === "RESOLVED" && "bg-green-500/20 border-green-500/20")}
                               title="Mark as Resolved"
                             >
                               <CheckCircle className="w-4 h-4 text-green-500" />
-                            </button>
-                            <button 
+                            </Button>
+                            <Button 
+                              variant="outline"
+                              size="icon"
                               onClick={() => handleComplaintDelete(complaint.id)}
-                              className="p-2 rounded-lg border border-white/5 transition-all hover:bg-destructive/10"
+                              className="h-10 w-10 border-white/5 transition-all hover:bg-destructive/10 rounded-lg"
                               title="Delete Message"
                             >
                               <Trash2 className="w-4 h-4 text-destructive" />
-                            </button>
+                            </Button>
                           </div>
                         </div>
                       </div>

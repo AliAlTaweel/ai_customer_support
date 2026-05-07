@@ -1,7 +1,7 @@
 // Disable SSL validation for internal proxy requests to bypass AWS Amplify's multi-level subdomain certificate limitation
 process.env.NODE_TLS_REJECT_UNAUTHORIZED = "0";
 
-const CLERK_FRONTEND_API = "https://clerk.main.d1s8t1kufg9t1w.amplifyapp.com";
+const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
 
 async function proxyToClerk(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -13,6 +13,10 @@ async function proxyToClerk(request: Request): Promise<Response> {
   const headers = new Headers(request.headers);
   headers.delete("host");
   headers.delete("connection");
+  headers.set("Clerk-Proxy-Url", "https://main.d1s8t1kufg9t1w.amplifyapp.com/--clerk");
+  if (process.env.CLERK_SECRET_KEY) {
+    headers.set("Clerk-Secret-Key", process.env.CLERK_SECRET_KEY);
+  }
 
   const init: RequestInit = {
     method: request.method,

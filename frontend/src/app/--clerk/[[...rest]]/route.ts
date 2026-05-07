@@ -21,6 +21,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
   const init: RequestInit = {
     method: request.method,
     headers,
+    redirect: "manual",
   };
 
   if (request.method !== "GET" && request.method !== "HEAD") {
@@ -38,6 +39,19 @@ async function proxyToClerk(request: Request): Promise<Response> {
     const responseHeaders = new Headers(response.headers);
     responseHeaders.delete("content-encoding");
     responseHeaders.delete("content-length");
+
+    // Prevent proxy from following redirects internally and instead return redirects back to the browser.
+    // If the redirect location points to Clerk's frontend API, rewrite it to our proxy.
+    if (response.status >= 300 && response.status < 400) {
+      const location = response.headers.get("location");
+      if (location) {
+        if (location.startsWith("https://frontend-api.clerk.dev")) {
+          const proxyPrefix = url.pathname.startsWith("/--clerk") ? "/--clerk" : "/__clerk";
+          const rewrittenLocation = location.replace("https://frontend-api.clerk.dev", `https://${url.host}${proxyPrefix}`);
+          responseHeaders.set("location", rewrittenLocation);
+        }
+      }
+    }
 
     return new Response(response.body, {
       status: response.status,

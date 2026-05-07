@@ -1,0 +1,43 @@
+const CLERK_FRONTEND_API = "https://clerk.main.d1s8t1kufg9t1w.amplifyapp.com";
+
+async function proxyToClerk(request: Request): Promise<Response> {
+  const url = new URL(request.url);
+  url.searchParams.delete("rest");
+
+  const clerkPath = url.pathname.replace(/^\/--clerk/, "") || "/";
+  const target = `${CLERK_FRONTEND_API}${clerkPath}${url.search}`;
+
+  const headers = new Headers(request.headers);
+  headers.delete("host");
+  headers.delete("connection");
+
+  const init: RequestInit = {
+    method: request.method,
+    headers,
+  };
+
+  if (request.method !== "GET" && request.method !== "HEAD") {
+    const contentType = request.headers.get("content-type") || "";
+    if (contentType.includes("application/json") || contentType.includes("application/x-www-form-urlencoded") || contentType.includes("text/")) {
+      init.body = await request.text();
+    } else {
+      init.body = await request.arrayBuffer();
+    }
+  }
+
+  try {
+    const response = await fetch(target, init);
+    return response;
+  } catch (error: any) {
+    console.error("Error proxying to Clerk:", error);
+    return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "content-type": "application/json" } });
+  }
+}
+
+export async function GET(request: Request) { return proxyToClerk(request); }
+export async function POST(request: Request) { return proxyToClerk(request); }
+export async function PUT(request: Request) { return proxyToClerk(request); }
+export async function PATCH(request: Request) { return proxyToClerk(request); }
+export async function DELETE(request: Request) { return proxyToClerk(request); }
+export async function HEAD(request: Request) { return proxyToClerk(request); }
+export async function OPTIONS(request: Request) { return proxyToClerk(request); }

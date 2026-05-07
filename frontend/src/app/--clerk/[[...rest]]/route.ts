@@ -22,6 +22,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
   // Dynamically resolve the request host (covers both apex and subdomains)
   const requestHost = request.headers.get("host") || "d1s8t1kufg9t1w.amplifyapp.com";
   const secretKey = process.env.CLERK_SECRET_KEY || "";
+  const publishableKey = process.env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY || "pk_live_Y2xlcmsuZDFzOHQxa3VmZzl0MXcuYW1wbGlmeWFwcC5jb20k";
   
   if (!secretKey) {
     return new Response(JSON.stringify({
@@ -33,6 +34,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
   headers.set("Clerk-Proxy-Url", `https://${requestHost}/--clerk`);
   headers.set("Clerk-Secret-Key", secretKey);
   headers.set("Authorization", `Bearer ${secretKey}`);
+  headers.set("Clerk-Publishable-Key", publishableKey);
 
   // Set X-Forwarded-For to real client IP
   const forwardedFor = request.headers.get("x-forwarded-for") || request.headers.get("cf-connecting-ip") || "";

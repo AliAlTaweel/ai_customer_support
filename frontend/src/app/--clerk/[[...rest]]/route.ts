@@ -58,6 +58,30 @@ async function proxyToClerk(request: Request): Promise<Response> {
 
   try {
     const response = await fetch(target, init);
+    
+    if (response.status === 403 || response.status === 401) {
+      const cloned = response.clone();
+      try {
+        const body = await cloned.json();
+        const firstEight = secretKey ? secretKey.substring(0, 8) : "none";
+        const lastFour = secretKey ? secretKey.substring(secretKey.length - 4) : "none";
+        body.debugInfo = {
+          secretKeyPrefix: secretKey ? (secretKey.startsWith("sk_live_") ? "sk_live_" : secretKey.startsWith("sk_test_") ? "sk_test_" : "other") : "empty",
+          secretKeyLength: secretKey ? secretKey.length : 0,
+          secretKeyParts: `${firstEight}...${lastFour}`,
+          requestHost,
+          targetUrl: target,
+          clerkProxyUrlHeader: `https://${requestHost}/--clerk`,
+        };
+        return new Response(JSON.stringify(body), {
+          status: response.status,
+          headers: { "content-type": "application/json" }
+        });
+      } catch (e) {
+        // Fallback if not JSON
+      }
+    }
+    
     return response;
   } catch (error: any) {
     console.error("Error proxying to Clerk:", error);

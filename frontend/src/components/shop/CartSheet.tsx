@@ -37,7 +37,7 @@ export function CartSheet() {
     <Sheet>
       <SheetTrigger
         render={
-          <button className="relative h-10 w-10 flex items-center justify-center rounded-full bg-secondary/50 text-foreground transition-all hover:bg-secondary">
+          <Button variant="ghost" size="icon" className="relative h-10 w-10 flex items-center justify-center rounded-full bg-secondary/50 text-foreground transition-all hover:bg-secondary">
             <ShoppingCart className="w-5 h-5" />
             {mounted && count > 0 && (
               <Badge 
@@ -47,7 +47,7 @@ export function CartSheet() {
                 {count}
               </Badge>
             )}
-          </button>
+          </Button>
         }
       />
       <SheetContent className="w-full sm:max-w-md flex flex-col gap-0 p-0 border-l border-primary/10 bg-background/95 backdrop-blur-xl">
@@ -145,31 +145,37 @@ function CartItemRow({ item }: { item: CartItem }) {
               {item.category.replace("_", " & ")}
             </span>
           </div>
-          <button
+          <Button
+            variant="ghost"
+            size="icon"
             onClick={() => removeItem(item.id)}
-            className="text-muted-foreground hover:text-destructive transition-colors"
+            className="text-muted-foreground hover:text-destructive transition-colors h-8 w-8 rounded-lg"
           >
             <Trash2 className="w-4 h-4" />
-          </button>
+          </Button>
         </div>
         
         <div className="flex items-center justify-between mt-2">
           <div className="flex items-center bg-secondary/50 rounded-lg p-1 border border-primary/5">
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => updateQuantity(item.id, item.quantity - 1)}
-              className="p-1 hover:bg-background rounded-md transition-colors"
+              className="h-6 w-6 p-1 hover:bg-background rounded-md transition-colors"
             >
               <Minus className="w-3 h-3" />
-            </button>
+            </Button>
             <span className="w-8 text-center text-xs font-medium">
               {item.quantity}
             </span>
-            <button
+            <Button
+              variant="ghost"
+              size="icon"
               onClick={() => updateQuantity(item.id, item.quantity + 1)}
-              className="p-1 hover:bg-background rounded-md transition-colors"
+              className="h-6 w-6 p-1 hover:bg-background rounded-md transition-colors"
             >
               <Plus className="w-3 h-3" />
-            </button>
+            </Button>
           </div>
           <span className="font-semibold text-sm">{formattedPrice}</span>
         </div>

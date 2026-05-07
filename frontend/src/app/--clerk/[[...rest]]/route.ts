@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-const CLERK_FRONTEND_API = "https://clerk.d1s8t1kufg9t1w.amplifyapp.com";
+const CLERK_FRONTEND_API = "https://api.clerk.com";
 
 async function proxyToClerk(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -42,7 +42,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
     headers.set("X-Forwarded-For", forwardedFor);
   }
   
-  headers.set("X-Forwarded-Host", requestHost);
+  headers.set("X-Forwarded-Host", "d1s8t1kufg9t1w.amplifyapp.com");
   headers.set("X-Forwarded-Proto", "https");
 
   const init: RequestInit = {

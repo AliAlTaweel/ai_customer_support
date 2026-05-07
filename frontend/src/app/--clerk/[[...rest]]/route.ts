@@ -3,11 +3,14 @@ export const runtime = "edge";
 const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
 
 async function proxyToClerk(request: Request): Promise<Response> {
-  const { pathname, search } = new URL(request.url);
+  const url = new URL(request.url);
+  
+  // Clean up any Next.js dynamic routing parameters (like 'rest') that platforms like AWS Amplify append to query parameters
+  url.searchParams.delete("rest");
 
   // Strip the /--clerk prefix, then forward to Clerk's Frontend API
-  const clerkPath = pathname.replace(/^\/--clerk/, "") || "/";
-  const target = `${CLERK_FRONTEND_API}${clerkPath}${search}`;
+  const clerkPath = url.pathname.replace(/^\/--clerk/, "") || "/";
+  const target = `${CLERK_FRONTEND_API}${clerkPath}${url.search}`;
 
   const headers = new Headers(request.headers);
   

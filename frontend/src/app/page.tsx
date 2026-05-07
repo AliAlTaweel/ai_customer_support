@@ -1,4 +1,5 @@
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { ArrowRight, Sparkles, Shield, Zap, Globe } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
@@ -133,7 +134,7 @@ export default function Home() {
            </p>
            
            <div className="flex flex-col sm:flex-row items-center justify-center gap-4 relative z-10">
-              <input 
+              <Input 
                 type="email" 
                 placeholder="Enter your email" 
                 className="h-14 px-8 rounded-2xl bg-white/10 border border-white/20 text-white placeholder:text-white/60 focus:outline-none focus:ring-2 focus:ring-white/40 w-full max-w-sm backdrop-blur-md"

@@ -4,6 +4,7 @@ import { Package, Clock, CheckCircle, Truck, ExternalLink, Calendar } from "luci
 import Image from "next/image";
 import Link from "next/link";
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { OrderId } from "@/components/orders/order-id";
 
@@ -61,11 +62,11 @@ export default async function OrdersPage() {
               You haven't made any purchases yet. Explore our luxury catalog to start your collection.
             </p>
           </div>
-          <Link href="/shop">
-            <button className="h-12 px-8 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all">
+          <Button asChild className="h-12 px-8 rounded-full bg-primary text-primary-foreground font-semibold hover:bg-primary/90 transition-all">
+            <Link href="/shop">
               Go to Shop
-            </button>
-          </Link>
+            </Link>
+          </Button>
         </div>
       ) : (
         <div className="space-y-8">
@@ -161,9 +162,9 @@ function OrderCard({ order }: { order: any }) {
       </div>
       
       <div className="px-8 py-4 bg-secondary/10 flex justify-end">
-        <button className="text-xs font-semibold text-primary hover:underline flex items-center gap-1">
+        <Button variant="link" className="text-xs font-semibold text-primary hover:underline flex items-center gap-1 p-0 h-auto">
           Download Invoice <ExternalLink className="w-3 h-3" />
-        </button>
+        </Button>
       </div>
     </div>
   );

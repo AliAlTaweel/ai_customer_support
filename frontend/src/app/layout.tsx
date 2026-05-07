@@ -12,6 +12,7 @@ import { isAdmin } from "@/lib/actions/isAdmin";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -65,9 +66,9 @@ export default async function RootLayout({
                 <div className="flex md:hidden">
                   <Sheet>
                     <SheetTrigger asChild>
-                      <button className="p-2 hover:bg-secondary rounded-full transition-colors">
+                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-secondary">
                         <Menu className="w-6 h-6" />
-                      </button>
+                      </Button>
                     </SheetTrigger>
                     <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background border-r border-primary/10">
                       <SheetTitle className="sr-only">Menu</SheetTitle>
@@ -95,10 +96,10 @@ export default async function RootLayout({
                   {!userId ? (
                     <div className="flex items-center gap-2">
                       <SignInButton mode="modal">
-                        <button className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors">Sign In</button>
+                        <Button variant="ghost" className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors h-auto">Sign In</Button>
                       </SignInButton>
                       <SignUpButton mode="modal">
-                        <button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors">Sign Up</button>
+                        <Button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors h-auto">Sign Up</Button>
                       </SignUpButton>
                     </div>
                   ) : (

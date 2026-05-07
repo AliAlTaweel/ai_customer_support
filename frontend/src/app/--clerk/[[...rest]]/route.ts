@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-const CLERK_FRONTEND_API = "https://frontend-api.clerk.dev";
+const CLERK_FRONTEND_API = "https://frontend-api.clerk.services";
 
 async function proxyToClerk(request: Request): Promise<Response> {
   const url = new URL(request.url);
@@ -68,10 +68,15 @@ async function proxyToClerk(request: Request): Promise<Response> {
         const body = await cloned.json();
         const firstEight = secretKey ? secretKey.substring(0, 8) : "none";
         const lastFour = secretKey ? secretKey.substring(secretKey.length - 4) : "none";
+        const pubFirstEight = publishableKey ? publishableKey.substring(0, 8) : "none";
+        const pubLastFour = publishableKey ? publishableKey.substring(publishableKey.length - 4) : "none";
         body.debugInfo = {
           secretKeyPrefix: secretKey ? (secretKey.startsWith("sk_live_") ? "sk_live_" : secretKey.startsWith("sk_test_") ? "sk_test_" : "other") : "empty",
           secretKeyLength: secretKey ? secretKey.length : 0,
           secretKeyParts: `${firstEight}...${lastFour}`,
+          publishableKeyPrefix: publishableKey ? (publishableKey.startsWith("pk_live_") ? "pk_live_" : publishableKey.startsWith("pk_test_") ? "pk_test_" : "other") : "empty",
+          publishableKeyLength: publishableKey ? publishableKey.length : 0,
+          publishableKeyParts: `${pubFirstEight}...${pubLastFour}`,
           requestHost,
           targetUrl: target,
           clerkProxyUrlHeader: `https://${requestHost}/--clerk`,

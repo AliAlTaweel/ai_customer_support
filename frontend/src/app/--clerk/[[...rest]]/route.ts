@@ -1,6 +1,6 @@
 export const runtime = "edge";
 
-const CLERK_FRONTEND_API = "https://frontend-api.clerk.services";
+const CLERK_FRONTEND_API = "https://clerk.d1s8t1kufg9t1w.amplifyapp.com";
 
 async function proxyToClerk(request: Request): Promise<Response> {
   const url = new URL(request.url);

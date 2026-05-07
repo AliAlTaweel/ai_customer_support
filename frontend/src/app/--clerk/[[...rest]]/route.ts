@@ -21,6 +21,9 @@ async function proxyToClerk(request: Request): Promise<Response> {
   
   // Dynamically resolve the request host (covers both apex and subdomains)
   const requestHost = request.headers.get("host") || "d1s8t1kufg9t1w.amplifyapp.com";
+  // The primary registered domain in your Clerk Dashboard is the apex domain 'd1s8t1kufg9t1w.amplifyapp.com'
+  // When hosted on subdomains like 'main.d1s8t1kufg9t1w.amplifyapp.com', Clerk expects the proxy URL and forwarded host to match the registered domain
+  const clerkHost = "d1s8t1kufg9t1w.amplifyapp.com";
   const secretKey = process.env.CLERK_SECRET_KEY || "";
   
   if (!secretKey) {
@@ -30,7 +33,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
     }), { status: 500, headers: { "content-type": "application/json" } });
   }
 
-  headers.set("Clerk-Proxy-Url", `https://${requestHost}/--clerk`);
+  headers.set("Clerk-Proxy-Url", `https://${clerkHost}/--clerk`);
   headers.set("Clerk-Secret-Key", secretKey);
 
   // Set X-Forwarded-For to real client IP
@@ -39,7 +42,7 @@ async function proxyToClerk(request: Request): Promise<Response> {
     headers.set("X-Forwarded-For", forwardedFor);
   }
   
-  headers.set("X-Forwarded-Host", requestHost);
+  headers.set("X-Forwarded-Host", clerkHost);
   headers.set("X-Forwarded-Proto", "https");
 
   const init: RequestInit = {

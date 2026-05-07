@@ -1,6 +1,17 @@
 # Luxe E-Commerce & AI Customer Support Assistant
 
-A premium, modern e-commerce platform integrated with an advanced, multi-agent AI customer support system. This project demonstrates a production-grade architecture combining a **Next.js** frontend with a **FastAPI + CrewAI** backend, backed by a cloud-ready **AWS RDS PostgreSQL** database.
+<p align="center">
+  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
+  <img src="https://img.shields.io/badge/CrewAI-Orchestration-FF6F00?style=for-the-badge&logo=crewai" alt="CrewAI" />
+  <img src="https://img.shields.io/badge/AWS%20RDS-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="AWS RDS" />
+  <img src="https://img.shields.io/badge/Shadcn%20UI-Modernized-000000?style=for-the-badge&logo=shadcnui&logoColor=white" alt="Shadcn UI" />
+  <img src="https://img.shields.io/badge/Clerk-Auth-6C47FF?style=for-the-badge&logo=clerk&logoColor=white" alt="Clerk" />
+</p>
+
+A premium, modern e-commerce platform integrated with an advanced, multi-agent AI customer support system. This project demonstrates a production-grade architecture combining a **Next.js 15** frontend with a **FastAPI + CrewAI** backend, backed by a cloud-ready **AWS RDS PostgreSQL** database.
+
+---
 
 ## 🌟 Project Overview
 
@@ -32,11 +43,29 @@ graph TD
     Detokenize -- "Final Reply" --> Frontend
 ```
 
-- **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, and Prisma. Features a refined checkout flow with interactive AI-driven cards.
+- **Frontend (`/frontend`)**: A high-end web app built with Next.js, React, Prisma, and fully modernized using **Shadcn UI** components. Features a refined checkout flow with interactive AI-driven cards.
 - **Backend (`/backend`)**: An optimized agentic AI server powered by CrewAI and FastAPI. Uses robust regex-based signal extraction for seamless UI integration.
 - **Performance**: Response times reduced by ~70% using **LiteLLM Fast-Routing** and a **Unified Specialist** agent strategy.
 - **Security & GDPR**: Features a robust **PrivacyScrubber** that pseudonymizes data (Names, Emails, Phones, Addresses) before it reaches any LLM. Includes an automated 30-day chat history purge.
 - **Infrastructure**: Powered by **AWS RDS PostgreSQL** with secure SSL connectivity. Now includes **Docker** support for streamlined deployment.
+
+---
+
+## ✨ Key Enhancements
+
+### 🎨 Modernized Storefront with Shadcn UI
+The storefront has been fully modernized and overhauled with **Shadcn UI** components to achieve a premium, high-fidelity experience:
+- **Consistent Design Language**: Migration from basic HTML controls to unified Shadcn components such as `Button`, `Input`, `Dialog`, `Sheet`, `Tabs`, `Badge`, `Separator`, and `Textarea`.
+- **Enhanced Views**: Beautifully integrated Shadcn controls throughout the Shop page, Cart sheet, Orders tracking portal, landing page newsletter forms, and the Admin Complaint dashboard.
+
+### 📍 Active Order Tracking (including PENDING)
+The AI support assistant now provides dynamic, visual order tracking updates for orders at all stages:
+- **Dynamic Milestones & Maps**: Generates active mock UPS tracking details (carrier, tracking number, estimated delivery, origin, destination, current coordinates, and custom milestones) for all active orders, including `PENDING` and `PROCESSING` states.
+- **Seamless Frontend Maps**: Live tracking details are injected using structured `TRACKING_INFO` payloads, allowing the frontend to render interactive maps and shipping progress bars directly inside the customer chat interface.
+
+### 🔌 Seamless HTTPS & API Proxying
+- **Mixed Content Solutions**: Client-side API requests are dynamically proxied via Next.js rewrites to the `/api/v1` backend, resolving cross-origin and Mixed Content issues under production HTTPS.
+- **Clerk Custom Proxy Domains**: Disabled strict JWT issuer verification on the FastAPI backend to reliably authenticate sessions originating from custom Clerk proxy domains on AWS Amplify deployments.
 
 ---
 
@@ -53,7 +82,7 @@ graph TD
 ```bash
 cd frontend
 npm install
-# Update .env with your DATABASE_URL (PostgreSQL)
+# Update .env with your DATABASE_URL (PostgreSQL) and Clerk keys
 npx prisma generate
 npx prisma db push
 npm run dev
@@ -84,8 +113,8 @@ For detailed instructions, see the [Deployment Guide](file:///Users/alial-taweel
 
 | Component | Technology |
 | :--- | :--- |
-| **Frontend** | Next.js 15, React, TypeScript, Tailwind CSS, Clerk Auth |
-| **Backend** | FastAPI, CrewAI, LangChain, Gemini 1.5 Flash |
+| **Frontend** | Next.js 15 (App Router), React, TypeScript, Tailwind CSS, Shadcn UI, Clerk Auth |
+| **Backend** | FastAPI, CrewAI, LangChain, Gemini 1.5 Flash, LiteLLM |
 | **LLMs** | Google Gemini (Primary), Ollama (Local Backup/Specialists) |
 | **Database** | AWS RDS PostgreSQL, Prisma (Frontend), SQLAlchemy (Backend) |
 | **Deployment** | Docker (Multi-stage, Gunicorn), AWS EC2 / RDS |
@@ -93,4 +122,3 @@ For detailed instructions, see the [Deployment Guide](file:///Users/alial-taweel
 ---
 
 *For detailed technical documentation, please refer to the README files in the respective `/frontend` and `/backend` directories.*
-

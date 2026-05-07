@@ -3,6 +3,7 @@
 import { useState } from "react";
 import { Copy, Check } from "lucide-react";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
 
 interface OrderIdProps {
   id: string;
@@ -22,9 +23,10 @@ export function OrderId({ id }: OrderIdProps) {
   };
 
   return (
-    <button
+    <Button
+      variant="ghost"
       onClick={copyToClipboard}
-      className="group/id flex items-center gap-2 px-2 -ml-2 py-0.5 rounded-lg hover:bg-primary/5 transition-colors duration-200 text-left"
+      className="group/id flex items-center gap-2 px-2 -ml-2 py-0.5 rounded-lg hover:bg-primary/5 transition-colors duration-200 text-left h-auto"
       title="Click to copy Order ID"
     >
       <span className="text-sm font-mono font-medium text-foreground tracking-tight">
@@ -42,6 +44,6 @@ export function OrderId({ id }: OrderIdProps) {
           COPIED
         </span>
       )}
-    </button>
+    </Button>
   );
 }

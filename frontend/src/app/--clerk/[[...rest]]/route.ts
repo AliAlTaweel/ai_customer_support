@@ -1,4 +1,4 @@
-export const runtime = "edge";
+export const runtime = "nodejs";
 
 const CLERK_FRONTEND_API = "https://api.clerk.com";
 

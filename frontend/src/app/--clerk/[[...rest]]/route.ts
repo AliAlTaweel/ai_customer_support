@@ -34,7 +34,16 @@ async function proxyToClerk(request: Request): Promise<Response> {
 
   try {
     const response = await fetch(target, init);
-    return response;
+    
+    const responseHeaders = new Headers(response.headers);
+    responseHeaders.delete("content-encoding");
+    responseHeaders.delete("content-length");
+
+    return new Response(response.body, {
+      status: response.status,
+      statusText: response.statusText,
+      headers: responseHeaders,
+    });
   } catch (error: any) {
     console.error("Error proxying to Clerk:", error);
     return new Response(JSON.stringify({ error: error.message }), { status: 500, headers: { "content-type": "application/json" } });

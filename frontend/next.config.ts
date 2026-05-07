@@ -14,11 +14,11 @@ const nextConfig: NextConfig = {
         // Proxy Clerk Frontend API through our own domain
         // Required because amplifyapp.com DNS cannot be modified
         source: "/__clerk/:path*",
-        destination: "https://clerk.d1s8t1kufg9t1w.amplifyapp.com/:path*",
+        destination: "https://clerk.main.d1s8t1kufg9t1w.amplifyapp.com/:path*",
       },
       {
         source: "/--clerk/:path*",
-        destination: "https://clerk.d1s8t1kufg9t1w.amplifyapp.com/:path*",
+        destination: "https://clerk.main.d1s8t1kufg9t1w.amplifyapp.com/:path*",
       },
     ];
   },

@@ -12,7 +12,7 @@ const nextConfig: NextConfig = {
     const apiUrl = process.env.NEXT_PUBLIC_API_URL;
     const destination = apiUrl && apiUrl.startsWith("http") 
       ? `${apiUrl}/:path*` 
-      : "http://13.63.20.159:3001/api/v1/:path*";
+      : "https://ali-support.duckdns.org/api/v1/:path*";
     return [
       {
         source: "/api/v1/:path*",

@@ -5,8 +5,7 @@ const isPublicRoute = createRouteMatcher(["/", "/shop(.*)", "/sign-in(.*)", "/si
 export const proxy = clerkMiddleware(async (auth, request) => {
   if (!process.env.CLERK_SECRET_KEY) {
     return new Response(JSON.stringify({
-      error: "CLERK_SECRET_KEY is missing in Next.js Middleware environment",
-      envKeys: Object.keys(process.env).filter(k => !k.toLowerCase().includes("key") && !k.toLowerCase().includes("secret"))
+      error: "CLERK_SECRET_KEY is missing in Next.js Middleware environment"
     }), { status: 500, headers: { "content-type": "application/json" } });
   }
   
@@ -18,10 +17,9 @@ export const proxy = clerkMiddleware(async (auth, request) => {
     if (error?.message === "NEXT_REDIRECT" || error?.digest === "NEXT_REDIRECT") {
       throw error;
     }
+    console.error("Clerk Middleware execution failed:", error);
     return new Response(JSON.stringify({
-      error: "Clerk Middleware execution failed",
-      message: error.message,
-      stack: error.stack
+      error: "Clerk Middleware execution failed"
     }), { status: 500, headers: { "content-type": "application/json" } });
   }
 });

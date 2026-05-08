@@ -66,6 +66,7 @@ The AI support assistant now provides dynamic, visual order tracking updates for
 ### 🔌 Seamless HTTPS & API Proxying
 - **Mixed Content Solutions**: Client-side API requests are dynamically proxied via Next.js rewrites to the `/api/v1` backend, resolving cross-origin and Mixed Content issues under production HTTPS.
 - **Clerk Custom Proxy Domains**: Disabled strict JWT issuer verification on the FastAPI backend to reliably authenticate sessions originating from custom Clerk proxy domains on AWS Amplify deployments.
+- **Nginx Reverse Proxy & SSL via DuckDNS**: Implemented Nginx on the EC2 backend instance acting as a reverse proxy, fully secured with a free SSL/TLS certificate using Certbot (Let's Encrypt) and a custom DuckDNS domain (`https://ali-support.duckdns.org`), completely resolving the unencrypted HTTP IP disclosure.
 
 ---
 

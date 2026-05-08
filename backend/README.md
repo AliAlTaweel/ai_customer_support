@@ -50,7 +50,8 @@ The `FastTrackService` handles highly structured user intents instantly without 
 - **Strict Authentication**: JWT signatures from Clerk are verified. Strict issuer verification is bypassed where necessary to support custom Clerk proxy domains on AWS Amplify deployments.
 - **IDOR Protection**: Tools automatically filter database queries by the verified user's email, preventing cross-user data access.
 - **Data Retention**: An automated startup task purges chat messages older than 30 days.
-- **Encryption**: All database communication with AWS RDS is secured via **SSL**.
+- **Database Encryption**: All database communication with AWS RDS is secured via **SSL**.
+- **Transport Security (HTTPS)**: Backend traffic is fully encrypted using an **Nginx Reverse Proxy** on EC2 with a free SSL/TLS certificate via **Let's Encrypt (Certbot)** over the custom DuckDNS domain `https://ali-support.duckdns.org`.
 
 ---
 

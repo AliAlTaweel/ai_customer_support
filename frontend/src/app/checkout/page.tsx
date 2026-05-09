@@ -31,15 +31,33 @@ export default function CheckoutPage() {
 
   useEffect(() => {
     setMounted(true);
-    if (mounted && items.length === 0) {
-      router.push("/shop");
-    }
-  }, [mounted, items, router]);
+  }, []);
 
-  if (!mounted || items.length === 0) {
+  if (!mounted) {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <Loader2 className="w-8 h-8 animate-spin text-primary" />
+      </div>
+    );
+  }
+
+  if (items.length === 0) {
+    return (
+      <div className="min-h-screen flex flex-col items-center justify-center gap-6 p-4 text-center">
+        <div className="w-20 h-20 rounded-[2.5rem] bg-primary/10 flex items-center justify-center text-primary shadow-lg shadow-primary/5">
+          <ShoppingBag className="w-10 h-10" />
+        </div>
+        <div className="space-y-2">
+          <h2 className="text-3xl font-bold font-outfit">Your cart is empty</h2>
+          <p className="text-muted-foreground text-sm max-w-sm mx-auto leading-relaxed">
+            Before you can check out, you must add some of our luxury products to your collection.
+          </p>
+        </div>
+        <Link href="/shop">
+          <Button className="rounded-full px-8 h-12 font-semibold shadow-lg shadow-primary/10">
+            Explore Shop
+          </Button>
+        </Link>
       </div>
     );
   }
@@ -77,6 +95,7 @@ export default function CheckoutPage() {
       );
 
       if (result.success) {
+        clearCart();
         router.push(`/checkout/success?orderId=${result.orderId}`);
       } else {
         alert(result.error || "Failed to place order");

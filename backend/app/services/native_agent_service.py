@@ -49,9 +49,14 @@ class NativeAgentService:
         8. If you retrieve order details with tracking, place the parsed tracking info into the `payload` dict.
         """
         
+        # Use the MANAGER_MODEL configured in settings/.env dynamically (e.g. "gemini/gemini-2.5-flash-lite" -> "gemini-2.5-flash-lite")
+        model_name = settings.MANAGER_MODEL
+        if "/" in model_name:
+            model_name = model_name.split("/")[-1]
+            
         # Instantiate the model with the defined schema
         self.model = genai.GenerativeModel(
-            model_name="gemini-1.5-flash",
+            model_name=model_name,
             tools=self.tools,
             system_instruction=self.system_instruction,
             generation_config=genai.GenerationConfig(
@@ -126,11 +131,21 @@ class NativeAgentService:
             response = chat_session.send_message(scrubbed_message)
             
             for _ in range(5):
-                if not response.function_calls:
+                # Robust extraction of function calls across all SDK and model versions
+                function_calls = []
+                if hasattr(response, "function_calls") and response.function_calls:
+                    function_calls = response.function_calls
+                elif hasattr(response, "candidates") and response.candidates and response.candidates[0].content.parts:
+                    try:
+                        function_calls = [p.function_call for p in response.candidates[0].content.parts if p.function_call]
+                    except Exception:
+                        pass
+                        
+                if not function_calls:
                     break
                     
                 tool_responses = []
-                for function_call in response.function_calls:
+                for function_call in function_calls:
                     tool_name = function_call.name
                     tool_args = {k: v for k, v in function_call.args.items()}
                     logger.info(f"Agent invoking tool: {tool_name} with args: {tool_args}")

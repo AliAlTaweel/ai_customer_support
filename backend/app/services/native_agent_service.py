@@ -45,13 +45,25 @@ class NativeAgentService:
         4. If a user asks a policy question, use get_company_faq.
         5. When you have enough information, synthesize a final response. 
         6. Do NOT expose raw tool JSON outputs to the user.
-        7. Extract relevant machine-readable signals for the UI into `ui_signals` (e.g., TRACKING_INFO, PRODUCT_LIST, CHECKOUT_REQUIRED).
+        7. Extract relevant machine-readable signals for the UI into `ui_signals` (e.g., TRACKING_INFO, PRODUCT_LIST, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED).
         8. If you retrieve order details with tracking, place the parsed tracking info into the `payload` dict.
+        9. If the user indicates they want to buy, order, checkout, or selects a specific product from the catalog (e.g., "yes this one Zenith Ultra Slim Laptop"), you MUST:
+           - First use search_products to find/verify the product exists and fetch its details and price.
+           - Output 'PLACE_ORDER_SUMMARY' in the `ui_signals` array.
+           - Provide the verified product details under 'pending_order_summary' in the `payload` dictionary, formatted exactly like:
+             "payload": {
+               "pending_order_summary": {
+                 "product_name": "Zenith Ultra Slim Laptop",
+                 "price": 1499.0,
+                 "imageUrl": "...",
+                 "details": "..."
+               }
+             }
         
         You MUST respond ONLY with a valid JSON object matching this schema:
         {
-          "message": "The natural language response to the user. Do not include tool output directly, synthesize it into a human-friendly format.",
-          "ui_signals": ["Machine-readable signals for frontend, e.g. 'TRACKING_INFO', 'PRODUCT_LIST'"],
+          "message": "The natural language response to the user. Ask them to confirm the details to proceed to checkout.",
+          "ui_signals": ["Machine-readable signals for frontend, e.g. 'TRACKING_INFO', 'PLACE_ORDER_SUMMARY'"],
           "payload": {}
         }
         Do not include markdown blocks like ```json in your response. Just output raw JSON.
@@ -210,6 +222,8 @@ class NativeAgentService:
                 # Merge payload into state update depending on what it is
                 if "TRACKING_INFO" in ui_signals:
                     state_update["pending_tracking_data"] = payload
+                elif "PLACE_ORDER_SUMMARY" in ui_signals:
+                    state_update["pending_order_summary"] = payload.get("pending_order_summary", payload)
                 else:
                     state_update.update(payload)
                     

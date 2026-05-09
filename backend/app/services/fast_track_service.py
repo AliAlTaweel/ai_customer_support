@@ -13,7 +13,7 @@ class FastTrackService:
         # 1. Order Cancellation Confirmation
         pending_order = state.get("pending_confirmation")
         if pending_order and clean_msg in ["yes", "y", "confirm", "sure", "do it"]:
-            from app.tools.order_tools import cancel_order_fn
+            from app.tools.order_tools import cancel_order as cancel_order_fn
             is_auth = user_context and getattr(user_context, 'is_authenticated', False)
             
             from app.core.privacy import PII_MAPPING
@@ -104,7 +104,7 @@ class FastTrackService:
         if user_message.startswith(complaint_prefix):
             complaint_text = user_message[len(complaint_prefix):].strip()
             if complaint_text:
-                from app.tools.support_tools import submit_complaint_fn
+                from app.tools.support_tools import submit_complaint as submit_complaint_fn
                 is_auth = user_context and getattr(user_context, 'is_authenticated', False)
                 
                 # Get name and email from context
@@ -129,7 +129,7 @@ class FastTrackService:
     def handle_faq_fast_track(self, question: str) -> Optional[Dict[str, Any]]:
         """Provides a quick RAG-based response for common FAQ queries."""
         try:
-            from app.tools.faq_tools import get_company_faq_fn
+            from app.tools.faq_tools import get_company_faq as get_company_faq_fn
             logger.info(f"Attempting FAQ fast-track for: {question}")
             answer = get_company_faq_fn(question)
             
@@ -159,7 +159,7 @@ class FastTrackService:
         if not is_auth and not (user_id and user_id.startswith("user_")) and not order_id and not provided_email:
             return None
             
-        from app.tools.order_tools import get_order_details_fn
+        from app.tools.order_tools import get_order_details as get_order_details_fn
         from app.core.privacy import PII_MAPPING
         
         pii_mapping = state.get("pii_mapping", {})
@@ -246,7 +246,7 @@ class FastTrackService:
             return None
 
     def _handle_system_process_order(self, state, user_context, user_id) -> Dict[str, Any]:
-        from app.tools.order_tools import place_order_fn
+        from app.tools.order_tools import place_order as place_order_fn
         from app.tools.base import detokenize_val
         details = state.get("pending_checkout")
         if not details:

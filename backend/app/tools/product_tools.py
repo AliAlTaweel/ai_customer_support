@@ -1,12 +1,20 @@
 from sqlalchemy import text
-from crewai.tools import tool
 import logging
 from app.tools.base import engine
 
 logger = logging.getLogger(__name__)
 
-def search_products_fn(query: str):
-    """Search for products by name, description, or category."""
+def search_products(query: str) -> str:
+    """
+    Search for physical products in the Luxe catalog by name, description, or category. 
+    Use this ONLY for product discovery. Do NOT use this for policies, shipping, or order management.
+    
+    Args:
+        query (str): The search term to find products.
+        
+    Returns:
+        str: A stringified list of matching products or a not found message.
+    """
     logger.info(f"Searching products with query: {query}")
     try:
         with engine.connect() as connection:
@@ -21,11 +29,3 @@ def search_products_fn(query: str):
     except Exception as e:
         logger.error(f"Error searching products: {e}")
         return f"Error searching products: {str(e)}"
-
-@tool("search_products")
-def search_products(query: str):
-    """
-    Search for physical products in the Luxe catalog by name, description, or category. 
-    Use this ONLY for product discovery. Do NOT use this for policies, shipping, or order management.
-    """
-    return search_products_fn(query)

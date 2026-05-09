@@ -1,7 +1,6 @@
 import os
 import json
 import logging
-from crewai.tools import tool
 from langchain_community.vectorstores import FAISS
 from langchain_community.embeddings import HuggingFaceEmbeddings
 from app.core.config import settings
@@ -156,8 +155,13 @@ def get_vector_store():
 
 # ── Tool ─────────────────────────────────────────────────────────────────────
 
-def get_company_faq_fn(question: str):
-    """Retrieve general company information, shipping policies, and return policies using RAG."""
+def get_company_faq(question: str) -> str:
+    """
+    Retrieve general company information, shipping policies, and return policies using RAG.
+    
+    Args:
+        question: The user's specific policy or FAQ question.
+    """
     vs = get_vector_store()
     if vs is None:
         return "I'm sorry, I'm having trouble accessing the company policy database right now."
@@ -176,9 +180,3 @@ def get_company_faq_fn(question: str):
     except Exception as e:
         logger.error(f"Error searching FAQ: {e}")
         return "Error searching company policies."
-
-
-@tool("get_company_faq")
-def get_company_faq(question: str):
-    """Retrieve general company information, shipping policies, and return policies using RAG."""
-    return get_company_faq_fn(question)

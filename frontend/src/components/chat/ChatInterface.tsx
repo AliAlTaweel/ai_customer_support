@@ -24,6 +24,7 @@ import {
 interface Message {
   role: "user" | "assistant";
   content: string;
+  tracking_data?: any;
   usage?: {
     total_tokens: number;
     prompt_tokens: number;
@@ -181,7 +182,8 @@ export default function ChatInterface() {
       setMessages((prev) => [...prev, { 
         role: "assistant", 
         content: data.message,
-        usage: data.usage 
+        usage: data.usage,
+        tracking_data: data.state?.pending_tracking_data
       }]);
       setState(data.state);
     } catch (error: unknown) {
@@ -317,7 +319,6 @@ export default function ChatInterface() {
                         <PendingOrderSummary state={state} onSend={handleSend} />
                         <PendingYesNo state={state} onSend={handleSend} />
                         <PendingProductList state={state} onSend={handleSend} />
-                        {state.pending_tracking_data && <TrackingMap data={state.pending_tracking_data} />}
                       </div>
                     )}
 

@@ -302,7 +302,7 @@ export default function ChatInterface() {
                       <MessageItem key={i} message={msg} />
                     ))}
 
-                    {!messages.some(m => m.role === "user") && messages.length > 0 && (
+                    {!messages.some(m => m.role === "user") && (
                       <motion.div 
                         initial={{ opacity: 0, y: 10 }}
                         animate={{ opacity: 1, y: 0 }}

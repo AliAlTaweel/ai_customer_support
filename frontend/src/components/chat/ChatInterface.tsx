@@ -302,6 +302,47 @@ export default function ChatInterface() {
                       <MessageItem key={i} message={msg} />
                     ))}
 
+                    {!messages.some(m => m.role === "user") && messages.length > 0 && (
+                      <motion.div 
+                        initial={{ opacity: 0, y: 10 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        className="grid grid-cols-2 gap-3 mt-4 animate-in fade-in slide-in-from-bottom-2 duration-300"
+                      >
+                        <button
+                          onClick={() => handleSend("Track my order")}
+                          className="flex flex-col items-start p-3.5 rounded-3xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-primary/20 transition-all text-left group"
+                        >
+                          <span className="text-xl mb-1.5">📦</span>
+                          <span className="font-semibold text-xs font-outfit text-foreground group-hover:text-primary transition-colors">Track Order</span>
+                          <span className="text-[10px] text-muted-foreground font-outfit mt-0.5">Check active status</span>
+                        </button>
+                        <button
+                          onClick={() => handleSend("Show me available products")}
+                          className="flex flex-col items-start p-3.5 rounded-3xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-primary/20 transition-all text-left group"
+                        >
+                          <span className="text-xl mb-1.5">🔍</span>
+                          <span className="font-semibold text-xs font-outfit text-foreground group-hover:text-primary transition-colors">Browse Products</span>
+                          <span className="text-[10px] text-muted-foreground font-outfit mt-0.5">Explore inventory</span>
+                        </button>
+                        <button
+                          onClick={() => handleSend("Cancel an order")}
+                          className="flex flex-col items-start p-3.5 rounded-3xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-primary/20 transition-all text-left group"
+                        >
+                          <span className="text-xl mb-1.5">❌</span>
+                          <span className="font-semibold text-xs font-outfit text-foreground group-hover:text-primary transition-colors">Cancel Order</span>
+                          <span className="text-[10px] text-muted-foreground font-outfit mt-0.5">Refund or modify</span>
+                        </button>
+                        <button
+                          onClick={() => setIsComplaintModalOpen(true)}
+                          className="flex flex-col items-start p-3.5 rounded-3xl border border-primary/10 bg-primary/5 hover:bg-primary/10 hover:border-primary/20 transition-all text-left group"
+                        >
+                          <span className="text-xl mb-1.5">📝</span>
+                          <span className="font-semibold text-xs font-outfit text-foreground group-hover:text-primary transition-colors">File Complaint</span>
+                          <span className="text-[10px] text-muted-foreground font-outfit mt-0.5">Send formal report</span>
+                        </button>
+                      </motion.div>
+                    )}
+
                     {isLoading && (
                       <div className="flex justify-start">
                         <div className="flex gap-2 items-center text-muted-foreground">

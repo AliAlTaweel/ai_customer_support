@@ -43,6 +43,43 @@ The `FastTrackService` handles highly structured user intents instantly without 
 
 ---
 
+## 🔄 Request Processing Lifecycle
+
+All incoming messages pass through a multi-phase **Hybrid Pipeline** to ensure minimum latency, maximum privacy, and accurate processing:
+
+```mermaid
+graph TD
+    User([Customer Message]) --> API[FastAPI chat Endpoint]
+    API --> RateLimit{Rate Limiter}
+    RateLimit -- "Exceeded" --> Err429[429 Too Many Requests]
+    RateLimit -- "Allowed" --> CrewKickoff[CrewService: kickoff_chat]
+    
+    subgraph "Hybrid Pipeline"
+        CrewKickoff --> FastTrack{Phase 1: Fast-Track Bypass?}
+        FastTrack -- "Match Found" --> FastResp[Process Instantly & Return <100ms]
+        
+        FastTrack -- "Complex/Unstructured" --> Scrub[Phase 2: Privacy Pseudonymization]
+        Scrub --> Router{Phase 3: Intent Classification}
+        
+        Router -- "Complex Transaction" --> CrewAI[Phase 4: CrewAI Sequential Execution]
+        CrewAI --> SignalProc[Phase 5: Signal Processor]
+        SignalProc --> Clean[Phase 6: Response Detokenization & Cleaning]
+    end
+    
+    FastResp --> Return[Return ChatResponse]
+    Clean --> Return
+```
+
+### 6-Phase Pipeline Phases
+1. **Phase 1: Fast-Track Bypass**: The [FastTrackService](file:///Users/alial-taweel/projects/ai/ai_customer_support_v3/backend/app/services/fast_track_service.py#L7) intercepts structured actions (greetings, simple yes/no confirmations, exact tracking IDs, complaints, and common FAQs) and handles them instantly in **sub-100ms** without calling any external LLM APIs.
+2. **Phase 2: Privacy Pseudonymization**: The [PrivacyScrubber](file:///Users/alial-taweel/projects/ai/ai_customer_support_v3/backend/app/core/privacy.py#L31) sanitizes the message, stripping out Personally Identifiable Information (PII) like names, emails, addresses, and phone numbers, replacing them with secure tokens (e.g., `[EMAIL_REGEX_0]`) stored in a thread-safe context mapping.
+3. **Phase 3: Intent Classification**: Direct low-latency LLM routing (powered by Gemini 1.5 Flash via LiteLLM) classifies complex/unstructured requests into targeted categories (`GREETING`, `PURCHASE`, `MANAGEMENT`, `KNOWLEDGE`, `COMPLAINT`, `INVALID`).
+4. **Phase 4: CrewAI Agentic Execution**: If the intent is complex, the query is passed to the **Unified Luxe Specialist** agent. The agent executes relevant tools in a single pass (avoiding multi-agent overhead).
+5. **Phase 5: Signal Processor**: Extracts machine-readable signals (such as `PRODUCT_LIST`, `CHECKOUT_REQUIRED`, `TRACKING_INFO`) embedded in the agent's output so the frontend can render rich, interactive UI components.
+6. **Phase 6: Detokenization & Cleaning**: Restores original PII into the final response before it is returned to the user, ensuring the external LLM never saw the sensitive data but the user receives a fully personalized message.
+
+---
+
 ## 🔒 Security & GDPR Compliance
 
 - **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, phone numbers, and physical addresses are replaced with secure tokens before being sent to any LLM.

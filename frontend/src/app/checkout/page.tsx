@@ -77,7 +77,6 @@ export default function CheckoutPage() {
       );
 
       if (result.success) {
-        clearCart();
         router.push(`/checkout/success?orderId=${result.orderId}`);
       } else {
         alert(result.error || "Failed to place order");

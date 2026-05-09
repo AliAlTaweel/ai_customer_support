@@ -2,7 +2,7 @@
 
 import { getPrisma } from "@/lib/db";
 import { auth, currentUser } from "@clerk/nextjs/server";
-import { revalidatePath } from "next/cache";
+import crypto from "crypto";
 
 export interface OrderItemInput {
   productId: string;
@@ -32,11 +32,14 @@ export async function createOrder(
 
     const prisma = await getPrisma();
 
+    const orderId = `ORD-${crypto.randomUUID()}`;
+
     // Start a transaction to ensure atomicity
     const order = await prisma.$transaction(async (tx) => {
       // 1. Create the Order
       const newOrder = await tx.order.create({
         data: {
+          id: orderId,
           userId,
           total,
           status: "PROCESSING",

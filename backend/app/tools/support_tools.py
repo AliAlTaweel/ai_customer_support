@@ -2,13 +2,22 @@ import uuid
 import logging
 from datetime import datetime
 from sqlalchemy import text
-from crewai.tools import tool
 from app.tools.base import engine, detokenize_val
 
 logger = logging.getLogger(__name__)
 
-def submit_complaint_fn(subject: str, message: str, customer_name: str = None, customer_email: str = None, user_id: str = None, priority: str = "MEDIUM"):
-    """Submit a complaint or message to the admin."""
+def submit_complaint(subject: str, message: str, customer_name: str = None, customer_email: str = None, user_id: str = None, priority: str = "MEDIUM") -> str:
+    """
+    Submit a formal complaint or message to the administration team.
+    
+    Args:
+        subject: The subject of the complaint.
+        message: The detailed message.
+        customer_name: The customer's name.
+        customer_email: The customer's email.
+        user_id: The ID of the user.
+        priority: Priority of the complaint (LOW, MEDIUM, HIGH, URGENT).
+    """
     subject = detokenize_val(subject)
     message = detokenize_val(message)
     customer_name = detokenize_val(customer_name)
@@ -43,8 +52,3 @@ def submit_complaint_fn(subject: str, message: str, customer_name: str = None, c
     except Exception as e:
         logger.error(f"Error submitting complaint: {e}")
         return f"Error submitting complaint: {str(e)}"
-
-@tool("submit_complaint")
-def submit_complaint(subject: str, message: str, customer_name: str = None, customer_email: str = None, user_id: str = None, priority: str = "MEDIUM"):
-    """Submit a formal complaint or message to the administration team."""
-    return submit_complaint_fn(subject, message, customer_name, customer_email, user_id, priority)

@@ -6,19 +6,13 @@ import { CheckCircle2, ShoppingBag, ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
 import { OrderId } from "@/components/orders/order-id";
-import { useCart } from "@/lib/store/useCart";
-import { useEffect, Suspense } from "react";
+import { Suspense } from "react";
 
 export const dynamic = "force-dynamic";
 
 function CheckoutSuccessContent() {
   const searchParams = useSearchParams();
   const orderId = searchParams.get("orderId");
-  const { clearCart } = useCart();
-
-  useEffect(() => {
-    clearCart();
-  }, [clearCart]);
 
   return (
     <div className="container mx-auto px-4 py-20 flex flex-col items-center justify-center min-h-[70vh]">

@@ -18,10 +18,10 @@ nlp_config = {
 }
 
 try:
-    # In newer versions of Presidio, nlp_config is passed via a different mechanism or 
-    # we can just use the default which uses the spacy model if installed.
-    # For now, let's simplify to avoid the 'unexpected keyword argument' error.
-    analyzer = AnalyzerEngine(default_score_threshold=0.4)
+    from presidio_analyzer.nlp_engine import NlpEngineProvider
+    provider = NlpEngineProvider(nlp_configuration=nlp_config)
+    nlp_engine = provider.create_engine()
+    analyzer = AnalyzerEngine(nlp_engine=nlp_engine, default_score_threshold=0.4)
     anonymizer = AnonymizerEngine()
 except Exception as e:
     logger.error(f"Failed to initialize Presidio: {e}")

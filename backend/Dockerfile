@@ -1,37 +1,23 @@
-# Stage 1: Build dependencies
-FROM python:3.11-slim AS builder
-
-WORKDIR /app
-
-# Install build dependencies
-RUN apt-get update && apt-get install -y \
-    gcc \
-    libpq-dev \
-    && rm -rf /var/lib/apt/lists/*
-
-# Install dependencies
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
-RUN pip install --no-cache-dir gunicorn
-
-# Use the small model to save ~500MB of space during build
-RUN python -m spacy download en_core_web_sm
-
-# Stage 2: Final image
 FROM python:3.11-slim
 
 WORKDIR /app
 
-# Install runtime dependencies (like libpq for postgres)
+# Install system dependencies
 RUN apt-get update && apt-get install -y \
+    gcc \
+    libpq-dev \
     libpq5 \
     curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Copy installed dependencies from builder
-# We copy only site-packages and bin to be more surgical
-COPY --from=builder /usr/local/lib/python3.11/site-packages /usr/local/lib/python3.11/site-packages
-COPY --from=builder /usr/local/bin /usr/local/bin
+# Copy requirements and install python packages
+COPY requirements.txt .
+RUN pip install --no-cache-dir torch --index-url https://download.pytorch.org/whl/cpu
+RUN pip install --no-cache-dir -r requirements.txt
+RUN pip install --no-cache-dir gunicorn
+
+# Download small spacy model
+RUN python -m spacy download en_core_web_sm
 
 # Copy application code
 COPY . .
@@ -57,5 +43,4 @@ RUN useradd -m appuser && chown -R appuser:appuser /app
 USER appuser
 
 # Run the application with gunicorn for production
-# Using uvicorn workers for FastAPI
 CMD ["gunicorn", "-w", "2", "-k", "uvicorn.workers.UvicornWorker", "app.main:app", "--bind", "0.0.0.0:3001", "--timeout", "120"]

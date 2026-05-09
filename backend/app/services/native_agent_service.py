@@ -47,6 +47,14 @@ class NativeAgentService:
         6. Do NOT expose raw tool JSON outputs to the user.
         7. Extract relevant machine-readable signals for the UI into `ui_signals` (e.g., TRACKING_INFO, PRODUCT_LIST, CHECKOUT_REQUIRED).
         8. If you retrieve order details with tracking, place the parsed tracking info into the `payload` dict.
+        
+        You MUST respond ONLY with a valid JSON object matching this schema:
+        {
+          "message": "The natural language response to the user. Do not include tool output directly, synthesize it into a human-friendly format.",
+          "ui_signals": ["Machine-readable signals for frontend, e.g. 'TRACKING_INFO', 'PRODUCT_LIST'"],
+          "payload": {}
+        }
+        Do not include markdown blocks like ```json in your response. Just output raw JSON.
         """
         
         # Use the MANAGER_MODEL configured in settings/.env dynamically (e.g. "gemini/gemini-2.5-flash-lite" -> "gemini-2.5-flash-lite")
@@ -54,15 +62,11 @@ class NativeAgentService:
         if "/" in model_name:
             model_name = model_name.split("/")[-1]
             
-        # Instantiate the model with the defined schema
+        # Instantiate the model (no generation_config with response_mime_type because it is unsupported with tools)
         self.model = genai.GenerativeModel(
             model_name=model_name,
             tools=self.tools,
-            system_instruction=self.system_instruction,
-            generation_config=genai.GenerationConfig(
-                response_mime_type="application/json",
-                response_schema=ChatResponseSchema
-            )
+            system_instruction=self.system_instruction
         )
 
     def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None, user_context: Any = None, user_id: str = None) -> Dict[str, Any]:
@@ -179,8 +183,22 @@ class NativeAgentService:
                 
                 response = chat_session.send_message(tool_responses)
             
-            raw_text = response.text
-            parsed_json = json.loads(raw_text)
+            raw_text = response.text.strip()
+            # Clean markdown code block wraps if the model returned them
+            if raw_text.startswith("```"):
+                raw_text = re.sub(r"^```(?:json)?\n", "", raw_text)
+                raw_text = re.sub(r"\n```$", "", raw_text)
+                raw_text = raw_text.strip()
+                
+            try:
+                parsed_json = json.loads(raw_text)
+            except Exception as parse_err:
+                logger.warning(f"Failed to parse model response as JSON: {parse_err}. Raw text: {raw_text}")
+                parsed_json = {
+                    "message": raw_text,
+                    "ui_signals": [],
+                    "payload": {}
+                }
             
             # Map structured output to old CrewService format
             message_text = parsed_json.get("message", "I'm sorry, I encountered an error.")

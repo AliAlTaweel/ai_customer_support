@@ -101,7 +101,7 @@ def get_vector_store():
         local_path = settings.INDEX_SAVE_PATH
 
         # 1️⃣  Try local cache first (already downloaded this session)
-        if os.path.exists(local_path):
+        if os.path.exists(local_path) and os.path.exists(os.path.join(local_path, "index.faiss")):
             logger.info(f"Loading FAISS index from local cache: {local_path}")
             _vector_store = FAISS.load_local(
                 local_path, embeddings, allow_dangerous_deserialization=True

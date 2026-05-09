@@ -19,6 +19,7 @@ We use an optimized hybrid pipeline combining **Fast-Track Handlers** and a **Na
 
 ### 1. Fast-Track Pipeline (Bypass LLM Latency)
 The `FastTrackService` handles highly structured user intents instantly without invoking any LLMs, yielding sub-100ms response times:
+- **Onboarding Integration**: Pairs seamlessly with frontend quick reply cards to handle actions like *Track Order*, *Browse Products*, and *Cancel Order* instantly when clicked, bypassing expensive LLM execution entirely.
 - **Order Cancellation**: Validates and cancels orders with full security checks and immediate DB state updates.
 - **Support & Complaints**: Allows direct, structured complaint submission to the administration team.
 - **RAG FAQ Retrieval**: Employs local HuggingFace embeddings and FAISS vector indices to retrieve answers to company policy questions immediately.

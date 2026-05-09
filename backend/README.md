@@ -3,7 +3,7 @@
 <p align="center">
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/Google%20Gemini-1.5%20Flash-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini" />
+  <img src="https://img.shields.io/badge/Google%20Gemini-Native%20Agent-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini" />
   <img src="https://img.shields.io/badge/Pydantic-Structured%20Outputs-E92063?style=for-the-badge&logo=pydantic&logoColor=white" alt="Pydantic" />
   <img src="https://img.shields.io/badge/SQLAlchemy-Secure%20ORM-D12325?style=for-the-badge" alt="SQLAlchemy" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
@@ -15,7 +15,7 @@ The brain of the Luxe support system. This FastAPI server hosts an optimized nat
 
 ## 🧠 Optimized Agent & Handler Architecture
 
-We use an optimized hybrid pipeline combining **Fast-Track Handlers** and a **Native Gemini Tool-Calling Loop** designed for maximum speed, security, and minimal token usage. The reasoning engine is powered directly by **Google Gemini 1.5 Flash** using Pydantic structured schemas.
+We use an optimized hybrid pipeline combining **Fast-Track Handlers** and a **Native Gemini Tool-Calling Loop** designed for maximum speed, security, and minimal token usage. The reasoning engine is powered directly by a dynamically configured **Google Gemini model** (e.g., Gemini 1.5 Flash) using Pydantic structured schemas.
 
 ### 1. Fast-Track Pipeline (Bypass LLM Latency)
 The `FastTrackService` handles highly structured user intents instantly without invoking any LLMs, yielding sub-100ms response times:
@@ -27,12 +27,12 @@ The `FastTrackService` handles highly structured user intents instantly without 
 ### 2. Active Order Tracking & Shipment Injection
 - **MockTrackingService**: For any order status inquiry (via order ID, email, or "last order"), the backend fetches order data and generates real-time UPS tracking simulations.
 - **State-Aware Milestones**: Computes real-time progress, carrier details, estimated delivery dates, current coordinates, and custom milestones depending on whether the order status is `PENDING`, `PROCESSING`, `SHIPPED`, or `DELIVERED`.
-- **Frontend Map Payload**: Injects a structured `TRACKING_INFO: { ... }` payload in the response, allowing the frontend chat widget to render real-time progress bars and maps.
+- **Frontend Map Payload**: Injects a structured `TRACKING_INFO: { ... }` payload in the response, allowing the frontend chat widget to render real-time, persistent progress bars and interactive maps inside individual chat bubbles.
 
 ### 3. Unified Luxe Specialist (Native Gemini Agent)
 - **Mechanism**: A single, high-performance agent with direct access to local python tools (`get_company_faq`, `search_products`, `order_management`, etc.).
 - **Benefit**: Eliminates the heavy latency, prompt wrappers, and task-switching overhead of legacy agent frameworks (e.g., CrewAI).
-- **Deterministic Output**: Guarantees output formats using Pydantic validation schemas (`ChatResponseSchema`), forcing the model to cleanly return a synthesized user message, UI signals, and custom payloads in a single pass.
+- **Deterministic Output**: Guarantees output formats using Pydantic validation schemas (`ChatResponseSchema`), forcing the model to cleanly return a synthesized user message, UI signals (like `PLACE_ORDER_SUMMARY`), and custom payloads in a single pass with robust function call parsing.
 
 ---
 
@@ -74,7 +74,7 @@ graph TD
 
 - **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, phone numbers, and physical addresses are replaced with secure tokens before being sent to any LLM.
 - **Detokenization**: The system restores original data only at the final edge of the response.
-- **Strict Authentication**: JWT signatures from Clerk are verified.
+- **Strict Authentication**: JWT signatures from Clerk are verified using dynamically fetched JWKS (`CLERK_JWKS_URL`).
 - **IDOR Protection**: Tools automatically filter database queries by the verified user's email, preventing cross-user data access.
 - **Data Retention**: An automated startup task purges chat messages older than 30 days.
 - **Database Encryption**: All database communication with AWS RDS is secured via **SSL**.
@@ -97,9 +97,22 @@ graph TD
 2. **Environment Variables**:
    Create a `.env` file with:
    ```env
-   DATABASE_URL=postgresql://user:password@host:port/dbname?sslmode=verify-full&sslrootcert=ca-bundle.pem
+   # App & Server
+   PORT=3001
+   ALLOWED_ORIGINS=["http://localhost:3000"]
+
+   # AI Models
+   WORKER_MODEL=gemini/gemini-1.5-flash
    GOOGLE_API_KEY=your_gemini_api_key
-   CLERK_PEM_PUBLIC_KEY=your_clerk_pem
+
+   # Auth & DB
+   CLERK_JWKS_URL=https://your-app.clerk.accounts.dev/.well-known/jwks.json
+   CLERK_ISSUER=https://your-app.clerk.accounts.dev
+   DATABASE_URL=postgresql://user:password@host:port/dbname
+
+   # AWS / S3 Vector Storage
+   FAISS_S3_BUCKET=your-bucket-name
+   AWS_REGION=eu-north-1
    ```
 
 ### Running the Server

@@ -3,6 +3,7 @@
 import { getPrisma } from "@/lib/db";
 import { auth, currentUser } from "@clerk/nextjs/server";
 import crypto from "crypto";
+import { revalidatePath } from "next/cache";
 
 export interface OrderItemInput {
   productId: string;

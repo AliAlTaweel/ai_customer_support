@@ -242,6 +242,12 @@ export default function ChatInterface() {
     }
   };
 
+  const handleNewChat = () => {
+    setMessages([]);
+    setState(undefined);
+    setHasGreeted(false);
+  };
+
   return (
     <div className="fixed bottom-4 right-4 sm:bottom-6 sm:right-6 z-50 flex flex-col items-end">
       <AnimatePresence>
@@ -278,6 +284,7 @@ export default function ChatInterface() {
               onMinimizeToggle={() => setIsMinimized(!isMinimized)}
               onClose={() => setIsOpen(false)}
               onComplaintOpen={() => setIsComplaintModalOpen(true)}
+              onNewChat={handleNewChat}
             />
 
             {!isMinimized && (

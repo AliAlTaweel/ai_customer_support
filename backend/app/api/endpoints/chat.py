@@ -1,5 +1,5 @@
 from app.models.chat import ChatRequest, ChatResponse, GreetRequest, ChatMessage, TokenUsage
-from app.services.crew_service import CrewService
+from app.services.native_agent_service import NativeAgentService as CrewService
 from app.tools.chat_history import save_chat_message_fn, get_chat_history_fn
 from app.core.auth import get_current_user, UserContext
 from app.core.config import settings

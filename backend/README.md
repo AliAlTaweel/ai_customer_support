@@ -3,21 +3,21 @@
 <p align="center">
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python-3.12-3776AB?style=for-the-badge&logo=python&logoColor=white" alt="Python" />
-  <img src="https://img.shields.io/badge/CrewAI-Orchestration-orange?style=for-the-badge" alt="CrewAI" />
   <img src="https://img.shields.io/badge/Google%20Gemini-1.5%20Flash-4285F4?style=for-the-badge&logo=googlegemini&logoColor=white" alt="Gemini" />
+  <img src="https://img.shields.io/badge/Pydantic-Structured%20Outputs-E92063?style=for-the-badge&logo=pydantic&logoColor=white" alt="Pydantic" />
   <img src="https://img.shields.io/badge/SQLAlchemy-Secure%20ORM-D12325?style=for-the-badge" alt="SQLAlchemy" />
   <img src="https://img.shields.io/badge/Docker-Ready-2496ED?style=for-the-badge&logo=docker&logoColor=white" alt="Docker" />
 </p>
 
-The brain of the Luxe support system. This FastAPI server hosts a team of autonomous AI agents and fast-track handlers that handle customer inquiries by searching products, managing orders, tracking shipments, and querying company policies.
+The brain of the Luxe support system. This FastAPI server hosts an optimized native Gemini AI agent and fast-track handlers that manage customer inquiries by searching products, managing orders, tracking shipments, and querying company policies.
 
 ---
 
 ## 🧠 Optimized Agent & Handler Architecture
 
-We use an optimized hybrid pipeline combining **Fast-Track Handlers** and a **CrewAI** pipeline designed for maximum speed, security, and minimal token usage. The reasoning engine is powered by **Google Gemini 1.5 Flash**.
+We use an optimized hybrid pipeline combining **Fast-Track Handlers** and a **Native Gemini Tool-Calling Loop** designed for maximum speed, security, and minimal token usage. The reasoning engine is powered directly by **Google Gemini 1.5 Flash** using Pydantic structured schemas.
 
-### 1. Fast-Track Pipeline (Bypass CrewAI Latency)
+### 1. Fast-Track Pipeline (Bypass LLM Latency)
 The `FastTrackService` handles highly structured user intents instantly without invoking any LLMs, yielding sub-100ms response times:
 - **Order Cancellation**: Validates and cancels orders with full security checks and immediate DB state updates.
 - **Support & Complaints**: Allows direct, structured complaint submission to the administration team.
@@ -29,17 +29,44 @@ The `FastTrackService` handles highly structured user intents instantly without 
 - **State-Aware Milestones**: Computes real-time progress, carrier details, estimated delivery dates, current coordinates, and custom milestones depending on whether the order status is `PENDING`, `PROCESSING`, `SHIPPED`, or `DELIVERED`.
 - **Frontend Map Payload**: Injects a structured `TRACKING_INFO: { ... }` payload in the response, allowing the frontend chat widget to render real-time progress bars and maps.
 
-### 3. Fast Router (LiteLLM)
-- **Mechanism**: A direct, low-latency LLM call using LiteLLM to classify intent for complex/unstructured requests.
-- **Goal**: Instantly routes simple queries to static responses, and complex transactional queries to the appropriate specialist tools.
+### 3. Unified Luxe Specialist (Native Gemini Agent)
+- **Mechanism**: A single, high-performance agent with direct access to local python tools (`get_company_faq`, `search_products`, `order_management`, etc.).
+- **Benefit**: Eliminates the heavy latency, prompt wrappers, and task-switching overhead of legacy agent frameworks (e.g., CrewAI).
+- **Deterministic Output**: Guarantees output formats using Pydantic validation schemas (`ChatResponseSchema`), forcing the model to cleanly return a synthesized user message, UI signals, and custom payloads in a single pass.
 
-### 4. Unified Luxe Specialist (CrewAI)
-- **Mechanism**: A single, powerful agent with access to all tools (`get_company_faq`, `search_products`, `order_management`, etc.).
-- **Benefit**: Eliminates task-switching latency and agent handoff overhead.
-- **Workflow**: Performs info gathering and tool execution in a single pass. Now uses **robust regex-based signal extraction** to reliably communicate with the frontend (e.g., `CHECKOUT_REQUIRED`, `PLACE_ORDER_SUMMARY`).
+---
 
-### 5. Customer Experience Specialist (CrewAI)
-- **Mechanism**: Final stage agent that synthesizes gathered data into a warm, on-brand response.
+## 🔄 Request Processing Lifecycle
+
+All incoming messages pass through a streamlined **Hybrid Pipeline** to ensure minimum latency, maximum privacy, and accurate processing:
+
+```mermaid
+graph TD
+    User([Customer Message]) --> API[FastAPI chat Endpoint]
+    API --> RateLimit{Rate Limiter}
+    RateLimit -- "Exceeded" --> Err429[429 Too Many Requests]
+    RateLimit -- "Allowed" --> Agent[NativeAgentService]
+    
+    subgraph "Optimized Pipeline"
+        Agent --> FastTrack{Phase 1: Fast-Track Bypass?}
+        FastTrack -- "Match Found" --> FastResp[Process Instantly & Return <100ms]
+        
+        FastTrack -- "Complex" --> Scrub[Phase 2: Privacy Pseudonymization]
+        Scrub --> NativeGemini[Phase 3: Native Gemini Agent & Tool Loop]
+        NativeGemini --> StructuredOut[Phase 4: JSON Structured Response]
+        StructuredOut --> Clean[Phase 5: Response Detokenization & Cleaning]
+    end
+    
+    FastResp --> Return[Return ChatResponse]
+    Clean --> Return
+```
+
+### 5-Phase Pipeline Phases
+1. **Phase 1: Fast-Track Bypass**: The `FastTrackService` intercepts structured actions (greetings, exact tracking IDs, complaints, and common FAQs) and handles them instantly in **sub-100ms** without calling external LLM APIs.
+2. **Phase 2: Privacy Pseudonymization**: The `PrivacyScrubber` sanitizes the message, stripping out Personally Identifiable Information (PII) like names, emails, addresses, and phone numbers, replacing them with secure tokens stored in a thread-safe context mapping.
+3. **Phase 3: Native Gemini Agent & Tool Loop**: Passes the scrubbed query to the native `google-generativeai` client. If tools are requested, they are executed locally in a fast feedback loop without heavy middleware orchestration.
+4. **Phase 4: JSON Structured Output**: Enforces structured schemas via Pydantic on the final Gemini call, guaranteeing stable extraction of `message`, `ui_signals`, and `payload` variables with zero regex parsing needed.
+5. **Phase 5: Detokenization & Cleaning**: Restores original PII into the final response before returning it to the user, ensuring external LLMs never see sensitive data.
 
 ---
 
@@ -47,11 +74,11 @@ The `FastTrackService` handles highly structured user intents instantly without 
 
 - **PrivacyScrubber**: Real-time **pseudonymization** of all user inputs. Names, emails, phone numbers, and physical addresses are replaced with secure tokens before being sent to any LLM.
 - **Detokenization**: The system restores original data only at the final edge of the response.
-- **Strict Authentication**: JWT signatures from Clerk are verified. Strict issuer verification is bypassed where necessary to support custom Clerk proxy domains on AWS Amplify deployments.
+- **Strict Authentication**: JWT signatures from Clerk are verified.
 - **IDOR Protection**: Tools automatically filter database queries by the verified user's email, preventing cross-user data access.
 - **Data Retention**: An automated startup task purges chat messages older than 30 days.
 - **Database Encryption**: All database communication with AWS RDS is secured via **SSL**.
-- **Transport Security (HTTPS)**: Backend traffic is fully encrypted using an **Nginx Reverse Proxy** on EC2 with a free SSL/TLS certificate via **Let's Encrypt (Certbot)** over the custom DuckDNS domain `https://ali-support.duckdns.org`.
+- **Transport Security (HTTPS)**: Backend traffic is fully encrypted using an **Nginx Reverse Proxy** on EC2 with a free SSL/TLS certificate via **Let's Encrypt (Certbot)**.
 
 ---
 
@@ -87,19 +114,17 @@ docker build -t luxe-backend .
 # Run with env vars
 docker run -p 3001:3001 --env-file .env luxe-backend
 ```
-For a full production setup (including Postgres) on AWS EC2, refer to the [Deployment Guide](file:///Users/alial-taweel/.gemini/antigravity/brain/de1f030b-9e87-4dfc-8410-11bf630548e7/deployment_guide.md).
 
 ---
 
 ## 📂 Structure
 
-- `/app/agents`: CrewAI agent definitions and factory.
-- `/app/tasks`: Task generation factory.
-- `/app/tools`: Modularized tools for DB and FAQ access.
+- `/app/schemas`: Defines validation schemas like `ChatResponseSchema` for structured output.
+- `/app/tools`: Pure, high-performance tools for DB and FAQ access (free of external agent framework wrappers).
     - `base.py`: Shared database session management.
     - `product_tools.py`: Product search and catalog tools.
     - `order_tools.py`: Order placement and management.
     - `support_tools.py`: Company FAQ and policy retrieval.
-- `/app/services`: Business logic (Crew orchestration, fast-track routing, tracking simulation, and signal parsing).
+- `/app/services`: Business logic (Native Gemini agent orchestration, fast-track routing, tracking simulation).
 - `/app/core`: Configuration and security settings (SSL, PII scrubbing, JWT decoding).
 - `/faq_index`: Persistent FAISS vector storage.

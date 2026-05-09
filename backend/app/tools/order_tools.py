@@ -2,17 +2,25 @@ import uuid
 import logging
 import json
 import ast
-from typing import Any
+from typing import Any, Optional
 from datetime import datetime
 from sqlalchemy import text
-from crewai.tools import tool
 from app.tools.base import engine, detokenize_val
 from app.core.privacy import PrivacyScrubber, PII_MAPPING
 
 logger = logging.getLogger(__name__)
 
-def get_order_details_fn(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None):
-    """Retrieve order details using order ID, customer email, or user ID."""
+def get_order_details(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None) -> str:
+    """
+    Retrieve order details using order ID, customer email, or user ID.
+    If 'customer_email' or 'user_id' is provided, results are strictly filtered to that user.
+    
+    Args:
+        order_id: The ID of the order.
+        email: The email address associated with the order.
+        customer_email: The authenticated customer's email.
+        user_id: The authenticated user's ID.
+    """
     mapping = PII_MAPPING.get() or {}
     auth_email = mapping.get("[AUTH_EMAIL]")
     
@@ -70,16 +78,25 @@ def get_order_details_fn(order_id: str = None, email: str = None, customer_email
         logger.error(f"Error getting order details: {e}")
         return f"Error retrieving order: {str(e)}"
 
-@tool("get_order_details")
-def get_order_details(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None):
+def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = None, user_id: str = None) -> str:
     """
-    Retrieve order details using order ID, customer email, or user ID.
-    If 'customer_email' or 'user_id' is provided, results are strictly filtered to that user.
+    Cancel an existing order using its Order ID. 
+    CRITICAL: ONLY call this tool if the user has explicitly asked to CANCEL their order. 
+    Do NOT call this tool for status checks or general inquiries.
+    'confirmed' MUST be set to True to execute the cancellation. 
+    ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
+    If 'customer_email' is provided, it must match the order's customer email.
+    Only orders with PENDING, PROCESSING, or SHIPPED status can be cancelled.
+    
+    Args:
+        order_id: The ID of the order to cancel.
+        confirmed: Must be True to proceed.
+        customer_email: The email of the customer.
+        user_id: The ID of the user.
     """
-    return get_order_details_fn(order_id, email, customer_email, user_id)
-
-def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = None):
-    """Cancel an order given its ID. Only PENDING or PROCESSING orders can be cancelled."""
+    if not confirmed:
+        return f"CONFIRMATION_REQUIRED: {order_id}"
+        
     order_id = detokenize_val(order_id)
     customer_email = detokenize_val(customer_email)
     logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id})")
@@ -116,23 +133,28 @@ def cancel_order_fn(order_id: str, customer_email: str = None, user_id: str = No
         logger.error(f"Error cancelling order: {e}")
         return f"Error cancelling order: {str(e)}"
 
-@tool("cancel_order")
-def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = None):
+def place_order(customer_email: str, customer_name: str, items: Any, shipping_address: str, user_id: str = None, payment_method: str = "Card") -> str:
     """
-    Cancel an existing order using its Order ID. 
-    CRITICAL: ONLY call this tool if the user has explicitly asked to CANCEL their order. 
-    Do NOT call this tool for status checks or general inquiries.
-    'confirmed' MUST be set to True to execute the cancellation. 
-    ONLY set 'confirmed' to True if the user has already replied 'yes' to a previous confirmation request.
-    If 'customer_email' is provided, it must match the order's customer email.
-    Only orders with PENDING, PROCESSING, or SHIPPED status can be cancelled.
+    Creates a new order in the system.
+    
+    Args:
+        customer_email: Email of the customer.
+        customer_name: Name of the customer.
+        items: List of items to order.
+        shipping_address: The shipping address.
+        user_id: The ID of the user.
+        payment_method: The payment method used.
     """
-    if not confirmed:
-        return f"CONFIRMATION_REQUIRED: {order_id}"
-    return cancel_order_fn(order_id, customer_email)
+    if isinstance(items, str):
+        try:
+            cleaned_items = items.replace("'", "\"")
+            items = json.loads(cleaned_items)
+        except Exception:
+            try:
+                items = ast.literal_eval(items)
+            except Exception as e:
+                return f"Error: Could not parse items list. Error: {str(e)}"
 
-def place_order_fn(customer_email: str, customer_name: str, items: list, shipping_address: str, user_id: str = None, payment_method: str = "Card"):
-    """Place a new order."""
     logger.info(f"Placing order for {customer_name} ({customer_email}), UserID: {user_id}")
     customer_email = detokenize_val(customer_email)
     customer_name = detokenize_val(customer_name)
@@ -193,17 +215,3 @@ def place_order_fn(customer_email: str, customer_name: str, items: list, shippin
     except Exception as e:
         logger.error(f"Error placing order: {e}")
         return f"Error placing order: {str(e)}"
-
-@tool("place_order")
-def place_order(customer_email: str, customer_name: str, items: Any, shipping_address: str, user_id: str = None):
-    """Creates a new order in the system."""
-    if isinstance(items, str):
-        try:
-            cleaned_items = items.replace("'", "\"")
-            items = json.loads(cleaned_items)
-        except Exception:
-            try:
-                items = ast.literal_eval(items)
-            except Exception as e:
-                return f"Error: Could not parse items list. Error: {str(e)}"
-    return place_order_fn(customer_email, customer_name, items, shipping_address, user_id)

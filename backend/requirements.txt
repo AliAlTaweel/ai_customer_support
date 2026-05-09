@@ -16,7 +16,6 @@ cffi==2.0.0
 charset-normalizer==3.4.7
 chromadb==1.1.1
 click==8.1.8
-crewai==1.14.2
 cryptography==46.0.7
 dataclasses-json==0.6.7
 deprecation==2.1.0
@@ -71,7 +70,6 @@ langgraph-prebuilt==1.0.10
 langgraph-sdk==0.3.13
 langsmith==0.7.33
 linkify-it-py==2.1.0
-litellm>=1.40.0
 markdown-it-py==4.0.0
 MarkupSafe==3.0.3
 marshmallow==3.26.2
@@ -177,5 +175,4 @@ presidio-analyzer>=2.2.351
 presidio-anonymizer>=2.2.351
 spacy>=3.8.0
 google-generativeai>=0.8.0
-crewai[google-genai]>=1.14.2
 

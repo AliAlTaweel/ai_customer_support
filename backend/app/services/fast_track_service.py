@@ -248,7 +248,7 @@ class FastTrackService:
     def _handle_system_process_order(self, state, user_context, user_id) -> Dict[str, Any]:
         from app.tools.order_tools import place_order as place_order_fn
         from app.tools.base import detokenize_val
-        details = state.get("pending_checkout")
+        details = state.get("pending_order_details")
         if not details:
             return {
                 "result": "I'm sorry, I couldn't find the order details. Please try again.",

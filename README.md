@@ -53,6 +53,13 @@ graph TD
 
 ## ✨ Key Enhancements
 
+### ⚡ Onboarding Quick Replies & "New Chat" (UX Upgrade)
+Eliminated the "blank page syndrome" with interactive onboarding flows inspired by competitor benchmarks like **Gigantti.fi**:
+- **Onboarding Quick Replies Grid**: Upon launching the chat modal, users are immediately greeted with four interactive, glassmorphic cards: *Track Order*, *Browse Products*, *Cancel Order*, and *File Complaint*. These buttons trigger instant payloads (`handleSend`), skipping the slow LLM generation loop entirely.
+- **Auto-Hiding Interface**: The quick reply grid naturally disappears as soon as the user inputs their own custom message (`!messages.some(m => m.role === 'user')`), keeping the chat space clean and focused.
+- **"New Chat" Reset Button**: Added a **`+` (Plus)** button to the chat header. Clicking it instantly clears messages, resets the conversation state, and forces the quick reply cards to slide back into view with smooth **Framer Motion** animations.
+- **Competitor Benchmarking**: Includes a detailed UX case study and implementation roadmap of top Finnish retailer chatbots under [gigantti_chatbot_features.md](file:///Users/alial-taweel/projects/ai/ai_customer_support_v3/docs/gigantti_chatbot_features.md).
+
 ### 🎨 Modernized Storefront with Shadcn UI
 The storefront has been fully modernized and overhauled with **Shadcn UI** components to achieve a premium, high-fidelity experience:
 - **Consistent Design Language**: Migration from basic HTML controls to unified Shadcn components such as `Button`, `Input`, `Dialog`, `Sheet`, `Tabs`, `Badge`, `Separator`, and `Textarea`.

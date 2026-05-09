@@ -21,7 +21,11 @@ A premium, high-performance storefront built with Next.js 15. This application s
   - `Dialog` (Modal) and `Sheet` structures used for secure forms, checkout, and sidebars.
   - `Badge`, `Tabs`, `Card`, and `Separator` components used for status updates and structured item grids.
 - **Refined Checkout Flow**: Interactive checkout process with dynamic product cards and real-time order confirmation.
-- **AI Chat Widget**: A persistent sidebar chat that communicates with the agentic backend. Features **interactive UI signals** for seamless checkout and order summaries directly in the chat, along with progress tracking and active shipment maps.
+- **AI Chat Widget**: A persistent sidebar chat communicating with the agentic backend. 
+  - **Onboarding Quick Replies**: Greets users instantly with four interactive glassmorphic cards (*Track Order*, *Browse Products*, *Cancel Order*, and *File Complaint*), eliminating "blank page syndrome" and triggering fast-tracked non-LLM responses.
+  - **Auto-Dismiss Grid**: Conditional rendering hides the grid as soon as active custom messages begin, maintaining a clean chat log.
+  - **"New Chat" (+) Header Button**: Resets the chat history, greeting state, and active signals instantly, re-triggering the animated quick reply onboarding.
+  - **Visual Shipments & Maps**: Renders active shipment progress bars and interactive maps inside chat bubbles via structured `TRACKING_INFO` payloads.
 - **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication, secure session management, and custom proxy domain compatibility.
 - **Cloud Database**: Powered by **AWS RDS PostgreSQL** with Prisma for production-grade reliability and shared access with the AI backend.
 

@@ -1,7 +1,7 @@
 "use client";
 
 import { Button } from "@/components/ui/button";
-import { Bot, X, Minimize2, Maximize2, Flag } from "lucide-react";
+import { Bot, X, Minimize2, Maximize2, Flag, Plus } from "lucide-react";
 import { Tooltip, TooltipContent, TooltipTrigger } from "@/components/ui/tooltip";
 
 interface ChatHeaderProps {
@@ -9,13 +9,15 @@ interface ChatHeaderProps {
   onMinimizeToggle: () => void;
   onClose: () => void;
   onComplaintOpen: () => void;
+  onNewChat: () => void;
 }
 
 export function ChatHeader({ 
   isMinimized, 
   onMinimizeToggle, 
   onClose, 
-  onComplaintOpen 
+  onComplaintOpen,
+  onNewChat
 }: ChatHeaderProps) {
   return (
     <div className="relative p-5 bg-primary text-primary-foreground flex items-center justify-between">
@@ -32,6 +34,22 @@ export function ChatHeader({
         </div>
       </div>
       <div className="flex items-center gap-1">
+        <Tooltip>
+          <TooltipTrigger asChild>
+            <Button 
+              variant="ghost" 
+              size="icon" 
+              className="hover:bg-white/10 text-primary-foreground h-9 w-9 rounded-xl"
+              onClick={onNewChat}
+            >
+              <Plus className="w-4 h-4" />
+            </Button>
+          </TooltipTrigger>
+          <TooltipContent>
+            <p>New Chat</p>
+          </TooltipContent>
+        </Tooltip>
+
         <Tooltip>
           <TooltipTrigger asChild>
             <Button 

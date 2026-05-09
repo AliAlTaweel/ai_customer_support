@@ -202,7 +202,16 @@ class NativeAgentService:
 
         except Exception as e:
             logger.error(f"NativeAgentService Error: {e}")
-            return {"result": "I am experiencing technical difficulties. Please try again later.", "usage": {"response_time": round(time.time() - start_time, 2)}}
+            return {
+                "result": "I am experiencing technical difficulties. Please try again later.",
+                "usage": {
+                    "total_tokens": 0,
+                    "prompt_tokens": 0,
+                    "completion_tokens": 0,
+                    "successful_requests": 0,
+                    "response_time": round(time.time() - start_time, 2)
+                }
+            }
 
     def get_greeting(self, first_name: str) -> Dict[str, Any]:
         import time

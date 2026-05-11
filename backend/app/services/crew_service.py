@@ -6,6 +6,7 @@ from app.core.config import settings
 from app.services.signal_processor import SignalProcessor
 from app.services.fast_track_service import FastTrackService
 from app.services.response_cleaner import ResponseCleaner
+from app.services.telemetry_service import telemetry_service
 from typing import List, Dict, Any
 import re
 import logging
@@ -33,10 +34,12 @@ class CrewService:
         # ── Phase 1: Fast-Track (Non-LLM) ────────────────────────────────────
         fast_response = self.fast_track.handle_immediate_responses(user_message, clean_msg, state, user_context, user_id)
         if fast_response:
+            resp_time = round(time.time() - start_time, 2)
             fast_response["usage"] = fast_response.get("usage", self._empty_usage())
-            fast_response["usage"]["response_time"] = round(time.time() - start_time, 2)
+            fast_response["usage"]["response_time"] = resp_time
             # Clean fast-track output to remove any leaked signals (e.g. TRACKING_INFO)
             fast_response["result"] = self.cleaner.clean_and_format(fast_response["result"], state.get("pii_mapping", {}))
+            telemetry_service.record_metric("FAST_TRACK", resp_time)
             return fast_response
 
         # ── Phase 2: Privacy Pseudonymization ────────────────────────────────
@@ -150,7 +153,11 @@ class CrewService:
         # Final message processing
         final_message = self.cleaner.clean_and_format(str(crew_output), pii_mapping)
         usage = self.signal_processor._get_usage(crew_output)
-        usage["response_time"] = round(time.time() - start_time, 2)
+        resp_time = round(time.time() - start_time, 2)
+        usage["response_time"] = resp_time
+        
+        # Record telemetry
+        telemetry_service.record_metric("MULTI_AGENT", resp_time)
 
         return {"result": final_message, "usage": usage}
 

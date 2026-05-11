@@ -1,6 +1,6 @@
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { ArrowRight, Sparkles, Shield, Zap, Globe } from "lucide-react";
+import { ArrowRight, Sparkles, Shield, Zap, Globe, Bot } from "lucide-react";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -17,7 +17,7 @@ export default function Home() {
         <div className="container mx-auto px-4 text-center">
           <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-secondary/50 backdrop-blur-sm border border-primary/10 mb-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             <Sparkles className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">New Arrival: UltraTech M3 Laptops</span>
+            <span className="text-sm font-medium">✨ Interactive AI Demo: Try our smart support assistant</span>
           </div>
           
           <h1 className="text-5xl md:text-8xl font-bold font-outfit tracking-tight mb-8 bg-clip-text text-transparent bg-gradient-to-b from-foreground to-foreground/50 animate-in fade-in slide-in-from-bottom-8 duration-700">
@@ -25,8 +25,8 @@ export default function Home() {
           </h1>
           
           <p className="max-w-2xl mx-auto text-lg md:text-xl text-muted-foreground mb-12 animate-in fade-in slide-in-from-bottom-12 duration-1000">
-            Discover a curated collection of premium electronics, fashion, and home essentials
-            designed for the modern innovator. Quality meets aesthetic.
+            Discover a curated collection of premium electronics and fashion. 
+            Experience the future of retail powered by our <span className="text-primary font-semibold">autonomous AI support agent.</span>
           </p>
           
           <div className="flex flex-col sm:flex-row items-center justify-center gap-4 animate-in fade-in slide-in-from-bottom-12 duration-1000 delay-200">
@@ -66,13 +66,13 @@ export default function Home() {
               </p>
             </div>
             
-            <div className="p-8 rounded-3xl bg-background/50 backdrop-blur-sm border border-primary/5 hover:border-primary/20 transition-all group">
+            <div className="p-8 rounded-3xl bg-background/50 backdrop-blur-sm border border-primary/20 shadow-lg shadow-primary/5 transition-all group">
               <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center mb-6 group-hover:scale-110 transition-transform">
-                <Globe className="w-6 h-6 text-primary" />
+                <Bot className="w-6 h-6 text-primary" />
               </div>
-              <h3 className="text-xl font-bold font-outfit mb-3">Global Curation</h3>
+              <h3 className="text-xl font-bold font-outfit mb-3">AI-Powered Concierge</h3>
               <p className="text-muted-foreground leading-relaxed">
-                We source our products from artisans and tech-hubs around the globe, ensuring unique selections.
+                Interact with our smart agent in the bottom right to find products, track orders, and experience next-gen service.
               </p>
             </div>
           </div>

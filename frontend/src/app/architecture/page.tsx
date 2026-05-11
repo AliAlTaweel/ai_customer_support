@@ -20,6 +20,8 @@ export const metadata = {
   description: "Deep-dive technical visualization of the autonomous AI pipeline powering LuxeCatalog.",
 };
 
+import PerformanceTable from "./PerformanceTable";
+
 export default function ArchitecturePage() {
   return (
     <div className="min-h-screen bg-background pt-12 pb-24 px-4 sm:px-6 lg:px-8 font-outfit">
@@ -133,7 +135,7 @@ export default function ArchitecturePage() {
                       <Database className="w-5 h-5" />
                     </div>
                     <div>
-                      <h4 className="font-bold text-xs uppercase">AWS RDS RDS</h4>
+                      <h4 className="font-bold text-xs uppercase">AWS RDS</h4>
                       <p className="text-[10px] text-muted-foreground">PostgreSQL Cluster</p>
                     </div>
                  </div>
@@ -146,37 +148,9 @@ export default function ArchitecturePage() {
         {/* PERFORMANCE & STATS METRICS */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-8">
            
-           {/* Tech Figure 1 */}
-           <div className="space-y-4">
-              <div className="flex items-center gap-2 text-amber-500">
-                <BarChart3 className="w-5 h-5" />
-                <h3 className="font-bold text-lg">Routing Performance</h3>
-              </div>
-              <div className="border border-border rounded-2xl overflow-hidden">
-                 <table className="w-full text-sm">
-                   <thead className="bg-secondary/50 border-b border-border">
-                     <tr className="text-[11px] font-bold uppercase text-muted-foreground tracking-wider">
-                       <th className="px-4 py-3 text-left">Pathway</th>
-                       <th className="px-4 py-3 text-right">Latency</th>
-                     </tr>
-                   </thead>
-                   <tbody className="divide-y divide-border font-sans">
-                     <tr>
-                       <td className="px-4 py-3">Direct Fast-Track</td>
-                       <td className="px-4 py-3 text-right font-semibold text-green-500">0.05s - 0.2s</td>
-                     </tr>
-                     <tr>
-                       <td className="px-4 py-3">Single Agent Call</td>
-                       <td className="px-4 py-3 text-right font-semibold">1.5s - 2.5s</td>
-                     </tr>
-                     <tr>
-                       <td className="px-4 py-3">Multi-Agent Chain</td>
-                       <td className="px-4 py-3 text-right font-semibold opacity-80">3.5s - 5.0s</td>
-                     </tr>
-                   </tbody>
-                 </table>
-              </div>
-           </div>
+           {/* Tech Figure 1 - Dynamic Telemetry */}
+           <PerformanceTable />
+
 
            {/* Tech Figure 2 */}
            <div className="space-y-4">

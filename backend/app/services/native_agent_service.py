@@ -107,7 +107,7 @@ class NativeAgentService:
         PII_MAPPING.set(pii_mapping)
 
         # Phase 3: Heuristics & Static Routing (retained from CrewService)
-        if clean_msg in ["hi", "hello", "hey", "greetings", "good morning", "good afternoon", "good evening"]:
+        if clean_msg in ["hi", "hello", "hey", "hello there", "hi there", "greetings", "good morning", "good afternoon", "good evening"]:
             resp = self.fast_track.get_greeting(user_name or "there")
             resp["usage"]["response_time"] = round(time.time() - start_time, 2)
             return resp

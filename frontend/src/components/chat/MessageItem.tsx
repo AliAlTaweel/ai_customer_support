@@ -1,6 +1,6 @@
 "use client";
 
-import { Bot, User, Loader2 } from "lucide-react";
+import { Bot, User, Loader2, Zap, Cpu } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import TrackingMap from "./TrackingMap";
 
@@ -49,20 +49,21 @@ export function MessageItem({ message }: MessageItemProps) {
             )}
           </div>
           {message.usage && (
-            <div className="flex flex-col gap-1 px-2 opacity-40 text-[9px] uppercase tracking-tighter font-bold">
-              <div className="flex gap-2">
-                <span>Tokens: {message.usage.total_tokens}</span>
-                <span className="opacity-50">|</span>
-                <span>In: {message.usage.prompt_tokens}</span>
-                <span className="opacity-50">|</span>
-                <span>Out: {message.usage.completion_tokens}</span>
-              </div>
-              {message.usage.response_time !== undefined && (
-                <div className="text-[8px] opacity-80 flex items-center gap-1">
-                  <Loader2 className="w-2 h-2" />
-                  <span>Response Time: {message.usage.response_time}s</span>
+            <div className="mt-1.5 px-1">
+              <div className="flex items-center gap-2 group cursor-default">
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-medium text-primary/60 transition-all hover:bg-primary/10 hover:text-primary">
+                  <Zap className="w-2.5 h-2.5" />
+                  <span className="font-bold tracking-wide uppercase">
+                    {message.usage.response_time ? `${message.usage.response_time}s` : 'Fast-Track'}
+                  </span>
                 </div>
-              )}
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/30 border border-border text-[9px] font-medium text-muted-foreground transition-all hover:bg-secondary/50">
+                  <Cpu className="w-2.5 h-2.5" />
+                  <span className="font-medium">
+                    {message.usage.total_tokens > 0 ? `${message.usage.total_tokens} tokens` : 'Cached / Logic'}
+                  </span>
+                </div>
+              </div>
             </div>
           )}
         </div>

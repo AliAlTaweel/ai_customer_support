@@ -18,6 +18,7 @@ export function NavLinks({ userId, isAdmin }: NavLinksProps) {
     ...(userId ? [{ href: "/orders", label: "My Orders" }] : []),
     ...(isAdmin ? [{ href: "/admin/dashboard", label: "Admin" }] : []),
     { href: "/support", label: "Support" },
+    { href: "/architecture", label: "Architecture" },
   ];
 
   return (

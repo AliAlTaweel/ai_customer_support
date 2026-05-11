@@ -13,7 +13,6 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { ArchitectureModal } from "@/components/layout/ArchitectureModal";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -92,7 +91,6 @@ export default async function RootLayout({
                     Search products...
                   </div>
                   
-                  <ArchitectureModal />
                   <CartSheet />
                   
                   {!userId ? (

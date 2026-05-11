@@ -157,7 +157,7 @@ export default function Home() {
               <span className="text-lg font-bold font-outfit tracking-tight">LuxeCatalog</span>
             </div>
             <p className="text-muted-foreground text-sm leading-relaxed">
-              Premium commerce simplified. Designed for the modern age with attention to detail and user experience.
+              <strong className="text-foreground">Project Showcase:</strong> LuxeCatalog is a high-fidelity demonstration environment built by Ali Al-Taweel to showcase an autonomous AI customer support architecture.
             </p>
           </div>
           

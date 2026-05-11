@@ -35,3 +35,15 @@ This plan is designed to reposition the LuxeCatalog project from a "showcase sto
 1.  **Update README.md Title:** Change from "LuxeCatalog" or "E-Commerce Showcase" to something like: **"Enterprise AI Orchestration & Evaluation Pipeline."**
 2.  **Highlight the 'Boring' Tech:** Move the `PrivacyScrubber`, `Fast-Track Router`, and `Evals Suite` to the very top of the README. These are the mid-level features. The Next.js frontend should be listed as a secondary "client implementation."
 3.  **Document the Evals:** Add a section in the README titled "Evaluation & Testing" showing the output of your benchmark script.
+
+## Phase 4: Visual Telemetry (Dev Badge)
+*Expose invisible engineering improvements directly in the user interface for rapid credibility with recruiters.*
+
+**Objective:** Inject a sleek Developer Stats badge into the chat messages to prove real-time performance tracking.
+
+**Tasks:**
+1.  **Expose Usage to State:** Ensure the Next.js frontend captures the `usage` object (tokens, latency) returned from the backend API.
+2.  **UI Implementation:** Add a subtle, high-fidelity "⚡ Tech Specs" tooltip or badge at the bottom of each AI chat message.
+3.  **Display Metrics:** Render the real-time Response Time (latency) and Prompt/Completion Token breakdown visibly.
+
+---

@@ -143,7 +143,9 @@ class NativeAgentService:
                 
         chat_session = self.model.start_chat(history=formatted_history)
         
+        tools_invoked = 0
         try:
+            llm_call_start = time.time()
             response = chat_session.send_message(scrubbed_message)
             
             for _ in range(5):
@@ -164,6 +166,7 @@ class NativeAgentService:
                 for function_call in function_calls:
                     tool_name = function_call.name
                     tool_args = {k: v for k, v in function_call.args.items()}
+                    tools_invoked += 1
                     logger.info(f"Agent invoking tool: {tool_name} with args: {tool_args}")
                     
                     tool_result = ""
@@ -240,6 +243,17 @@ class NativeAgentService:
                 "total_tokens": usage_data.total_token_count if usage_data else 0,
                 "response_time": round(time.time() - start_time, 2)
             }
+            
+            # PHASE 2: Observability & Telemetry Structure
+            performance_telemetry = {
+                "user_id": user_id,
+                "latency_sec": usage_dict["response_time"],
+                "tokens_total": usage_dict["total_tokens"],
+                "tool_calls": tools_invoked,
+                "signals": ui_signals,
+                "status": "SUCCESS"
+            }
+            logger.info(f"AI_OBSERVABILITY_METRICS: {json.dumps(performance_telemetry)}")
             
             return {
                 "result": final_message,

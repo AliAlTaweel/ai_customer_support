@@ -46,4 +46,13 @@ This plan is designed to reposition the LuxeCatalog project from a "showcase sto
 2.  **UI Implementation:** Add a subtle, high-fidelity "⚡ Tech Specs" tooltip or badge at the bottom of each AI chat message.
 3.  **Display Metrics:** Render the real-time Response Time (latency) and Prompt/Completion Token breakdown visibly.
 
+## Phase 5: Frontend Transparency (System Architecture Map)
+*Showcase the system design logic instantly to technical visitors.*
+
+**Objective:** Add an on-site architecture diagram that visualizes requests moving from Frontend -> Security Interceptor -> AI Router -> Gemini Engine.
+
+**Tasks:**
+1.  **Create ArchitectureModal Component:** A reusable Shadcn `Sheet` displaying nested tailwind node diagrams of server-client interaction.
+2.  **Global Injection:** Place a "System Architecture" trigger button inside the global header for maximum recruiter visibility.
+
 ---

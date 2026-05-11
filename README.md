@@ -1,4 +1,4 @@
-# Luxe E-Commerce & AI Customer Support Assistant
+# Autonomous AI Customer Support Agent (E-Commerce Showcase)
 
 <p align="center">
   <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" />
@@ -9,7 +9,10 @@
   <img src="https://img.shields.io/badge/Clerk-Auth-6C47FF?style=for-the-badge&logo=clerk&logoColor=white" alt="Clerk" />
 </p>
 
-A premium, modern e-commerce platform integrated with an advanced, multi-agent AI customer support system. This project demonstrates a production-grade architecture combining a **Next.js 15** frontend with a **FastAPI + CrewAI** backend, backed by a cloud-ready **AWS RDS PostgreSQL** database.
+> [!IMPORTANT]
+> **Note for Recruiters & Technical Reviewers:** This project is fundamentally an **AI Engineering showcase**. The accompanying premium e-commerce storefront ("LuxeCatalog") was built explicitly to serve as a high-fidelity, interactive demo environment to showcase the autonomous multi-agent backend.
+
+This project demonstrates a production-grade agentic architecture combining a **FastAPI + CrewAI** backend with a modern **Next.js 15** frontend, all backed by a cloud-ready **AWS RDS PostgreSQL** database.
 
 ---
 

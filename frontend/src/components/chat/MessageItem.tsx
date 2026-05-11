@@ -1,8 +1,15 @@
 "use client";
 
-import { Bot, User, Loader2, Zap, Cpu } from "lucide-react";
+import { Bot, User, Loader2, Zap, Cpu, Info } from "lucide-react";
 import ReactMarkdown from "react-markdown";
 import TrackingMap from "./TrackingMap";
+import { Badge } from "@/components/ui/badge";
+import { 
+  Tooltip, 
+  TooltipContent, 
+  TooltipProvider, 
+  TooltipTrigger 
+} from "@/components/ui/tooltip";
 
 interface Message {
   role: "user" | "assistant";
@@ -49,22 +56,41 @@ export function MessageItem({ message }: MessageItemProps) {
             )}
           </div>
           {message.usage && (
-            <div className="mt-1.5 px-1">
-              <div className="flex items-center gap-2 group cursor-default">
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/5 border border-primary/10 text-[9px] font-medium text-primary/60 transition-all hover:bg-primary/10 hover:text-primary">
-                  <Zap className="w-2.5 h-2.5" />
-                  <span className="font-bold tracking-wide uppercase">
-                    {message.usage.response_time ? `${message.usage.response_time}s` : 'Fast-Track'}
-                  </span>
-                </div>
-                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-secondary/30 border border-border text-[9px] font-medium text-muted-foreground transition-all hover:bg-secondary/50">
-                  <Cpu className="w-2.5 h-2.5" />
-                  <span className="font-medium">
-                    {message.usage.total_tokens > 0 ? `${message.usage.total_tokens} tokens` : 'Cached / Logic'}
-                  </span>
-                </div>
+            <TooltipProvider delay={150}>
+              <div className="mt-2 flex flex-wrap gap-2 px-0.5 group cursor-default select-none">
+                
+                {/* Latency / Fast-Track Badge */}
+                <Badge variant="secondary" className="bg-primary/5 text-primary/70 hover:bg-primary/10 transition-all text-[10px] rounded-full px-2 font-outfit flex gap-1 border-primary/10 shadow-none">
+                  <Zap className="w-3 h-3" />
+                  {message.usage.response_time !== undefined ? `${message.usage.response_time}s` : "Fast-Track"}
+                </Badge>
+
+                {/* Token Breakdown Tooltip Badge */}
+                <Tooltip>
+                  <TooltipTrigger asChild>
+                    <Badge variant="outline" className="text-muted-foreground hover:bg-secondary/50 transition-all text-[10px] rounded-full px-2 font-outfit flex gap-1.5 cursor-help shadow-none">
+                      <Cpu className="w-3 h-3" />
+                      {message.usage.total_tokens > 0 ? `${message.usage.total_tokens} Tokens` : "Static Logic"}
+                      <Info className="w-2.5 h-2.5 opacity-40 ml-0.5" />
+                    </Badge>
+                  </TooltipTrigger>
+                  {message.usage.total_tokens > 0 && (
+                    <TooltipContent side="bottom" className="text-[11px] py-2 bg-popover text-popover-foreground border border-border shadow-lg font-outfit">
+                      <div className="space-y-1 min-w-[120px]">
+                        <div className="flex justify-between opacity-80">
+                          <span>Prompt In:</span>
+                          <span className="font-bold">{message.usage.prompt_tokens}</span>
+                        </div>
+                        <div className="flex justify-between opacity-80 border-t border-border/40 pt-1">
+                          <span>Response Out:</span>
+                          <span className="font-bold">{message.usage.completion_tokens}</span>
+                        </div>
+                      </div>
+                    </TooltipContent>
+                  )}
+                </Tooltip>
               </div>
-            </div>
+            </TooltipProvider>
           )}
         </div>
       </div>

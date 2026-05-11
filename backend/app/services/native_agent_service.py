@@ -14,6 +14,7 @@ from app.core.config import settings
 from app.core.privacy import PrivacyScrubber, PII_MAPPING
 from app.services.fast_track_service import FastTrackService
 from app.services.response_cleaner import ResponseCleaner
+from app.services.telemetry_service import telemetry_service
 
 logger = logging.getLogger(__name__)
 
@@ -92,8 +93,12 @@ class NativeAgentService:
         # Phase 1: Fast-Track (Non-LLM)
         fast_response = self.fast_track.handle_immediate_responses(user_message, clean_msg, state, user_context, user_id)
         if fast_response:
-            fast_response["usage"] = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0, "response_time": round(time.time() - start_time, 2)}
+            resp_time = round(time.time() - start_time, 2)
+            fast_response["usage"] = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0, "response_time": resp_time}
             fast_response["result"] = self.cleaner.clean_and_format(fast_response["result"], state.get("pii_mapping", {}))
+            
+            # Telemetry capture
+            telemetry_service.record_metric("FAST_TRACK", resp_time)
             return fast_response
 
         # Phase 2: Privacy Pseudonymization
@@ -109,7 +114,9 @@ class NativeAgentService:
         # Phase 3: Heuristics & Static Routing (retained from CrewService)
         if clean_msg in ["hi", "hello", "hey", "hello there", "hi there", "greetings", "good morning", "good afternoon", "good evening"]:
             resp = self.fast_track.get_greeting(user_name or "there")
-            resp["usage"]["response_time"] = round(time.time() - start_time, 2)
+            resp_time = round(time.time() - start_time, 2)
+            resp["usage"]["response_time"] = resp_time
+            telemetry_service.record_metric("FAST_TRACK", resp_time)
             return resp
 
         cancel_match = re.search(r"cancel\s+(?:this\s+)?order\s+([a-f0-9\-]{36})", clean_msg)
@@ -123,8 +130,10 @@ class NativeAgentService:
             order_id = re.search(r"([a-f0-9\-]{36})", clean_msg).group(1)
             resp = self.fast_track._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
             if resp:
-                resp["usage"]["response_time"] = round(time.time() - start_time, 2)
+                resp_time = round(time.time() - start_time, 2)
+                resp["usage"]["response_time"] = resp_time
                 resp["result"] = self.cleaner.clean_and_format(resp["result"], state.get("pii_mapping", {}))
+                telemetry_service.record_metric("FAST_TRACK", resp_time)
                 return resp
 
         if len(clean_msg) < 2: 
@@ -254,6 +263,9 @@ class NativeAgentService:
                 "status": "SUCCESS"
             }
             logger.info(f"AI_OBSERVABILITY_METRICS: {json.dumps(performance_telemetry)}")
+            
+            # Record dynamic performance metrics for architecture telemetry
+            telemetry_service.record_metric("SINGLE_AGENT", usage_dict["response_time"])
             
             return {
                 "result": final_message,

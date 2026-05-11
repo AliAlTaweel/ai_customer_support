@@ -28,6 +28,13 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
     email = detokenize_val(email)
     customer_email = detokenize_val(customer_email)
     
+    # Ensure ID is stripped of whitespace
+    if isinstance(order_id, str):
+        order_id = order_id.strip()
+        # Auto-prepend mandatory prefix if raw UUID was passed
+        if len(order_id) == 36 and order_id.count('-') >= 4 and not order_id.upper().startswith("ORD"):
+            order_id = f"ORD-{order_id}"
+            
     if auth_email and not customer_email and not email:
         customer_email = auth_email
         
@@ -37,10 +44,10 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
             if order_id:
                 target_filter_email = customer_email or email
                 if user_id:
-                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "userId" = :user_id')
+                    query = text('SELECT * FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id')
                     params = {"order_id": order_id, "user_id": user_id}
                 elif target_filter_email:
-                    query = text('SELECT * FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :email')
+                    query = text('SELECT * FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :email')
                     params = {"order_id": order_id, "email": target_filter_email}
                 else:
                     return "For security reasons, please provide the email address associated with the order."
@@ -99,15 +106,22 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
         
     order_id = detokenize_val(order_id)
     customer_email = detokenize_val(customer_email)
+    
+    # Clean padding
+    if isinstance(order_id, str):
+        order_id = order_id.strip()
+        if len(order_id) == 36 and order_id.count('-') >= 4 and not order_id.upper().startswith("ORD"):
+            order_id = f"ORD-{order_id}"
+        
     logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id})")
     try:
         with engine.connect() as connection:
             # 1. Fetch current status and verify ownership
             if user_id:
-                check_query = text('SELECT status FROM "Order" WHERE id = :order_id AND "userId" = :user_id')
+                check_query = text('SELECT status FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id')
                 params = {"order_id": order_id, "user_id": user_id}
             elif customer_email:
-                check_query = text('SELECT status FROM "Order" WHERE id = :order_id AND "customerEmail" ILIKE :customer_email')
+                check_query = text('SELECT status FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email')
                 params = {"order_id": order_id, "customer_email": customer_email}
             else:
                 return "Error: Ownership verification required. For security, please provide the email address associated with this order to proceed with cancellation."
@@ -122,9 +136,9 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
             
             # 2. Perform the update using a clean, separate query
             if user_id:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id = :order_id AND "userId" = :user_id')
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "userId" = :user_id')
             else:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id = :order_id AND "customerEmail" ILIKE :customer_email')
+                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email')
                 
             connection.execute(update_query, params)
             connection.commit()

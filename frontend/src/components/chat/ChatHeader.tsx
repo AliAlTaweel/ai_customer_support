@@ -20,10 +20,10 @@ export function ChatHeader({
   onNewChat
 }: ChatHeaderProps) {
   return (
-    <div className="relative p-5 bg-primary text-primary-foreground flex items-center justify-between">
+    <div className="relative px-5 py-3 bg-primary text-primary-foreground flex items-center justify-between shadow-sm border-b border-white/5">
       <div className="flex items-center gap-3">
-        <div className="w-11 h-11 rounded-2xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
-          <Bot className="w-6 h-6" />
+        <div className="w-9 h-9 rounded-xl bg-white/20 flex items-center justify-center backdrop-blur-sm shadow-inner">
+          <Bot className="w-5 h-5" />
         </div>
         <div>
           <h3 className="font-bold text-base font-outfit tracking-tight">Luxe Support</h3>

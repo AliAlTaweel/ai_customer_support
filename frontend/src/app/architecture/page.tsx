@@ -23,6 +23,7 @@ export const metadata = {
 };
 
 import PerformanceTable from "./PerformanceTable";
+import ProtocolDiagram from "./ProtocolDiagram";
 
 export default function ArchitecturePage() {
   return (
@@ -138,12 +139,12 @@ export default function ArchitecturePage() {
                   </div>
                   <div className="w-full md:w-1/2 flex flex-col items-center md:items-start text-center md:text-left gap-2 order-2 md:order-3">
                     <div className="bg-gradient-to-r from-purple-500/5 to-transparent p-5 rounded-r-2xl border-l-4 border-purple-500 w-full max-w-md shadow-sm bg-background/40 backdrop-blur-sm">
-                      <h3 className="text-2xl font-extrabold text-foreground tracking-tight">CrewAI Orchestration</h3>
-                      <p className="text-[13px] sm:text-sm text-muted-foreground font-medium mt-1.5 leading-relaxed">Autonomous agent initialized with custom role prompting and real-time memory windows.</p>
+                      <h3 className="text-2xl font-extrabold text-foreground tracking-tight">Native Agent Orchestration</h3>
+                      <p className="text-[13px] sm:text-sm text-muted-foreground font-medium mt-1.5 leading-relaxed">Unified specialist orchestrating tools via Google Gemini direct function calling.</p>
                       <div className="grid grid-cols-2 gap-3 mt-4">
                         <div className="text-xs p-3 bg-background border rounded-xl border-purple-200 dark:border-purple-900 flex flex-col shadow-sm">
                           <span className="font-bold text-purple-600 mb-0.5">Model Backbone</span>
-                          <span className="font-medium opacity-80">Gemini 1.5 Flash</span>
+                          <span className="font-medium opacity-80">Gemini Flash</span>
                         </div>
                         <div className="text-xs p-3 bg-background border rounded-xl border-purple-200 dark:border-purple-900 flex flex-col shadow-sm">
                           <span className="font-bold text-purple-600 mb-0.5">Context Window</span>
@@ -191,6 +192,9 @@ export default function ArchitecturePage() {
               </div>
             </div>
           </div>
+          
+          {/* NEW INTERACTIVE UML DIAGRAM TOGGLE */}
+          <ProtocolDiagram />
         </div>
 
         {/* PERFORMANCE & STATS METRICS */}

@@ -67,6 +67,7 @@ class TelemetryService:
             with engine.connect() as connection:
                 dialect = str(engine.url)
                 tbl = "PerformanceMetric" if "sqlite" in dialect else '"PerformanceMetric"'
+                col_created = "createdAt" if "sqlite" in dialect else '"createdAt"'
                 # Take last 500 requests to avoid huge scans, dynamic rolling average
                 query = f"""
                 SELECT 
@@ -78,7 +79,7 @@ class TelemetryService:
                 FROM (
                     SELECT pathway, latency 
                     FROM {tbl} 
-                    ORDER BY createdAt DESC 
+                    ORDER BY {col_created} DESC 
                     LIMIT 500
                 ) subq
                 GROUP BY pathway

@@ -4,7 +4,7 @@
   <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python%20Evals-Passed-success?style=for-the-badge&logo=python" alt="Python Evals" />
-  <img src="https://img.shields.io/badge/CrewAI-Orchestration-FF6F00?style=for-the-badge&logo=crewai" alt="CrewAI" />
+  <img src="https://img.shields.io/badge/Gemini-Native%20Agent-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini Native" />
   <img src="https://img.shields.io/badge/AWS%20RDS-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="AWS RDS" />
   <img src="https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker" alt="Docker" />
 </p>
@@ -85,7 +85,7 @@ Sensitive data governance is enforced before runtime calls. A robust middleware 
 ### 🧭 Intent Routing & Heuristic Bypass
 To shave user latency down by over 70%, inputs pass through a pre-LLM heuristic evaluator. Common operations (greetings, status checks) trigger specialized shortcuts return in milliseconds, preserving GPU compute and minimizing API costs.
 
-### 🤖 Unified Multi-Tool Agent (CrewAI + LangChain)
+### 🤖 Native Multi-Tool Agent (Google AI SDK)
 Complex inquiries trigger the Autonomous Orchestrator. The orchestrator decodes natural language intents into functional database calls—autonomously verifying product stock, processing order updates, and scraping internal policy documentation instantly.
 
 ---
@@ -126,10 +126,10 @@ npm run dev
 | Component | Technology |
 | :--- | :--- |
 | **AI Pipeline & Evaluators** | Python-native Regression Framework, Observability JSON Logging |
-| **Agentic Orchestration** | CrewAI, LangChain, FastAPI (Python) |
-| **LLMs** | Google Gemini (Core Engine), LiteLLM |
+| **Agentic Orchestration** | Google AI SDK (Native Function Calling), FastAPI |
+| **LLMs** | Google Gemini Flash, LiteLLM (Evaluation) |
 | **Security & Compliance** | Regex-Token Pseudonymization Layer (GDPR ready) |
-| **Data Platform** | AWS RDS PostgreSQL, SQLAlchemy, FAISS Index |
+| **Data Platform & RAG** | AWS RDS PostgreSQL, LangChain, FAISS Vector Index |
 | **Frontend Interface** | Next.js 15, TypeScript, Shadcn UI, Framer Motion |
 | **Ops & Infrastructure** | Docker & Docker-Compose, Nginx SSL Proxying, AWS EC2 |
 

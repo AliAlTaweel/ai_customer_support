@@ -1,7 +1,7 @@
 # Luxe E-Commerce Frontend
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/React-19-61DAFB?style=for-the-badge&logo=react&logoColor=black" alt="React" />
   <img src="https://img.shields.io/badge/Shadcn%20UI-Modernized-000000?style=for-the-badge&logo=shadcnui&logoColor=white" alt="Shadcn UI" />
   <img src="https://img.shields.io/badge/Tailwind%20CSS-Modern-06B6D4?style=for-the-badge&logo=tailwind-css&logoColor=white" alt="Tailwind CSS" />
@@ -9,7 +9,7 @@
   <img src="https://img.shields.io/badge/Prisma-ORM-2D3748?style=for-the-badge&logo=prisma&logoColor=white" alt="Prisma" />
 </p>
 
-A premium, high-performance storefront built with Next.js 15. This application serves as both the e-commerce interface and the chat portal for the AI Support Assistant.
+A premium, high-performance storefront built with Next.js 16. This application serves as both the e-commerce interface and the chat portal for the AI Support Assistant.
 
 ---
 
@@ -33,7 +33,7 @@ A premium, high-performance storefront built with Next.js 15. This application s
 
 ## 🛠 Tech Stack
 
-- **Next.js 15+** (App Router)
+- **Next.js 16+** (App Router)
 - **TypeScript**: Type-safe development
 - **Shadcn UI**: Beautifully designed primitive components
 - **Tailwind CSS**: Modern, responsive styling

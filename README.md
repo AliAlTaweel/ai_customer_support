@@ -1,7 +1,7 @@
 # Enterprise Autonomous AI Orchestration & Evaluation Pipeline
 
 <p align="center">
-  <img src="https://img.shields.io/badge/Next.js-15-black?style=for-the-badge&logo=next.js" alt="Next.js" />
+  <img src="https://img.shields.io/badge/Next.js-16-black?style=for-the-badge&logo=next.js" alt="Next.js" />
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python%20Evals-Passed-success?style=for-the-badge&logo=python" alt="Python Evals" />
   <img src="https://img.shields.io/badge/Gemini-Native%20Agent-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini Native" />
@@ -130,7 +130,7 @@ npm run dev
 | **LLMs** | Google Gemini Flash, LiteLLM (Evaluation) |
 | **Security & Compliance** | Regex-Token Pseudonymization Layer (GDPR ready) |
 | **Data Platform & RAG** | AWS RDS PostgreSQL, LangChain, FAISS Vector Index |
-| **Frontend Interface** | Next.js 15, TypeScript, Shadcn UI, Framer Motion |
+| **Frontend Interface** | Next.js 16, TypeScript, Shadcn UI, Framer Motion |
 | **Ops & Infrastructure** | Docker & Docker-Compose, Nginx SSL Proxying, AWS EC2 |
 
 ---

@@ -65,7 +65,7 @@ graph TD
         Backend --> Telemetry[Telemetry Logger]
         Telemetry --> Privacy[PrivacyScrubber - GDPR]
         Privacy --> Router[Fast-Track Route Optimizer]
-        Router -- "Simple/Greeting" --> Greeting[Direct Reply (<0.1s)]
+        Router -- "Simple/Greeting" --> Greeting["Direct Reply (<0.1s)"]
         Router -- "Complex Chain" --> UnifiedAgent[Unified Agent Orchestrator]
         UnifiedAgent --> Tools[Tool Bindings: DB & FAQ]
         Tools --> DB
@@ -87,6 +87,22 @@ To shave user latency down by over 70%, inputs pass through a pre-LLM heuristic 
 
 ### 🤖 Native Multi-Tool Agent (Google AI SDK)
 Complex inquiries trigger the Autonomous Orchestrator. The orchestrator decodes natural language intents into functional database calls—autonomously verifying product stock, processing order updates, and scraping internal policy documentation instantly.
+
+---
+
+## 🏢 B2B SaaS Multi-Tenancy & Distribution Blueprint
+
+To demonstrate architectural maturity for enterprise software environments, this platform has been designed with a clear, production-ready path to B2B SaaS Multi-Tenancy. Below is the technical transition blueprint currently being integrated:
+
+1. **Logical Data Isolation (Multi-Tenancy):**
+   * **Relational DB (PostgreSQL):** An `organizations` table binds all primary business assets (`products`, `orders`, `chats`, `complaints`) using an `organization_id` foreign key. Fast-routing middleware injects Row-Level Security (RLS) policies at the PostgreSQL database level.
+   * **Vector Search Isolation (RAG):** Document chunk vectorization and conversational retrievals are strictly isolated utilizing collection namespaces (`org_{organization_id}`) within the Vector DB layer, guaranteeing absolute tenant data isolation.
+2. **Secure Embeddable Client Widget:**
+   * **Iframe Sandbox Architecture:** The client-facing widget is loaded via a secure, sandboxed `<iframe>` wrapper injected onto client websites. This prevents global DOM namespace collisions, JS injection vulnerabilities, and style leakage from client sites.
+   * **Domain Guarding:** An origin-verification middleware checks the incoming request's HTTP `Origin` or `Referer` headers against the tenant's registered domains in Postgres before initiating conversational websocket sessions.
+3. **Self-Serve Admin & Telemetry Management:**
+   * **Tenant Console:** A dedicated administrative portal allowing client companies to custom-configure their AI's brand identity, tune system prompts, rotate API keys, and upload local domain context files.
+   * **Token Metering & Billing:** Stripe Webhook integrations monitor real-time token usage and message counts, dynamically throttling API access according to tenant subscription tiers.
 
 ---
 

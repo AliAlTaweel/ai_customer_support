@@ -1,5 +1,5 @@
 from app.models.chat import ChatRequest, ChatResponse, GreetRequest, ChatMessage, TokenUsage
-from app.services.native_agent_service import NativeAgentService as CrewService
+from app.services.native_agent_service import NativeAgentService
 from app.tools.chat_history import save_chat_message_fn, get_chat_history_fn
 from app.core.auth import get_current_user, UserContext
 from app.core.config import settings
@@ -55,22 +55,22 @@ async def chat(
             detail=f"Too many requests. Please wait before sending another message."
         )
     try:
-        crew_service = CrewService()
+        agent_service = NativeAgentService()
         
         # Determine the target user name: Token Name > Request Name > Guest
         resolved_name = current_user.full_name or request.user_name or "Guest"
         # Ensure we only use the First Name (take the first word)
         target_user_name = resolved_name.split()[0]
         
-        # Format history for CrewAI
+        # Format history for the agent
         formatted_history = [
             f"{m.role.capitalize()}: {m.content}" 
             for m in request.history
         ]
         
-        # Kickoff the crew in a background thread
+        # Kickoff the agent in a background thread
         response_data = await asyncio.to_thread(
-            crew_service.kickoff_chat, 
+            agent_service.kickoff_chat, 
             request.message, 
             formatted_history, 
             target_user_name,
@@ -157,8 +157,8 @@ async def greet(
         resolved_name = current_user.full_name or request.first_name or "there"
         display_name = resolved_name.split()[0]
         
-        crew_service = CrewService()
-        response_data = await asyncio.to_thread(crew_service.get_greeting, display_name)
+        agent_service = NativeAgentService()
+        response_data = await asyncio.to_thread(agent_service.get_greeting, display_name)
         
         final_msg = response_data["result"]
         usage = response_data.get("usage", {})

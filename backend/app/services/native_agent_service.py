@@ -83,7 +83,7 @@ class NativeAgentService:
         )
 
     def kickoff_chat(self, user_message: str, history: List[str], user_name: str = None, state: Dict[str, Any] = None, user_context: Any = None, user_id: str = None) -> Dict[str, Any]:
-        """Drop-in replacement for CrewService.kickoff_chat"""
+        """Orchestrates the chat session for a user message."""
         state = state or {}
         clean_msg = user_message.lower().strip().strip('?!.')
         start_time = time.time()
@@ -111,7 +111,7 @@ class NativeAgentService:
             
         PII_MAPPING.set(pii_mapping)
 
-        # Phase 3: Heuristics & Static Routing (retained from CrewService)
+        # Phase 3: Heuristics & Static Routing
         if clean_msg in ["hi", "hello", "hey", "hello there", "hi there", "greetings", "good morning", "good afternoon", "good evening"]:
             resp = self.fast_track.get_greeting(user_name or "there")
             resp_time = round(time.time() - start_time, 2)
@@ -224,7 +224,7 @@ class NativeAgentService:
                     "payload": {}
                 }
             
-            # Map structured output to old CrewService format
+            # Map structured output to expected response format
             message_text = parsed_json.get("message", "I'm sorry, I encountered an error.")
             ui_signals = parsed_json.get("ui_signals", [])
             payload = parsed_json.get("payload", {})

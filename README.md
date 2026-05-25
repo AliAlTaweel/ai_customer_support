@@ -51,6 +51,16 @@ INFO: AI_OBSERVABILITY_METRICS: {
 
 ---
 
+## 📊 Admin Analytics Dashboard
+
+To monitor pipeline metrics in real-time, the platform includes a secure, GDPR-compliant Analytics console in the Admin panel. This console aggregates telemetry, conversation volume, customer complaints, and business intelligence directly from the database.
+
+<p align="center">
+  <img src="./docs/assets/analytics-dashboard.png" alt="Admin Analytics Dashboard" />
+</p>
+
+---
+
 ## 🏛️ System Architecture
 
 The engine splits decision loops between heuristic-optimized routes and deep agentic chains sharing a cloud-native database. 

@@ -44,8 +44,16 @@ def sync_faq():
     # 4. Save Locally
     local_path = settings.INDEX_SAVE_PATH
     if os.path.exists(local_path):
-        logger.info(f"Cleaning up old local index at {local_path}...")
-        shutil.rmtree(local_path)
+        logger.info(f"Cleaning up old local index files at {local_path}...")
+        for filename in os.listdir(local_path):
+            file_path = os.path.join(local_path, filename)
+            try:
+                if os.path.isfile(file_path) or os.path.islink(file_path):
+                    os.unlink(file_path)
+                elif os.path.isdir(file_path):
+                    shutil.rmtree(file_path)
+            except Exception as e:
+                logger.warning(f"Failed to delete {file_path}: {e}")
     os.makedirs(local_path, exist_ok=True)
     
     vector_store.save_local(local_path)

@@ -20,7 +20,7 @@ def sync_faq():
     
     # 1. Initialize Embeddings
     logger.info("Initializing Embeddings...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-2")
     
     # 2. Load FAQ Data
     faq_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../FAQ/faq.json"))

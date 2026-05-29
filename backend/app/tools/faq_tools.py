@@ -94,8 +94,8 @@ def get_vector_store():
 
     try:
         if _embeddings is None:
-            logger.info("Initializing GoogleGenerativeAIEmbeddings (models/text-embedding-004)...")
-            _embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
+            logger.info("Initializing GoogleGenerativeAIEmbeddings (models/gemini-embedding-2)...")
+            _embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-2")
         
         embeddings = _embeddings
         local_path = settings.INDEX_SAVE_PATH

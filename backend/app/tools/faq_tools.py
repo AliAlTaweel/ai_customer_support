@@ -2,7 +2,7 @@ import os
 import json
 import logging
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
@@ -94,8 +94,8 @@ def get_vector_store():
 
     try:
         if _embeddings is None:
-            logger.info("Initializing HuggingFaceEmbeddings...")
-            _embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+            logger.info("Initializing GoogleGenerativeAIEmbeddings (models/text-embedding-004)...")
+            _embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
         
         embeddings = _embeddings
         local_path = settings.INDEX_SAVE_PATH

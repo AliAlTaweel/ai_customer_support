@@ -2,13 +2,39 @@ import os
 import json
 import logging
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from langchain_core.embeddings import Embeddings
+import google.generativeai as genai
 from app.core.config import settings
 
 logger = logging.getLogger(__name__)
 
 _vector_store = None
 _embeddings = None
+
+class GeminiEmbeddings(Embeddings):
+    def __init__(self, model_name: str = "models/gemini-embedding-2"):
+        self.model_name = model_name
+        if settings.GOOGLE_API_KEY:
+            genai.configure(api_key=settings.GOOGLE_API_KEY)
+
+    def embed_documents(self, texts: list[str]) -> list[list[float]]:
+        embeddings = []
+        for text in texts:
+            response = genai.embed_content(
+                model=self.model_name,
+                content=text,
+                task_type="retrieval_document"
+            )
+            embeddings.append(response["embedding"])
+        return embeddings
+
+    def embed_query(self, text: str) -> list[float]:
+        response = genai.embed_content(
+            model=self.model_name,
+            content=text,
+            task_type="retrieval_query"
+        )
+        return response["embedding"]
 
 # ── S3 helpers ──────────────────────────────────────────────────────────────
 
@@ -94,8 +120,8 @@ def get_vector_store():
 
     try:
         if _embeddings is None:
-            logger.info("Initializing GoogleGenerativeAIEmbeddings (models/gemini-embedding-2)...")
-            _embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-2")
+            logger.info("Initializing custom GeminiEmbeddings...")
+            _embeddings = GeminiEmbeddings()
         
         embeddings = _embeddings
         local_path = settings.INDEX_SAVE_PATH

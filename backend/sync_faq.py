@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.config import settings
 from langchain_community.vectorstores import FAISS
-from langchain_google_genai import GoogleGenerativeAIEmbeddings
+from app.tools.faq_tools import GeminiEmbeddings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def sync_faq():
     
     # 1. Initialize Embeddings
     logger.info("Initializing Embeddings...")
-    embeddings = GoogleGenerativeAIEmbeddings(model="models/gemini-embedding-2")
+    embeddings = GeminiEmbeddings()
     
     # 2. Load FAQ Data
     faq_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../FAQ/faq.json"))

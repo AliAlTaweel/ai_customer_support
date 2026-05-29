@@ -9,7 +9,7 @@ sys.path.append(os.path.dirname(os.path.abspath(__file__)))
 
 from app.core.config import settings
 from langchain_community.vectorstores import FAISS
-from langchain_community.embeddings import HuggingFaceEmbeddings
+from langchain_google_genai import GoogleGenerativeAIEmbeddings
 
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -20,7 +20,7 @@ def sync_faq():
     
     # 1. Initialize Embeddings
     logger.info("Initializing Embeddings...")
-    embeddings = HuggingFaceEmbeddings(model_name="all-MiniLM-L6-v2")
+    embeddings = GoogleGenerativeAIEmbeddings(model="models/text-embedding-004")
     
     # 2. Load FAQ Data
     faq_path = os.path.abspath(os.path.join(os.path.dirname(__file__), "../FAQ/faq.json"))

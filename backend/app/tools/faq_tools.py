@@ -42,7 +42,13 @@ def _s3_client():
     """Return a boto3 S3 client using env credentials (local dev) or IAM role (AWS)."""
     try:
         import boto3
-        return boto3.client("s3", region_name=settings.AWS_REGION)
+        from botocore.config import Config
+
+        kwargs = {"region_name": settings.AWS_REGION}
+        if getattr(settings, "AWS_S3_ENDPOINT_URL", None):
+            kwargs["endpoint_url"] = settings.AWS_S3_ENDPOINT_URL
+            kwargs["config"] = Config(s3={'addressing_style': 'path'})
+        return boto3.client("s3", **kwargs)
     except Exception as e:
         logger.warning(f"Could not create S3 client: {e}")
         return None

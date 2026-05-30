@@ -5,7 +5,7 @@
   <img src="https://img.shields.io/badge/FastAPI-0.110+-009688?style=for-the-badge&logo=fastapi&logoColor=white" alt="FastAPI" />
   <img src="https://img.shields.io/badge/Python%20Evals-Passed-success?style=for-the-badge&logo=python" alt="Python Evals" />
   <img src="https://img.shields.io/badge/Gemini-Native%20Agent-8E75B2?style=for-the-badge&logo=google-gemini&logoColor=white" alt="Gemini Native" />
-  <img src="https://img.shields.io/badge/AWS%20RDS-PostgreSQL-4169E1?style=for-the-badge&logo=postgresql&logoColor=white" alt="AWS RDS" />
+  <img src="https://img.shields.io/badge/Supabase-PostgreSQL-3ECF8E?style=for-the-badge&logo=supabase&logoColor=white" alt="Supabase" />
   <img src="https://img.shields.io/badge/Docker-Ready-blue?style=for-the-badge&logo=docker" alt="Docker" />
 </p>
 
@@ -68,7 +68,7 @@ The engine splits decision loops between heuristic-optimized routes and deep age
 ```mermaid
 graph TD
     User((User)) --> Frontend[Next.js Frontend]
-    Frontend --> DB[(AWS RDS PostgreSQL)]
+    Frontend --> DB[(Supabase PostgreSQL)]
     Frontend -- "API Request" --> Backend[FastAPI Backend]
     
     subgraph "Engine Logic"
@@ -120,7 +120,7 @@ To demonstrate architectural maturity for enterprise software environments, this
 
 ### 1. Prerequisites
 - **Node.js** (v18+) & **Python** (3.12+)
-- **AWS RDS PostgreSQL** Instance (or local Postgres)
+- **Supabase PostgreSQL** Instance (or local Postgres)
 - **Google Gemini API Key**
 
 ### 2. Run AI Evaluation Suite (Local Benchmarking)
@@ -155,7 +155,7 @@ npm run dev
 | **Agentic Orchestration** | Google AI SDK (Native Function Calling), FastAPI |
 | **LLMs** | Google Gemini Flash, LiteLLM (Evaluation) |
 | **Security & Compliance** | Regex-Token Pseudonymization Layer (GDPR ready) |
-| **Data Platform & RAG** | AWS RDS PostgreSQL, LangChain, FAISS Vector Index |
+| **Data Platform & RAG** | Supabase PostgreSQL & Storage, LangChain, FAISS Vector Index |
 | **Frontend Interface** | Next.js 16, TypeScript, Shadcn UI, Framer Motion |
 | **Ops & Infrastructure** | Docker & Docker-Compose, Nginx SSL Proxying, AWS EC2 |
 

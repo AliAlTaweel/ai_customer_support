@@ -78,7 +78,7 @@ graph TD
 - **Strict Authentication**: JWT signatures from Clerk are verified using dynamically fetched JWKS (`CLERK_JWKS_URL`).
 - **IDOR Protection**: Tools automatically filter database queries by the verified user's email, preventing cross-user data access.
 - **Data Retention**: An automated startup task purges chat messages older than 30 days.
-- **Database Encryption**: All database communication with AWS RDS is secured via **SSL**.
+- **Database Encryption**: All database communication with Supabase is secured via **SSL**.
 - **Transport Security (HTTPS)**: Backend traffic is fully encrypted using an **Nginx Reverse Proxy** on EC2 with a free SSL/TLS certificate via **Let's Encrypt (Certbot)**.
 
 ---
@@ -109,11 +109,12 @@ graph TD
    # Auth & DB
    CLERK_JWKS_URL=https://your-app.clerk.accounts.dev/.well-known/jwks.json
    CLERK_ISSUER=https://your-app.clerk.accounts.dev
-   DATABASE_URL=postgresql://user:password@host:port/dbname
+   DATABASE_URL=postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:6543/postgres
 
-   # AWS / S3 Vector Storage
+   # Supabase Storage / S3 Vector Storage
    FAISS_S3_BUCKET=your-bucket-name
-   AWS_REGION=eu-north-1
+   AWS_REGION=eu-central-1
+   AWS_S3_ENDPOINT_URL=https://[PROJECT_REF].storage.supabase.co/storage/v1/s3
    ```
 
 ### Running the Server

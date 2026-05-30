@@ -66,7 +66,13 @@ def sync_faq():
 
     try:
         import boto3
-        s3 = boto3.client("s3", region_name=settings.AWS_REGION)
+        from botocore.config import Config
+
+        kwargs = {"region_name": settings.AWS_REGION}
+        if getattr(settings, "AWS_S3_ENDPOINT_URL", None):
+            kwargs["endpoint_url"] = settings.AWS_S3_ENDPOINT_URL
+            kwargs["config"] = Config(s3={'addressing_style': 'path'})
+        s3 = boto3.client("s3", **kwargs)
         prefix = settings.FAISS_S3_KEY
         
         logger.info(f"Uploading to S3 bucket: {settings.FAISS_S3_BUCKET}...")

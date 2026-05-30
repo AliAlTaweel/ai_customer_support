@@ -42,6 +42,7 @@ class Settings(BaseSettings):
     AWS_REGION: str = "eu-north-1"
     FAISS_S3_BUCKET: Optional[str] = None
     FAISS_S3_KEY: str = "faq_index/"
+    AWS_S3_ENDPOINT_URL: Optional[str] = None
 
     model_config = SettingsConfigDict(
         env_file=".env",

@@ -27,7 +27,7 @@ A premium, high-performance storefront built with Next.js 16. This application s
   - **"New Chat" (+) Header Button**: Resets the chat history, greeting state, and active signals instantly, re-triggering the animated quick reply onboarding.
   - **Visual Shipments & Maps**: Renders active shipment progress bars and interactive maps inside chat bubbles via structured `TRACKING_INFO` payloads.
 - **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication, secure session management, and custom proxy domain compatibility.
-- **Cloud Database**: Powered by **AWS RDS PostgreSQL** with Prisma for production-grade reliability and shared access with the AI backend.
+- **Cloud Database**: Powered by **Supabase PostgreSQL** with Prisma for production-grade reliability and shared access with the AI backend.
 
 ---
 
@@ -54,9 +54,9 @@ A premium, high-performance storefront built with Next.js 16. This application s
    ```
 
 2. **Environment Variables**:
-   Create a `.env` file with your `DATABASE_URL` pointing to your AWS RDS instance, and your Clerk API keys:
+   Create a `.env` file with your `DATABASE_URL` pointing to your Supabase instance, and your Clerk API keys:
    ```env
-   DATABASE_URL="postgresql://user:password@host:port/dbname?sslmode=require"
+   DATABASE_URL="postgresql://postgres.[PROJECT_REF]:[PASSWORD]@aws-1-[REGION].pooler.supabase.com:6543/postgres?pgbouncer=true"
    NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY=your_publishable_key
    CLERK_SECRET_KEY=your_secret_key
    NEXT_PUBLIC_CLERK_SIGN_IN_URL=/sign-in
@@ -92,4 +92,4 @@ The frontend chat component sends the conversation history along with the user's
 5. **Real-time GDPR Masking**: Ensuring user privacy through pseudonymization at the API layer.
 
 ### Shared Infrastructure
-The system uses a unified **AWS RDS PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.
+The system uses a unified **Supabase PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.

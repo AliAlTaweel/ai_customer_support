@@ -235,7 +235,7 @@ export default function ArchitecturePage() {
                    { name: "API Orchestration", val: "FastAPI (Python)" },
                    { name: "LLM Backbone", val: "Google Gemini 1.5 Stack" },
                    { name: "Cloud Hosting", val: "AWS EC2 / Docker Compose" },
-                   { name: "Relational Persistence", val: "AWS RDS PostgreSQL" },
+                   { name: "Relational Persistence", val: "Supabase PostgreSQL" },
                  ].map((item) => (
                    <div key={item.name} className="flex justify-between items-center p-3 bg-background border border-border/50 rounded-xl shadow-sm">
                      <span className="text-xs font-medium text-muted-foreground">{item.name}</span>

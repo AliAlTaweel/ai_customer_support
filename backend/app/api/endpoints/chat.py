@@ -1,7 +1,7 @@
 from app.models.chat import ChatRequest, ChatResponse, GreetRequest, ChatMessage, TokenUsage
 from app.services.native_agent_service import NativeAgentService
 from app.tools.chat_history import save_chat_message_fn, get_chat_history_fn
-from app.core.auth import get_current_user, UserContext
+from app.core.auth import get_current_user, UserContext, CURRENT_TENANT_DB_ID
 from app.core.config import settings
 from fastapi import APIRouter, HTTPException, Depends, Request, status
 import logging
@@ -47,6 +47,11 @@ async def chat(
     request: ChatRequest,
     current_user: UserContext = Depends(get_current_user)
 ):
+    # Set Tenant DB ID context variable
+    tenant_db_id = current_user.tenant_id or request.tenant_id
+    if tenant_db_id:
+        CURRENT_TENANT_DB_ID.set(tenant_db_id)
+
     # Rate limiting: use user_id for authenticated users, remote IP for guests
     rate_key = current_user.user_id or request_obj.client.host
     if not _check_rate_limit(rate_key):
@@ -152,6 +157,11 @@ async def greet(
     request: GreetRequest,
     current_user: UserContext = Depends(get_current_user)
 ):
+    # Set Tenant DB ID context variable
+    tenant_db_id = current_user.tenant_id or request.tenant_id
+    if tenant_db_id:
+        CURRENT_TENANT_DB_ID.set(tenant_db_id)
+
     try:
         # Priority: Token Name > Request Name
         resolved_name = current_user.full_name or request.first_name or "there"

@@ -3,6 +3,7 @@ import logging
 from datetime import datetime
 from sqlalchemy import text
 from app.tools.base import engine, detokenize_val
+from app.core.auth import CURRENT_TENANT_DB_ID
 
 logger = logging.getLogger(__name__)
 
@@ -18,11 +19,12 @@ def submit_complaint(subject: str, message: str, customer_name: str = None, cust
         user_id: The ID of the user.
         priority: Priority of the complaint (LOW, MEDIUM, HIGH, URGENT).
     """
+    tenant_id = CURRENT_TENANT_DB_ID.get()
     subject = detokenize_val(subject)
     message = detokenize_val(message)
     customer_name = detokenize_val(customer_name)
     customer_email = detokenize_val(customer_email)
-    logger.info(f"Submitting complaint: '{subject}' from {customer_name}")
+    logger.info(f"Submitting complaint: '{subject}' from {customer_name}, Tenant: {tenant_id}")
 
     try:
         with engine.begin() as connection:
@@ -32,12 +34,28 @@ def submit_complaint(subject: str, message: str, customer_name: str = None, cust
             if prio not in ["LOW", "MEDIUM", "HIGH", "URGENT"]:
                 prio = "MEDIUM"
 
-            connection.execute(
-                text("""
+            if tenant_id:
+                sql = """
+                    INSERT INTO "Complaint" (id, subject, message, "customerName", "customerEmail", "userId", status, priority, "createdAt", "updatedAt", "tenantId")
+                    VALUES (:id, :subject, :message, :name, :email, :user_id, 'OPEN', :priority, :now, :now, :tenant_id)
+                """
+                params = {
+                    "id": complaint_id,
+                    "subject": subject,
+                    "message": message,
+                    "name": customer_name,
+                    "email": customer_email,
+                    "user_id": user_id,
+                    "priority": prio,
+                    "now": now,
+                    "tenant_id": tenant_id
+                }
+            else:
+                sql = """
                     INSERT INTO "Complaint" (id, subject, message, "customerName", "customerEmail", "userId", status, priority, "createdAt", "updatedAt")
                     VALUES (:id, :subject, :message, :name, :email, :user_id, 'OPEN', :priority, :now, :now)
-                """),
-                {
+                """
+                params = {
                     "id": complaint_id,
                     "subject": subject,
                     "message": message,
@@ -47,7 +65,8 @@ def submit_complaint(subject: str, message: str, customer_name: str = None, cust
                     "priority": prio,
                     "now": now
                 }
-            )
+
+            connection.execute(text(sql), params)
             return f"Your message has been successfully submitted. Reference ID: {complaint_id}. (Note: This is a reference for your message, not an order tracking number)."
     except Exception as e:
         logger.error(f"Error submitting complaint: {e}")

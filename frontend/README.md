@@ -25,7 +25,13 @@ A premium, high-performance storefront built with Next.js 16. This application s
   - **Onboarding Quick Replies**: Greets users instantly with four interactive glassmorphic cards (*Track Order*, *Browse Products*, *Cancel Order*, and *File Complaint*), eliminating "blank page syndrome" and triggering fast-tracked non-LLM responses.
   - **Auto-Dismiss Grid**: Conditional rendering hides the grid as soon as active custom messages begin, maintaining a clean chat log.
   - **"New Chat" (+) Header Button**: Resets the chat history, greeting state, and active signals instantly, re-triggering the animated quick reply onboarding.
+- **AI Chat Widget**: A persistent sidebar chat communicating with the agentic backend. 
+  - **Onboarding Quick Replies**: Greets users instantly with four interactive glassmorphic cards (*Track Order*, *Browse Products*, *Cancel Order*, and *File Complaint*), eliminating "blank page syndrome" and triggering fast-tracked non-LLM responses.
+  - **Auto-Dismiss Grid**: Conditional rendering hides the grid as soon as active custom messages begin, maintaining a clean chat log.
+  - **"New Chat" (+) Header Button**: Resets the chat history, greeting state, and active signals instantly, re-triggering the animated quick reply onboarding.
   - **Visual Shipments & Maps**: Renders active shipment progress bars and interactive maps inside chat bubbles via structured `TRACKING_INFO` payloads.
+- **Tenant Admin Dashboard (`/dashboard`)**: A premium dashboard displaying copy-pasteable script tags for widget integration, Clerk active workspace stats, and domain whitelisting safety notices.
+- **Knowledge Base Manager (`/dashboard/knowledge-base`)**: An interactive drag-and-drop dropzone UI allowing tenant administrators to upload documentation (Markdown, CSV, PDF, TXT), search indexed chunks, and wipe pgvector database embeddings.
 - **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication, secure session management, and custom proxy domain compatibility.
 - **Cloud Database**: Powered by **Supabase PostgreSQL** with Prisma for production-grade reliability and shared access with the AI backend.
 

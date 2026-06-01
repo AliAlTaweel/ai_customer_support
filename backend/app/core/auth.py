@@ -5,6 +5,9 @@ from pydantic import BaseModel
 from typing import Optional
 import logging
 import time
+import uuid
+from sqlalchemy import text
+from app.tools.base import engine
 
 from contextvars import ContextVar
 
@@ -12,6 +15,8 @@ logger = logging.getLogger(__name__)
 
 # ContextVar to store current Clerk Organization ID for multi-tenant isolation
 CURRENT_ORG_ID: ContextVar[Optional[str]] = ContextVar("current_org_id", default=None)
+# ContextVar to store resolved database Tenant UUID for multi-tenant isolation
+CURRENT_TENANT_DB_ID: ContextVar[Optional[str]] = ContextVar("current_tenant_db_id", default=None)
 
 
 class UserContext(BaseModel):
@@ -19,6 +24,7 @@ class UserContext(BaseModel):
     email: Optional[str] = None
     full_name: Optional[str] = None
     org_id: Optional[str] = None
+    tenant_id: Optional[str] = None
     is_authenticated: bool = False
 
 
@@ -150,10 +156,34 @@ async def get_current_user(
     org_id = payload.get("org_id")
     CURRENT_ORG_ID.set(org_id)
     
+    tenant_db_id = None
+    if org_id:
+        try:
+            with engine.begin() as connection:
+                # Look up or create tenant matching Clerk's org_id
+                result = connection.execute(
+                    text('SELECT id FROM "Tenant" WHERE "clerkOrgId" = :clerk_org_id'),
+                    {"clerk_org_id": org_id}
+                )
+                row = result.fetchone()
+                if row:
+                    tenant_db_id = row[0]
+                else:
+                    tenant_db_id = str(uuid.uuid4())
+                    org_name = f"Org {org_id[:8]}"
+                    connection.execute(
+                        text('INSERT INTO "Tenant" (id, "clerkOrgId", name, "createdAt", "updatedAt") VALUES (:id, :clerk_org_id, :name, NOW(), NOW())'),
+                        {"id": tenant_db_id, "clerk_org_id": org_id, "name": org_name}
+                    )
+            CURRENT_TENANT_DB_ID.set(tenant_db_id)
+        except Exception as db_err:
+            logger.error(f"Error mapping Clerk org_id {org_id} to tenant: {db_err}")
+            
     return UserContext(
         user_id=payload.get("sub"),
         email=payload.get("email") or payload.get("primary_email_address") or payload.get("email_address"),
         full_name=full_name,
         org_id=org_id,
+        tenant_id=tenant_db_id,
         is_authenticated=True,
     )

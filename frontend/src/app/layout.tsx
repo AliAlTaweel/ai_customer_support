@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ClerkProvider, SignInButton, SignUpButton, UserButton } from "@clerk/nextjs";
+import { ClerkProvider, SignInButton, SignUpButton, UserButton, OrganizationSwitcher } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
 import { CartSheet } from "@/components/shop/CartSheet";
 import Link from "next/link";
@@ -104,6 +104,14 @@ export default async function RootLayout({
                     </div>
                   ) : (
                     <div className="flex items-center gap-4">
+                      <OrganizationSwitcher 
+                        appearance={{
+                          elements: {
+                            rootBox: "flex items-center justify-center text-sm font-medium",
+                            organizationSwitcherTrigger: "border border-primary/20 rounded-full px-3 py-1 bg-secondary text-foreground hover:bg-secondary/80 transition-colors h-10"
+                          }
+                        }}
+                      />
                       <UserButton 
                         appearance={{
                           elements: {

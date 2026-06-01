@@ -11,10 +11,12 @@ class ChatRequest(BaseModel):
     state: Optional[Dict[str, Any]] = None
     user_name: Optional[str] = None
     user_id: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 class GreetRequest(BaseModel):
     first_name: str
     user_id: Optional[str] = None
+    tenant_id: Optional[str] = None
 
 class TokenUsage(BaseModel):
     total_tokens: int

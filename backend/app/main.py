@@ -3,7 +3,7 @@ import logging
 from contextlib import asynccontextmanager
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.api.endpoints import chat, analytics
+from app.api.endpoints import chat, analytics, tenant
 from app.services.telemetry_service import TelemetryService
 from app.core.config import settings
 from app.models.chat import HealthResponse
@@ -58,6 +58,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(chat.router, prefix=settings.API_V1_STR, tags=["chat"])
 app.include_router(analytics.router, prefix=settings.API_V1_STR, tags=["analytics"])
+app.include_router(tenant.router, prefix=settings.API_V1_STR, tags=["tenant"])
 
 
 @app.get("/health", response_model=HealthResponse, tags=["health"])

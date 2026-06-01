@@ -100,19 +100,21 @@ Complex inquiries trigger the Autonomous Orchestrator. The orchestrator decodes 
 
 ---
 
-## 🏢 B2B SaaS Multi-Tenancy & Distribution Blueprint
+## 🏢 B2B SaaS Multi-Tenancy & Distribution (Fully Integrated)
+ 
+ This platform features a production-ready, fully integrated **B2B SaaS Multi-Tenancy Architecture**:
+ 
+ 1. **Logical Data Isolation (Multi-Tenancy):**
+    * **Relational DB (PostgreSQL):** Row-Level Security (RLS) is enabled on all core tenant-bound tables (configured in [rls_policies.sql](file:///Users/alial-taweel/projects/ai/ai_customer_support_v3/frontend/prisma/rls_policies.sql)). Policies dynamically extract the Clerk `org_id` claim from the authenticated session JWT.
+    * **Vector Search Isolation (RAG):** Uses Supabase `pgvector` to store chunk embeddings with strict `tenantId` boundaries. LLM searches are context-filtered by `CURRENT_TENANT_DB_ID` via FastAPI contextvars, preventing IDOR leaks.
+ 2. **Clerk Organization Auth Integration:**
+    * FastAPI backend decodes the Clerk token, resolves the active workspace to its corresponding DB UUID (mapping/creating tenant records automatically), and restricts database reads/writes for active tools.
+ 3. **Self-Serve Admin & Telemetry Management:**
+    * **Tenant Dashboard (`/dashboard`)**: Displays workspace integration parameters, a copy-pasteable script tag block for client websites, and CORS guarding notes.
+    * **Knowledge Base Manager (`/dashboard/knowledge-base`)**: Client-facing interface allowing tenant admins to drag-and-drop CSV, PDF, Markdown, or TXT documentation to dynamically partition, compute embeddings, and wipe RAG vector namespaces.
+ 4. **Embeddable Client Widget:**
+    * **Script Tag Integration**: Injects the chat widget into external hosts using client keys mapped to domains whitelisted in Postgres.
 
-To demonstrate architectural maturity for enterprise software environments, this platform has been designed with a clear, production-ready path to B2B SaaS Multi-Tenancy. Below is the technical transition blueprint currently being integrated:
-
-1. **Logical Data Isolation (Multi-Tenancy):**
-   * **Relational DB (PostgreSQL):** An `organizations` table binds all primary business assets (`products`, `orders`, `chats`, `complaints`) using an `organization_id` foreign key. Fast-routing middleware injects Row-Level Security (RLS) policies at the PostgreSQL database level.
-   * **Vector Search Isolation (RAG):** Document chunk vectorization and conversational retrievals are strictly isolated utilizing collection namespaces (`org_{organization_id}`) within the Vector DB layer, guaranteeing absolute tenant data isolation.
-2. **Secure Embeddable Client Widget:**
-   * **Iframe Sandbox Architecture:** The client-facing widget is loaded via a secure, sandboxed `<iframe>` wrapper injected onto client websites. This prevents global DOM namespace collisions, JS injection vulnerabilities, and style leakage from client sites.
-   * **Domain Guarding:** An origin-verification middleware checks the incoming request's HTTP `Origin` or `Referer` headers against the tenant's registered domains in Postgres before initiating conversational websocket sessions.
-3. **Self-Serve Admin & Telemetry Management:**
-   * **Tenant Console:** A dedicated administrative portal allowing client companies to custom-configure their AI's brand identity, tune system prompts, rotate API keys, and upload local domain context files.
-   * **Token Metering & Billing:** Stripe Webhook integrations monitor real-time token usage and message counts, dynamically throttling API access according to tenant subscription tiers.
 
 ---
 

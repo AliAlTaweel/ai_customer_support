@@ -194,6 +194,53 @@ def get_company_faq(question: str) -> str:
     Args:
         question: The user's specific policy or FAQ question.
     """
+    from app.core.auth import CURRENT_ORG_ID
+    from app.tools.base import engine as db_engine
+    from sqlalchemy import text
+    
+    org_id = CURRENT_ORG_ID.get()
+    
+    if org_id:
+        logger.info(f"Performing multi-tenant RAG search for org_id: {org_id}")
+        try:
+            with db_engine.connect() as conn:
+                # 1. Resolve Clerk Org ID to Database Tenant UUID
+                result = conn.execute(
+                    text('SELECT id FROM "Tenant" WHERE "clerkOrgId" = :clerk_org_id'),
+                    {"clerk_org_id": org_id}
+                )
+                row = result.fetchone()
+                if row:
+                    tenant_id = row[0]
+                    
+                    # 2. Generate search query embedding
+                    embeddings_service = GeminiEmbeddings()
+                    query_vector = embeddings_service.embed_query(question)
+                    vec_str = f"[{','.join(map(str, query_vector))}]"
+                    
+                    # 3. Perform cosine similarity vector search
+                    res = conn.execute(
+                        text('SELECT text, embedding <=> CAST(:query_vector AS vector) AS distance FROM "FAQEmbedding" WHERE "tenantId" = :tenant_id ORDER BY distance ASC LIMIT 2'),
+                        {"tenant_id": tenant_id, "query_vector": vec_str}
+                    )
+                    rows = res.fetchall()
+                    
+                    if rows:
+                        formatted_results = [
+                            f"--- KNOWLEDGE SOURCE {i} ---\n{r[0]}"
+                            for i, r in enumerate(rows, 1)
+                        ]
+                        logger.info(f"Found {len(rows)} matching tenant-specific FAQs.")
+                        return "\n\n".join(formatted_results)
+                    else:
+                        logger.info("No tenant-specific FAQ embeddings found in database. Falling back to default FAQs.")
+                else:
+                    logger.info("Tenant not found in database. Falling back to default FAQs.")
+        except Exception as e:
+            logger.error(f"Error doing pgvector search: {e}. Falling back to default FAQs.")
+            
+    # Fallback to local FAISS index
+    logger.info("Performing fallback static FAISS index search.")
     vs = get_vector_store()
     if vs is None:
         return "I'm sorry, I'm having trouble accessing the company policy database right now."

@@ -7,6 +7,7 @@ from datetime import datetime
 from sqlalchemy import text
 from app.tools.base import engine, detokenize_val
 from app.core.privacy import PrivacyScrubber, PII_MAPPING
+from app.core.auth import CURRENT_TENANT_DB_ID
 
 logger = logging.getLogger(__name__)
 
@@ -38,30 +39,39 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
     if auth_email and not customer_email and not email:
         customer_email = auth_email
         
-    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}, UserID: {user_id}")
+    tenant_id = CURRENT_TENANT_DB_ID.get()
+        
+    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}, UserID: {user_id}, Tenant: {tenant_id}")
     try:
         with engine.connect() as connection:
             if order_id:
                 target_filter_email = customer_email or email
                 if user_id:
-                    query = text('SELECT * FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id')
+                    sql = 'SELECT * FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id'
                     params = {"order_id": order_id, "user_id": user_id}
                 elif target_filter_email:
-                    query = text('SELECT * FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :email')
+                    sql = 'SELECT * FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :email'
                     params = {"order_id": order_id, "email": target_filter_email}
                 else:
                     return "For security reasons, please provide the email address associated with the order."
             elif user_id:
-                query = text('SELECT * FROM "Order" WHERE "userId" = :user_id ORDER BY "createdAt" DESC LIMIT 1')
+                sql = 'SELECT * FROM "Order" WHERE "userId" = :user_id'
                 params = {"user_id": user_id}
             elif customer_email or email:
                 target_email = customer_email or email
-                query = text('SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email ORDER BY "createdAt" DESC LIMIT 1')
+                sql = 'SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email'
                 params = {"email": target_email}
             else:
                 return "Please provide either an order ID or your email address."
 
-            result = connection.execute(query, params)
+            if tenant_id:
+                sql += ' AND "tenantId" = :tenant_id'
+                params["tenant_id"] = tenant_id
+
+            if not order_id:
+                sql += ' ORDER BY "createdAt" DESC LIMIT 1'
+
+            result = connection.execute(text(sql), params)
             order = result.fetchone()
             
             if not order:
@@ -113,20 +123,26 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
         if len(order_id) == 36 and order_id.count('-') >= 4 and not order_id.upper().startswith("ORD"):
             order_id = f"ORD-{order_id}"
         
-    logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id})")
+    tenant_id = CURRENT_TENANT_DB_ID.get()
+    
+    logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id}, Tenant: {tenant_id})")
     try:
         with engine.connect() as connection:
             # 1. Fetch current status and verify ownership
             if user_id:
-                check_query = text('SELECT status FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id')
+                check_query_str = 'SELECT status FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id'
                 params = {"order_id": order_id, "user_id": user_id}
             elif customer_email:
-                check_query = text('SELECT status FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email')
+                check_query_str = 'SELECT status FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email'
                 params = {"order_id": order_id, "customer_email": customer_email}
             else:
                 return "Error: Ownership verification required. For security, please provide the email address associated with this order to proceed with cancellation."
 
-            check = connection.execute(check_query, params).fetchone()
+            if tenant_id:
+                check_query_str += ' AND "tenantId" = :tenant_id'
+                params["tenant_id"] = tenant_id
+
+            check = connection.execute(text(check_query_str), params).fetchone()
             if not check:
                 return "Order not found or you do not have permission to cancel it."
             
@@ -136,11 +152,14 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
             
             # 2. Perform the update using a clean, separate query
             if user_id:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "userId" = :user_id')
+                update_query_str = 'UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "userId" = :user_id'
             else:
-                update_query = text('UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email')
+                update_query_str = 'UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email'
                 
-            connection.execute(update_query, params)
+            if tenant_id:
+                update_query_str += ' AND "tenantId" = :tenant_id'
+
+            connection.execute(text(update_query_str), params)
             connection.commit()
             return f"Order {order_id} has been successfully cancelled."
     except Exception as e:
@@ -169,7 +188,8 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
             except Exception as e:
                 return f"Error: Could not parse items list. Error: {str(e)}"
 
-    logger.info(f"Placing order for {customer_name} ({customer_email}), UserID: {user_id}")
+    tenant_id = CURRENT_TENANT_DB_ID.get()
+    logger.info(f"Placing order for {customer_name} ({customer_email}), UserID: {user_id}, Tenant: {tenant_id}")
     customer_email = detokenize_val(customer_email)
     customer_name = detokenize_val(customer_name)
     shipping_address = detokenize_val(shipping_address)
@@ -187,10 +207,14 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
             for item in items:
                 name = detokenize_val(item.get('product_name'))
                 qty = item.get('quantity', 1)
-                product = connection.execute(
-                    text('SELECT id, price, stock FROM "Product" WHERE name = :name'),
-                    {"name": name}
-                ).fetchone()
+                
+                product_sql = 'SELECT id, price, stock FROM "Product" WHERE name = :name'
+                product_params = {"name": name}
+                if tenant_id:
+                    product_sql += ' AND "tenantId" = :tenant_id'
+                    product_params["tenant_id"] = tenant_id
+
+                product = connection.execute(text(product_sql), product_params).fetchone()
                 if not product:
                     return f"Error: Product '{name}' not found."
                 product_data = product._mapping
@@ -206,15 +230,26 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
 
             order_id = f"ORD-{str(uuid.uuid4())}"
             now = datetime.now().isoformat()
-            connection.execute(
-                text("""
+            
+            if tenant_id:
+                insert_sql = """
+                    INSERT INTO "Order" (id, total, status, "createdAt", "updatedAt", "customerEmail", "customerName", "shippingAddress", "userId", "paymentMethod", "tenantId")
+                    VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id, :payment, :tenant_id)
+                """
+                insert_params = {"id": order_id, "total": total_price, "now": now,
+                                 "email": customer_email, "name": customer_name,
+                                 "address": shipping_address, "user_id": user_id, "payment": payment_method,
+                                 "tenant_id": tenant_id}
+            else:
+                insert_sql = """
                     INSERT INTO "Order" (id, total, status, "createdAt", "updatedAt", "customerEmail", "customerName", "shippingAddress", "userId", "paymentMethod")
                     VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id, :payment)
-                """),
-                {"id": order_id, "total": total_price, "now": now,
-                 "email": customer_email, "name": customer_name,
-                 "address": shipping_address, "user_id": user_id, "payment": payment_method}
-            )
+                """
+                insert_params = {"id": order_id, "total": total_price, "now": now,
+                                 "email": customer_email, "name": customer_name,
+                                 "address": shipping_address, "user_id": user_id, "payment": payment_method}
+            
+            connection.execute(text(insert_sql), insert_params)
             for item_data in order_items_to_create:
                 connection.execute(
                     text('INSERT INTO "OrderItem" (id, "orderId", "productId", quantity, price) VALUES (:id, :orderId, :productId, :quantity, :price)'),

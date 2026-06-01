@@ -1,6 +1,7 @@
 from sqlalchemy import text
 import logging
 from app.tools.base import engine
+from app.core.auth import CURRENT_TENANT_DB_ID
 
 logger = logging.getLogger(__name__)
 
@@ -15,13 +16,18 @@ def search_products(query: str) -> str:
     Returns:
         str: A stringified list of matching products or a not found message.
     """
-    logger.info(f"Searching products with query: {query}")
+    tenant_id = CURRENT_TENANT_DB_ID.get()
+    logger.info(f"Searching products with query: {query}, Tenant: {tenant_id}")
     try:
         with engine.connect() as connection:
-            result = connection.execute(
-                text('SELECT id, name, description, price, category, stock, "imageUrl", details FROM "Product" WHERE name ILIKE :query OR category ILIKE :query OR description ILIKE :query'),
-                {"query": f"%{query}%"}
-            )
+            sql = 'SELECT id, name, description, price, category, stock, "imageUrl", details FROM "Product" WHERE (name ILIKE :query OR category ILIKE :query OR description ILIKE :query)'
+            params = {"query": f"%{query}%"}
+            
+            if tenant_id:
+                sql += ' AND "tenantId" = :tenant_id'
+                params["tenant_id"] = tenant_id
+                
+            result = connection.execute(text(sql), params)
             products = [dict(row._mapping) for row in result]
             if not products:
                 return "No products found matching your search."

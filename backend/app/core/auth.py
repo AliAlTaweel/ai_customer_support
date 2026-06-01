@@ -6,13 +6,19 @@ from typing import Optional
 import logging
 import time
 
+from contextvars import ContextVar
+
 logger = logging.getLogger(__name__)
+
+# ContextVar to store current Clerk Organization ID for multi-tenant isolation
+CURRENT_ORG_ID: ContextVar[Optional[str]] = ContextVar("current_org_id", default=None)
 
 
 class UserContext(BaseModel):
     user_id: Optional[str] = None
     email: Optional[str] = None
     full_name: Optional[str] = None
+    org_id: Optional[str] = None
     is_authenticated: bool = False
 
 
@@ -113,6 +119,7 @@ async def get_current_user(
             user_id=None,
             email=None,
             full_name="Guest",
+            org_id=None,
             is_authenticated=False,
         )
 
@@ -140,9 +147,13 @@ async def get_current_user(
     # Debug: log payload to see if sub is present
     logger.debug(f"Auth Payload: {payload}")
     
+    org_id = payload.get("org_id")
+    CURRENT_ORG_ID.set(org_id)
+    
     return UserContext(
         user_id=payload.get("sub"),
         email=payload.get("email") or payload.get("primary_email_address") or payload.get("email_address"),
         full_name=full_name,
+        org_id=org_id,
         is_authenticated=True,
     )

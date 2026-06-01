@@ -1,13 +1,12 @@
 generator client {
   provider        = "prisma-client-js"
-  previewFeatures = ["driverAdapters", "postgresqlExtensions"]
+  previewFeatures = ["driverAdapters"]
   binaryTargets   = ["native", "rhel-openssl-1.0.x", "rhel-openssl-3.0.x", "linux-arm64-openssl-1.0.x", "linux-arm64-openssl-3.0.x"]
   output          = "../src/generated/client"
 }
 
 datasource db {
   provider   = "postgresql"
-  extensions = [vector]
 }
 
 /// Represents a SaaS Tenant (Business Workspace) mapped directly to a Clerk Organization.

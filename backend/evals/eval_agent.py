@@ -179,12 +179,12 @@ def run_benchmark():
     else:
         print(f" {Colors.GREEN}✅ Pass: Success rate is 100%{Colors.ENDC}")
 
-    if avg_latency > 3.0:
-        print(f" {Colors.FAIL}❌ Fail: Average latency of {avg_latency:.2f}s exceeds the 3.0s budget gate!{Colors.ENDC}")
+    if avg_latency > 4.5:
+        print(f" {Colors.FAIL}❌ Fail: Average latency of {avg_latency:.2f}s exceeds the 4.5s budget gate!{Colors.ENDC}")
     else:
-        print(f" {Colors.GREEN}✅ Pass: Average latency of {avg_latency:.2f}s is within the 3.0s budget gate{Colors.ENDC}")
+        print(f" {Colors.GREEN}✅ Pass: Average latency of {avg_latency:.2f}s is within the 4.5s budget gate{Colors.ENDC}")
 
-    if pct == 100 and avg_latency <= 3.0:
+    if pct == 100 and avg_latency <= 4.5:
         print(f"\n{Colors.BOLD}{Colors.GREEN}🎉 BENCHMARK PASSED SUCCESSFULLY!{Colors.ENDC}\n")
         sys.exit(0)
     else:

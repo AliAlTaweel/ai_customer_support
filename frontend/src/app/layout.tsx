@@ -13,6 +13,8 @@ import { TooltipProvider } from "@/components/ui/tooltip";
 import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
 import { Menu } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { ThemeProvider } from "@/components/theme-provider";
+import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -41,7 +43,7 @@ export default async function RootLayout({
 
     return (
       <ClerkProvider proxyUrl={process.env.NEXT_PUBLIC_CLERK_PROXY_URL}>
-        <html lang="en" className="dark" suppressHydrationWarning>
+        <html lang="en" suppressHydrationWarning>
           <body
             suppressHydrationWarning
             className={cn(
@@ -50,6 +52,12 @@ export default async function RootLayout({
               outfit.variable
             )}
           >
+            <ThemeProvider
+              attribute="class"
+              defaultTheme="dark"
+              enableSystem
+              disableTransitionOnChange
+            >
             <header className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-md">
               <div className="container mx-auto px-4 h-20 flex items-center justify-between">
                 <div className="flex items-center gap-2">
@@ -92,6 +100,7 @@ export default async function RootLayout({
                   </div>
                   
                   <CartSheet />
+                  <ThemeToggle />
                   
                   {!userId ? (
                     <div className="flex items-center gap-2">
@@ -124,12 +133,13 @@ export default async function RootLayout({
                 </div>
               </div>
             </header>
-            <TooltipProvider>
-              <main className="pt-20">
-                {children}
-              </main>
-              <ChatInterface />
-            </TooltipProvider>
+              <TooltipProvider>
+                <main className="pt-20">
+                  {children}
+                </main>
+                <ChatInterface />
+              </TooltipProvider>
+            </ThemeProvider>
           </body>
         </html>
       </ClerkProvider>

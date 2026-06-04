@@ -1,10 +1,98 @@
 import logging
 import re
 from typing import List, Dict, Any, Optional
+from app.tools.faq_tools import GeminiEmbeddings
 
 logger = logging.getLogger(__name__)
 
+def cosine_similarity(v1: List[float], v2: List[float]) -> float:
+    dot_product = sum(a * b for a, b in zip(v1, v2))
+    magnitude_v1 = sum(a * a for a in v1) ** 0.5
+    magnitude_v2 = sum(a * a for a in v2) ** 0.5
+    if magnitude_v1 == 0 or magnitude_v2 == 0:
+        return 0.0
+    return dot_product / (magnitude_v1 * magnitude_v2)
+
+class SemanticRouter:
+    def __init__(self):
+        self.embeddings_service = GeminiEmbeddings()
+        self.intents = {
+            "GREETING": ["hello", "hi", "hey there", "greetings", "good morning", "good afternoon"],
+            "ORDER_STATUS": ["where is my order", "track my package", "order status update", "check my order", "is my order shipped", "where is my delivery"],
+            "ORDER_CANCELLATION": ["cancel my order", "cancellation request", "i want to cancel my order", "stop order processing", "refund/cancel order"],
+            "COMPLAINT": ["file a complaint", "submit a complaint", "complain about service", "send message to administration", "poor customer service complaint"],
+            "GENERAL_FAQ": ["what is your return policy", "how do I pay", "shipping methods and hours", "refund policy details", "contact support details"]
+        }
+        self.intent_vectors = {}
+        self.initialized = False
+
+    def initialize(self):
+        if self.initialized:
+            return
+        try:
+            logger.info("Initializing Semantic Router intent vectors in a single batch...")
+            import google.generativeai as genai
+            
+            all_phrases = []
+            phrase_to_intent = []
+            
+            for intent, phrases in self.intents.items():
+                for phrase in phrases:
+                    all_phrases.append(phrase)
+                    phrase_to_intent.append(intent)
+            
+            # Batch call to embeddings API
+            response = genai.embed_content(
+                model=self.embeddings_service.model_name,
+                content=all_phrases,
+                task_type="retrieval_query"
+            )
+            
+            embeddings = response["embedding"]
+            
+            # Initialize vectors lists
+            for intent in self.intents.keys():
+                self.intent_vectors[intent] = []
+                
+            # Distribute embeddings
+            for intent, vector in zip(phrase_to_intent, embeddings):
+                self.intent_vectors[intent].append(vector)
+                
+            self.initialized = True
+            logger.info("Semantic Router intent vectors initialized successfully in a single batch.")
+        except Exception as e:
+            logger.error(f"Failed to initialize Semantic Router: {e}")
+
+    def route(self, query: str, threshold: float = 0.75) -> str:
+        self.initialize()
+        if not self.initialized:
+            return "AGENT_FALLBACK"
+            
+        try:
+            query_vector = self.embeddings_service.embed_query(query)
+            best_intent = "AGENT_FALLBACK"
+            best_score = -1.0
+            
+            for intent, vectors in self.intent_vectors.items():
+                for vector in vectors:
+                    score = cosine_similarity(query_vector, vector)
+                    if score > best_score:
+                        best_score = score
+                        best_intent = intent
+            
+            logger.info(f"Semantic Routing score: {best_intent} with score {best_score:.4f} for query '{query}'")
+            if best_score >= threshold:
+                return best_intent
+        except Exception as e:
+            logger.error(f"Error during semantic routing: {e}")
+            
+        return "AGENT_FALLBACK"
+
 class FastTrackService:
+    def __init__(self):
+        self.router = SemanticRouter()
+        self.router.initialize()
+
     def handle_immediate_responses(self, user_message: str, clean_msg: str, state: Dict[str, Any], user_context: Any = None, user_id: str = None) -> Optional[Dict[str, Any]]:
         """
         Handles non-LLM immediate responses like confirmations and aborts.

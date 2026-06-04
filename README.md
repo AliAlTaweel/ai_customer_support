@@ -90,10 +90,10 @@ graph TD
 ## ⚡ Core Architectural Components
 
 ### 🛡️ GDPR Privacy Scrubber (Interceptor Layer)
-Sensitive data governance is enforced before runtime calls. A robust middleware interceptor parses user input for names, physical addresses, and contact details, replacing them with reversible pseudonymization tokens. This ensures zero external leaking of user identity to SaaS LLM endpoints.
+Sensitive data governance is enforced before runtime calls. A robust middleware interceptor parses user input for names, physical addresses, and contact details, replacing them with cryptographically secure, stateless **Symmetric-Encryption (`Fernet`)** tokens: `[ENC_<TYPE>:<CIPHERTEXT>]`. This enables infinite horizontal scaling across multiple EC2 server nodes without any shared database or in-memory session-state dependencies.
 
-### 🧭 Intent Routing & Heuristic Bypass
-To shave user latency down by over 70%, inputs pass through a pre-LLM heuristic evaluator. Common operations (greetings, status checks) trigger specialized shortcuts return in milliseconds, preserving GPU compute and minimizing API costs.
+### 🧭 Semantic Intent Routing & Bypass
+To shave user latency down by over 70%, inputs pass through a hybrid **Semantic Intent Router** utilizing `gemini-embedding-2` vector embeddings and cosine similarity checks alongside high-speed greeting shortcuts. Common operations (greetings, order cancellations, status checks, FAQs) are classified dynamically, bypassing the heavy agent loop to return responses in milliseconds while preserving GPU compute budget. All intent anchor embeddings are pre-loaded in a single batched request on startup.
 
 ### 🤖 Native Multi-Tool Agent (Google AI SDK)
 Complex inquiries trigger the Autonomous Orchestrator. The orchestrator decodes natural language intents into functional database calls—autonomously verifying product stock, processing order updates, and scraping internal policy documentation instantly.
@@ -156,8 +156,8 @@ npm run dev
 | **AI Pipeline & Evaluators** | Python-native Regression Framework, Observability JSON Logging |
 | **Agentic Orchestration** | Google AI SDK (Native Function Calling), FastAPI |
 | **LLMs** | Google Gemini Flash, LiteLLM (Evaluation) |
-| **Security & Compliance** | Regex-Token Pseudonymization Layer (GDPR ready) |
-| **Data Platform & RAG** | Supabase PostgreSQL & Storage, LangChain, FAISS Vector Index |
+| **Security & Compliance** | Stateless Symmetric-Encryption PII Tokenization (GDPR compliant) |
+| **Data Platform & RAG** | Supabase PostgreSQL (SQLAlchemy ORM), LangChain, FAISS Vector Index |
 | **Frontend Interface** | Next.js 16, TypeScript, Shadcn UI, Framer Motion |
 | **Ops & Infrastructure** | Docker & Docker-Compose, Nginx SSL Proxying, AWS EC2 |
 

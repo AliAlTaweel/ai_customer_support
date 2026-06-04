@@ -28,10 +28,38 @@ except Exception as e:
     analyzer = None
     anonymizer = None
 
+def encrypt_val_fn(plaintext: str) -> str:
+    try:
+        from cryptography.fernet import Fernet
+        from app.core.config import settings
+        key = getattr(settings, "ENCRYPTION_KEY", "3q2b9A8x7C6v5B4n3M2k1L0j9K8h7G6f5D4s3A2q1w=")
+        if isinstance(key, str):
+            key = key.encode()
+        fernet = Fernet(key)
+        encrypted = fernet.encrypt(plaintext.encode())
+        return encrypted.decode('utf-8')
+    except Exception as e:
+        logger.error(f"Failed to encrypt token: {e}")
+        return plaintext
+
+def decrypt_val_fn(ciphertext: str) -> str:
+    try:
+        from cryptography.fernet import Fernet
+        from app.core.config import settings
+        key = getattr(settings, "ENCRYPTION_KEY", "3q2b9A8x7C6v5B4n3M2k1L0j9K8h7G6f5D4s3A2q1w=")
+        if isinstance(key, str):
+            key = key.encode()
+        fernet = Fernet(key)
+        decrypted = fernet.decrypt(ciphertext.encode())
+        return decrypted.decode('utf-8')
+    except Exception as e:
+        logger.error(f"Failed to decrypt token: {e}")
+        return None
+
 class PrivacyScrubber:
     """
     Utility class to mask Personally Identifiable Information (PII) 
-    before it is sent to an LLM.
+    before it is sent to an LLM using stateless symmetric encryption.
     """
     
     @staticmethod
@@ -49,23 +77,19 @@ class PrivacyScrubber:
     def mask_name(name: Optional[str]) -> str:
         if not name:
             return "Customer"
-        # We can keep the first name if needed for personalization, 
-        # but for strict GDPR, we replace it.
         return f"{name[0]}***" if len(name) > 1 else "[CUSTOMER]"
 
     @staticmethod
     def mask_address(address: Optional[str]) -> str:
         if not address:
             return "N/A"
-        # Often LLMs just need to know IF there is an address or what the city is.
-        # This masks everything but the general location if possible.
         return "[REDACTED_SHIPPING_ADDRESS]"
 
     @staticmethod
     def pseudonymize_text(text: Optional[str]) -> tuple[str, dict[str, str]]:
         """
-        Replaces PII with unique tokens and returns the mapping.
-        Example: "My email is test@example.com" -> ("My email is [EMAIL_0]", {"[EMAIL_0]": "test@example.com"})
+        Replaces PII with unique encrypted tokens and returns a mapping.
+        Example: "My email is test@example.com" -> ("My email is [ENC_EMAIL:gAAAAAB...]", {"[ENC_EMAIL:gAAAAAB...]": "test@example.com"})
         """
         if not text:
             return "", {}
@@ -78,14 +102,13 @@ class PrivacyScrubber:
                 results = analyzer.analyze(text=scrubbed, language='en')
                 logger.debug(f"Presidio results: {results}")
                 sorted_results = sorted(results, key=lambda x: x.start, reverse=True)
-                counts = {}
                 for result in sorted_results:
                     entity_type = result.entity_type
                     if entity_type in ['DATE_TIME', 'NRP']:
                         continue
-                    counts[entity_type] = counts.get(entity_type, 0) + 1
-                    token = f"[{entity_type}_{counts[entity_type]}]"
                     original_value = scrubbed[result.start:result.end]
+                    encrypted_value = encrypt_val_fn(original_value)
+                    token = f"[ENC_{entity_type}:{encrypted_value}]"
                     mapping[token] = original_value
                     scrubbed = scrubbed[:result.start] + token + scrubbed[result.end:]
                     logger.debug(f"Scrubbed after {entity_type}: {scrubbed}")
@@ -94,36 +117,35 @@ class PrivacyScrubber:
         
         # 1. Pseudonymize Emails (Fallback/Regex)
         emails = re.findall(r'[a-zA-Z0-9_.+-]+@[a-zA-Z0-9-]+\.[a-zA-Z0-9-.]+', scrubbed)
-        for i, email in enumerate(emails):
-            token = f"[EMAIL_REGEX_{i}]"
+        for email in list(set(emails)):
+            encrypted_value = encrypt_val_fn(email)
+            token = f"[ENC_EMAIL:{encrypted_value}]"
             mapping[token] = email
             scrubbed = scrubbed.replace(email, token)
             
         # 2. Pseudonymize Phone Numbers (Fallback/Regex)
         phone_matches = list(re.finditer(r'(\+?\d{1,3}[-.\s]?)?\(?\d{3}\)?[-.\s]?\d{3}[-.\s]?\d{4,6}', scrubbed))
-        for i, match in enumerate(phone_matches):
-            phone = match.group(0)
-            token = f"[PHONE_REGEX_{i}]"
-            mapping[token] = phone
-            scrubbed = scrubbed.replace(phone, token)
+        for match in list(set([m.group(0) for m in phone_matches])):
+            encrypted_value = encrypt_val_fn(match)
+            token = f"[ENC_PHONE:{encrypted_value}]"
+            mapping[token] = match
+            scrubbed = scrubbed.replace(match, token)
             
         # 3. Pseudonymize potential Addresses (Basic Regex Fallback)
-        # Matches typical patterns like "123 Main St", "Apt 4B", etc.
         address_patterns = [
             r'\d+\s+[A-Z][a-z]+\s+(Street|St|Avenue|Ave|Road|Rd|Boulevard|Blvd|Lane|Ln|Drive|Dr|Court|Ct)',
             r'P\.?O\.?\s*Box\s*\d+',
             r'[A-Z][a-z]+,\s*[A-Z]{2}\s*\d{5}'
         ]
-        addr_count = 0
         for pattern in address_patterns:
             matches = re.finditer(pattern, scrubbed, re.IGNORECASE)
             for match in matches:
                 addr = match.group(0)
                 if addr not in mapping.values():
-                    token = f"[ADDRESS_REGEX_{addr_count}]"
+                    encrypted_value = encrypt_val_fn(addr)
+                    token = f"[ENC_ADDRESS:{encrypted_value}]"
                     mapping[token] = addr
                     scrubbed = scrubbed.replace(addr, token)
-                    addr_count += 1
             
         if mapping:
             logger.info(f"Pseudonymization complete. Tokens created: {list(mapping.keys())}")
@@ -131,27 +153,38 @@ class PrivacyScrubber:
         return scrubbed, mapping
 
     @staticmethod
-    def detokenize(text: str, mapping: dict[str, str]) -> str:
-        """Restores pseudonymized tokens within a text to their original values."""
+    def detokenize(text: str, mapping: dict[str, str] = None) -> str:
+        """Restores pseudonymized tokens within a text to their original values statelessly."""
         if not text or not isinstance(text, str):
             return text
         
         result = text
-        # Sorting by length descending ensures that longer tokens (if any overlap) are replaced first
-        sorted_tokens = sorted(mapping.keys(), key=len, reverse=True)
-        for token in sorted_tokens:
-            val = mapping[token]
-            if val is not None:
-                result = result.replace(token, str(val))
-            else:
-                # If the original value was None, we remove the token to avoid 
-                # leaking the placeholder to the user, or we can replace with a string "N/A"
-                result = result.replace(token, "")
+        
+        # 1. Stateless decryption of tokens matching [ENC_TYPE:CIPHERTEXT]
+        try:
+            token_pattern = r"\[ENC_[A-Z_]+:([A-Za-z0-9\-_=]+)\]"
+            def decrypt_match(match):
+                ciphertext = match.group(1)
+                decrypted = decrypt_val_fn(ciphertext)
+                return decrypted if decrypted is not None else match.group(0)
+            result = re.sub(token_pattern, decrypt_match, result)
+        except Exception as e:
+            logger.error(f"Error in stateless detokenize: {e}")
+            
+        # 2. Backward compatibility with mapping if any exists
+        if mapping:
+            sorted_tokens = sorted(mapping.keys(), key=len, reverse=True)
+            for token in sorted_tokens:
+                val = mapping[token]
+                if val is not None:
+                    result = result.replace(token, str(val))
+                else:
+                    result = result.replace(token, "")
         return result
 
     @staticmethod
     def scrub_dict(data: dict, sensitive_fields: list = None) -> dict:
-        """Helper to scrub a dictionary of sensitive fields."""
+        """Helper to scrub a dictionary of sensitive fields by encrypting them."""
         if sensitive_fields is None:
             sensitive_fields = ["customerEmail", "customerName", "shippingAddress", "email", "name", "address"]
         
@@ -159,10 +192,16 @@ class PrivacyScrubber:
         for field in sensitive_fields:
             if field in scrubbed:
                 val = scrubbed[field]
+                if not val or not isinstance(val, str):
+                    continue
+                # If it's already a token, don't double-encrypt
+                if val.startswith("[ENC_") and val.endswith("]"):
+                    continue
+                
                 if "email" in field.lower():
-                    scrubbed[field] = PrivacyScrubber.mask_email(val)
+                    scrubbed[field] = f"[ENC_EMAIL:{encrypt_val_fn(val)}]"
                 elif "name" in field.lower():
-                    scrubbed[field] = PrivacyScrubber.mask_name(val)
+                    scrubbed[field] = f"[ENC_NAME:{encrypt_val_fn(val)}]"
                 elif "address" in field.lower():
-                    scrubbed[field] = PrivacyScrubber.mask_address(val)
+                    scrubbed[field] = f"[ENC_ADDRESS:{encrypt_val_fn(val)}]"
         return scrubbed

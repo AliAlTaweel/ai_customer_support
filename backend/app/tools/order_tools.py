@@ -4,12 +4,14 @@ import json
 import ast
 from typing import Any, Optional
 from datetime import datetime
-from sqlalchemy import text
+from sqlalchemy.orm import sessionmaker
 from app.tools.base import engine, detokenize_val
-from app.core.privacy import PrivacyScrubber, PII_MAPPING
+from app.core.privacy import PrivacyScrubber
 from app.core.auth import CURRENT_TENANT_DB_ID
+from app.models.database import Order, OrderItem, Product
 
 logger = logging.getLogger(__name__)
+Session = sessionmaker(bind=engine)
 
 def get_order_details(order_id: str = None, email: str = None, customer_email: str = None, user_id: str = None) -> str:
     """
@@ -22,9 +24,6 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
         customer_email: The authenticated customer's email.
         user_id: The authenticated user's ID.
     """
-    mapping = PII_MAPPING.get() or {}
-    auth_email = mapping.get("[AUTH_EMAIL]")
-    
     order_id = detokenize_val(order_id)
     email = detokenize_val(email)
     customer_email = detokenize_val(customer_email)
@@ -36,59 +35,69 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
         if len(order_id) == 36 and order_id.count('-') >= 4 and not order_id.upper().startswith("ORD"):
             order_id = f"ORD-{order_id}"
             
-    if auth_email and not customer_email and not email:
-        customer_email = auth_email
-        
     tenant_id = CURRENT_TENANT_DB_ID.get()
         
     logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}, UserID: {user_id}, Tenant: {tenant_id}")
     try:
-        with engine.connect() as connection:
+        with Session() as session:
+            query = session.query(Order)
+            
             if order_id:
+                query = query.filter(Order.id.ilike(order_id))
                 target_filter_email = customer_email or email
                 if user_id:
-                    sql = 'SELECT * FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id'
-                    params = {"order_id": order_id, "user_id": user_id}
+                    query = query.filter(Order.userId == user_id)
                 elif target_filter_email:
-                    sql = 'SELECT * FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :email'
-                    params = {"order_id": order_id, "email": target_filter_email}
+                    query = query.filter(Order.customerEmail.ilike(target_filter_email))
                 else:
                     return "For security reasons, please provide the email address associated with the order."
             elif user_id:
-                sql = 'SELECT * FROM "Order" WHERE "userId" = :user_id'
-                params = {"user_id": user_id}
+                query = query.filter(Order.userId == user_id)
             elif customer_email or email:
                 target_email = customer_email or email
-                sql = 'SELECT * FROM "Order" WHERE "customerEmail" ILIKE :email'
-                params = {"email": target_email}
+                query = query.filter(Order.customerEmail.ilike(target_email))
             else:
                 return "Please provide either an order ID or your email address."
 
             if tenant_id:
-                sql += ' AND "tenantId" = :tenant_id'
-                params["tenant_id"] = tenant_id
+                query = query.filter(Order.tenantId == tenant_id)
 
             if not order_id:
-                sql += ' ORDER BY "createdAt" DESC LIMIT 1'
+                query = query.order_by(Order.createdAt.desc())
 
-            result = connection.execute(text(sql), params)
-            order = result.fetchone()
-            
+            order = query.first()
             if not order:
                 return "Order not found or you do not have permission to view it."
             
-            order_dict = dict(order._mapping)
-            # Ensure datetime is stringified for safety
-            for key, val in order_dict.items():
-                if isinstance(val, (datetime)):
-                    order_dict[key] = val.isoformat()
-
-            items_result = connection.execute(
-                text('SELECT p.name, oi.quantity, oi.price FROM "OrderItem" oi JOIN "Product" p ON oi."productId" = p.id WHERE oi."orderId" = :order_id'),
-                {"order_id": order_dict['id']}
-            )
-            items = [dict(row._mapping) for row in items_result]
-            order_dict['items'] = items
+            items = []
+            for item in order.items:
+                items.append({
+                    "name": item.product.name,
+                    "quantity": item.quantity,
+                    "price": item.price
+                })
+                
+            order_dict = {
+                "id": order.id,
+                "userId": order.userId,
+                "total": order.total,
+                "status": order.status,
+                "createdAt": order.createdAt.isoformat() if order.createdAt else None,
+                "updatedAt": order.updatedAt.isoformat() if order.updatedAt else None,
+                "paymentMethod": order.paymentMethod,
+                "shippingAddress": order.shippingAddress,
+                "shippingCity": order.shippingCity,
+                "shippingCountry": order.shippingCountry,
+                "shippingState": order.shippingState,
+                "shippingZip": order.shippingZip,
+                "customerEmail": order.customerEmail,
+                "customerName": order.customerName,
+                "trackingNumber": order.trackingNumber,
+                "carrier": order.carrier,
+                "tenantId": order.tenantId,
+                "items": items
+            }
+            
             scrubbed_order = PrivacyScrubber.scrub_dict(order_dict)
             return str(scrubbed_order)
     except Exception as e:
@@ -127,40 +136,30 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
     
     logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id}, Tenant: {tenant_id})")
     try:
-        with engine.connect() as connection:
-            # 1. Fetch current status and verify ownership
+        with Session() as session:
+            query = session.query(Order).filter(Order.id.ilike(order_id))
+            
             if user_id:
-                check_query_str = 'SELECT status FROM "Order" WHERE id ILIKE :order_id AND "userId" = :user_id'
-                params = {"order_id": order_id, "user_id": user_id}
+                query = query.filter(Order.userId == user_id)
             elif customer_email:
-                check_query_str = 'SELECT status FROM "Order" WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email'
-                params = {"order_id": order_id, "customer_email": customer_email}
+                query = query.filter(Order.customerEmail.ilike(customer_email))
             else:
                 return "Error: Ownership verification required. For security, please provide the email address associated with this order to proceed with cancellation."
 
             if tenant_id:
-                check_query_str += ' AND "tenantId" = :tenant_id'
-                params["tenant_id"] = tenant_id
+                query = query.filter(Order.tenantId == tenant_id)
 
-            check = connection.execute(text(check_query_str), params).fetchone()
-            if not check:
+            order = query.first()
+            if not order:
                 return "Order not found or you do not have permission to cancel it."
             
-            current_status = str(check[0]).upper().strip()
+            current_status = str(order.status).upper().strip()
             if current_status not in ['PENDING', 'PROCESSING', 'SHIPPED']:
                 return f"Cannot cancel order with status: {current_status}. Only PENDING, PROCESSING, or SHIPPED orders can be cancelled."
             
-            # 2. Perform the update using a clean, separate query
-            if user_id:
-                update_query_str = 'UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "userId" = :user_id'
-            else:
-                update_query_str = 'UPDATE "Order" SET status = \'CANCELLED\', "updatedAt" = NOW() WHERE id ILIKE :order_id AND "customerEmail" ILIKE :customer_email'
-                
-            if tenant_id:
-                update_query_str += ' AND "tenantId" = :tenant_id'
-
-            connection.execute(text(update_query_str), params)
-            connection.commit()
+            order.status = 'CANCELLED'
+            order.updatedAt = datetime.now()
+            session.commit()
             return f"Order {order_id} has been successfully cancelled."
     except Exception as e:
         logger.error(f"Error cancelling order: {e}")
@@ -201,66 +200,65 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
         return "Error: A valid shipping address is required to place an order."
 
     try:
-        with engine.begin() as connection:
-            total_price = 0.0
-            order_items_to_create = []
-            for item in items:
-                name = detokenize_val(item.get('product_name'))
-                qty = item.get('quantity', 1)
+        with Session() as session:
+            try:
+                total_price = 0.0
+                order_items_to_create = []
+                for item in items:
+                    name = detokenize_val(item.get('product_name'))
+                    qty = item.get('quantity', 1)
+                    
+                    product_query = session.query(Product).filter(Product.name == name)
+                    if tenant_id:
+                        product_query = product_query.filter(Product.tenantId == tenant_id)
+
+                    product = product_query.first()
+                    if not product:
+                        return f"Error: Product '{name}' not found."
+                    
+                    if product.stock < qty:
+                        return f"Error: Not enough stock for '{name}'. Available: {product.stock}"
+                    
+                    total_price += product.price * qty
+                    order_items_to_create.append({
+                        "product": product,
+                        "quantity": qty,
+                        "price": product.price
+                    })
+
+                order_id = f"ORD-{str(uuid.uuid4())}"
+                new_order = Order(
+                    id=order_id,
+                    total=total_price,
+                    status='PENDING',
+                    createdAt=datetime.now(),
+                    updatedAt=datetime.now(),
+                    customerEmail=customer_email,
+                    customerName=customer_name,
+                    shippingAddress=shipping_address,
+                    paymentMethod=payment_method,
+                    userId=user_id,
+                    tenantId=tenant_id
+                )
+                session.add(new_order)
                 
-                product_sql = 'SELECT id, price, stock FROM "Product" WHERE name = :name'
-                product_params = {"name": name}
-                if tenant_id:
-                    product_sql += ' AND "tenantId" = :tenant_id'
-                    product_params["tenant_id"] = tenant_id
-
-                product = connection.execute(text(product_sql), product_params).fetchone()
-                if not product:
-                    return f"Error: Product '{name}' not found."
-                product_data = product._mapping
-                if product_data['stock'] < qty:
-                    return f"Error: Not enough stock for '{name}'. Available: {product_data['stock']}"
-                total_price += product_data['price'] * qty
-                order_items_to_create.append({
-                    "id": str(uuid.uuid4()),
-                    "productId": product_data['id'],
-                    "quantity": qty,
-                    "price": product_data['price']
-                })
-
-            order_id = f"ORD-{str(uuid.uuid4())}"
-            now = datetime.now().isoformat()
-            
-            if tenant_id:
-                insert_sql = """
-                    INSERT INTO "Order" (id, total, status, "createdAt", "updatedAt", "customerEmail", "customerName", "shippingAddress", "userId", "paymentMethod", "tenantId")
-                    VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id, :payment, :tenant_id)
-                """
-                insert_params = {"id": order_id, "total": total_price, "now": now,
-                                 "email": customer_email, "name": customer_name,
-                                 "address": shipping_address, "user_id": user_id, "payment": payment_method,
-                                 "tenant_id": tenant_id}
-            else:
-                insert_sql = """
-                    INSERT INTO "Order" (id, total, status, "createdAt", "updatedAt", "customerEmail", "customerName", "shippingAddress", "userId", "paymentMethod")
-                    VALUES (:id, :total, 'PENDING', :now, :now, :email, :name, :address, :user_id, :payment)
-                """
-                insert_params = {"id": order_id, "total": total_price, "now": now,
-                                 "email": customer_email, "name": customer_name,
-                                 "address": shipping_address, "user_id": user_id, "payment": payment_method}
-            
-            connection.execute(text(insert_sql), insert_params)
-            for item_data in order_items_to_create:
-                connection.execute(
-                    text('INSERT INTO "OrderItem" (id, "orderId", "productId", quantity, price) VALUES (:id, :orderId, :productId, :quantity, :price)'),
-                    {"id": item_data['id'], "orderId": order_id, "productId": item_data['productId'],
-                     "quantity": item_data['quantity'], "price": item_data['price']}
-                )
-                connection.execute(
-                    text('UPDATE "Product" SET stock = stock - :qty WHERE id = :pid'),
-                    {"qty": item_data['quantity'], "pid": item_data['productId']}
-                )
-            return f"Successfully placed order! Order ID: {order_id}. Total: ${total_price:.2f}. Shipping to: {shipping_address}"
+                for item_data in order_items_to_create:
+                    prod = item_data["product"]
+                    new_item = OrderItem(
+                        id=str(uuid.uuid4()),
+                        orderId=order_id,
+                        productId=prod.id,
+                        quantity=item_data["quantity"],
+                        price=item_data["price"]
+                    )
+                    session.add(new_item)
+                    prod.stock -= item_data["quantity"]
+                    
+                session.commit()
+                return f"Successfully placed order! Order ID: {order_id}. Total: ${total_price:.2f}. Shipping to: {shipping_address}"
+            except Exception as inner_e:
+                session.rollback()
+                raise inner_e
     except Exception as e:
         logger.error(f"Error placing order: {e}")
         return f"Error placing order: {str(e)}"

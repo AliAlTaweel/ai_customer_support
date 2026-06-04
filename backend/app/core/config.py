@@ -29,6 +29,7 @@ class Settings(BaseSettings):
 
     # GDPR / Data Retention
     DATA_RETENTION_DAYS: int = 30
+    ENCRYPTION_KEY: str = "Z17gdCF4HXWFvutl3FZHw_SxXhrvgOZzrgy-4uIIa9c="
 
     # Database Settings
     DATABASE_URL: Optional[str] = None

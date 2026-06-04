@@ -101,6 +101,14 @@ class NativeAgentService:
             telemetry_service.record_metric("FAST_TRACK", resp_time)
             return fast_response
 
+        # High-speed shortcut for basic greetings to guarantee <0.05s response latency (bypassing Presidio PII scrubbing)
+        if clean_msg in ["hi", "hello", "hey", "hello there", "hi there", "greetings", "good morning", "good afternoon", "good evening"]:
+            resp = self.fast_track.get_greeting(user_name or "there")
+            resp_time = round(time.time() - start_time, 2)
+            resp["usage"]["response_time"] = resp_time
+            telemetry_service.record_metric("FAST_TRACK", resp_time)
+            return resp
+
         # Phase 2: Privacy Pseudonymization
         scrubbed_message, pii_mapping = PrivacyScrubber.pseudonymize_text(user_message)
         pii_mapping.update(state.get("pii_mapping", {}))
@@ -111,35 +119,49 @@ class NativeAgentService:
             
         PII_MAPPING.set(pii_mapping)
 
-        # Phase 3: Heuristics & Static Routing
-        if clean_msg in ["hi", "hello", "hey", "hello there", "hi there", "greetings", "good morning", "good afternoon", "good evening"]:
-            resp = self.fast_track.get_greeting(user_name or "there")
-            resp_time = round(time.time() - start_time, 2)
-            resp["usage"]["response_time"] = resp_time
-            telemetry_service.record_metric("FAST_TRACK", resp_time)
-            return resp
-
-        cancel_match = re.search(r"cancel\s+(?:this\s+)?order\s+([a-f0-9\-]{36})", clean_msg)
-        if cancel_match:
-            order_id = cancel_match.group(1)
-            msg = f"We can assist with cancelling order {order_id}. Please reply 'yes' to confirm."
-            return {"result": msg, "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0, "response_time": round(time.time() - start_time, 2)}, "state_update": {"pending_confirmation": order_id}}
-
-        status_keywords = ["status", "track", "truck", "where", "info", "lookup"]
-        if any(kw in clean_msg for kw in status_keywords) and re.search(r"([a-f0-9\-]{36})", clean_msg):
-            order_id = re.search(r"([a-f0-9\-]{36})", clean_msg).group(1)
-            resp = self.fast_track._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
-            if resp:
-                resp_time = round(time.time() - start_time, 2)
-                resp["usage"]["response_time"] = resp_time
-                resp["result"] = self.cleaner.clean_and_format(resp["result"], state.get("pii_mapping", {}))
-                telemetry_service.record_metric("FAST_TRACK", resp_time)
-                return resp
-
+        # Phase 3: Semantic Routing
         if len(clean_msg) < 2: 
             resp = self.fast_track.get_clarification_response()
             resp["usage"] = {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0, "response_time": round(time.time() - start_time, 2)}
             return resp
+
+        intent = self.fast_track.router.route(clean_msg)
+        if intent == "ORDER_CANCELLATION":
+            cancel_match = re.search(r"([a-f0-9\-]{36})", clean_msg)
+            if cancel_match:
+                order_id = cancel_match.group(1)
+                if len(order_id) == 36 and not order_id.upper().startswith("ORD"):
+                    order_id = f"ORD-{order_id}"
+                msg = f"We can assist with cancelling order {order_id}. Please reply 'yes' to confirm."
+                return {
+                    "result": msg, 
+                    "usage": {"total_tokens": 0, "prompt_tokens": 0, "completion_tokens": 0, "successful_requests": 0, "response_time": round(time.time() - start_time, 2)}, 
+                    "state_update": {"pending_confirmation": order_id}
+                }
+                
+        elif intent == "ORDER_STATUS":
+            status_match = re.search(r"([a-f0-9\-]{36})", clean_msg)
+            if status_match:
+                order_id = status_match.group(1)
+                if len(order_id) == 36 and not order_id.upper().startswith("ORD"):
+                    order_id = f"ORD-{order_id}"
+                resp = self.fast_track._handle_status_inquiry(user_context, user_id, state, order_id=order_id)
+                if resp:
+                    resp_time = round(time.time() - start_time, 2)
+                    resp["usage"]["response_time"] = resp_time
+                    resp["result"] = self.cleaner.clean_and_format(resp["result"], state.get("pii_mapping", {}))
+                    telemetry_service.record_metric("FAST_TRACK", resp_time)
+                    return resp
+                    
+        elif intent == "GENERAL_FAQ":
+            if len(clean_msg.split()) < 15:
+                resp = self.fast_track.handle_faq_fast_track(user_message)
+                if resp:
+                    resp_time = round(time.time() - start_time, 2)
+                    resp["usage"]["response_time"] = resp_time
+                    resp["result"] = self.cleaner.clean_and_format(resp["result"], state.get("pii_mapping", {}))
+                    telemetry_service.record_metric("FAST_TRACK", resp_time)
+                    return resp
 
         # Initialize chat session history
         formatted_history = []

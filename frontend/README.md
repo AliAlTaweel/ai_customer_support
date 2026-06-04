@@ -95,7 +95,7 @@ The frontend chat component sends the conversation history along with the user's
 2. **Fast-Routing**: Immediate handling of simple requests and FAQ inquiries without backend orchestration overhead.
 3. **Signal Parsing**: Robust handling of backend signals (`CHECKOUT_REQUIRED`, `PLACE_ORDER_SUMMARY`, `TRACKING_INFO`) to render interactive UI components, progress indicators, and shipment maps directly in the chat.
 4. **Middleware Security Hardening**: Built-in protection against information disclosure in [proxy.ts](file:///Users/alial-taweel/projects/ai/ai_customer_support_v3/frontend/src/proxy.ts) by scrubbing environment variable keys (`envKeys`) and raw server-side stack traces from client-facing 500 responses.
-5. **Real-time GDPR Masking**: Ensuring user privacy through pseudonymization at the API layer.
+5. **Real-time Stateless PII Masking**: Ensuring user privacy through stateless symmetric encryption (`Fernet`) at the interceptor layer. Tokens encapsulate their own encrypted payloads, avoiding database overhead or in-memory session caches.
 
 ### Shared Infrastructure
-The system uses a unified **Supabase PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.
+The system uses a unified **Supabase PostgreSQL** database. Both the frontend (via Prisma) and the AI backend (via SQLAlchemy ORM) connect to this instance, ensuring that AI agents have real-time access to products, orders, and user data with high-performance query execution.

@@ -1,4 +1,4 @@
-from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey
+from sqlalchemy import Column, String, Float, Integer, DateTime, ForeignKey, ARRAY
 from sqlalchemy.orm import declarative_base, relationship
 from datetime import datetime
 
@@ -94,6 +94,11 @@ class Complaint(Base):
     message = Column(String, nullable=False)
     status = Column(String, default="OPEN", nullable=False)
     priority = Column(String, default="MEDIUM", nullable=False)
+    tags = Column(ARRAY(String), default=[], nullable=False)
+    assignedTo = Column(String, nullable=True)
+    chatSessionId = Column(String, nullable=True)
+    internalNotes = Column(String, nullable=True)
+    resolvedAt = Column(DateTime, nullable=True)
     createdAt = Column(DateTime, default=datetime.utcnow, nullable=False)
     updatedAt = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
     tenantId = Column(String, ForeignKey("Tenant.id"), nullable=True)

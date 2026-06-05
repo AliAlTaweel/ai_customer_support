@@ -35,6 +35,11 @@ The `FastTrackService` coordinates a hybrid **Semantic Intent Router** utilizing
 - **Benefit**: Eliminates the heavy latency, prompt wrappers, and task-switching overhead of legacy agent frameworks (e.g., CrewAI).
 - **Deterministic Output**: Guarantees output formats using Pydantic validation schemas (`ChatResponseSchema`), forcing the model to cleanly return a synthesized user message, UI signals (like `PLACE_ORDER_SUMMARY`), and custom payloads in a single pass with robust function call parsing.
 
+### 4. Ticketing & Customer Complaint Search Tools
+- **submit_complaint**: Creates a database record in Postgres with auto-tagging, priority classification, and chatSessionId binding.
+- **get_user_complaints**: Retrieves all ticket summaries linked to a specific email address.
+- **get_complaint_status**: Fetches detailed status and agent internal notes for a specific ticket ID.
+
 ---
 
 ## 🔄 Request Processing Lifecycle
@@ -140,7 +145,7 @@ docker run -p 3001:3001 --env-file .env luxe-backend
     - `base.py`: Database engine instantiation.
     - `product_tools.py`: Product search and catalog tools.
     - `order_tools.py`: Refactored SQLAlchemy ORM-driven order placement and cancellation.
-    - `support_tools.py`: Company FAQ and policy retrieval.
+    - `support_tools.py`: Classifies complaints, parses keyword tags, and provides email/ID status lookups.
 - `/app/services`: Business logic (Native Gemini agent, Semantic Router, tracking simulation).
 - `/app/core`: Configuration and security settings (stateless Fernet encryption, Presidio analyzer).
 - `/faq_index`: Persistent FAISS vector storage.

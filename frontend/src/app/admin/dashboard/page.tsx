@@ -10,7 +10,10 @@ import {
   adminLogout,
   getAllComplaints,
   updateComplaintStatus,
-  deleteComplaint
+  deleteComplaint,
+  updateComplaintNotes,
+  assignComplaintAgent,
+  getComplaintTranscript
 } from "@/lib/actions/admin";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -87,6 +90,13 @@ export default function AdminDashboard() {
   const [isRefreshing, setIsRefreshing] = useState(false);
   const [showTrackingInput, setShowTrackingInput] = useState<string | null>(null);
   const [trackingInfo, setTrackingInfo] = useState({ number: "", carrier: "UPS" });
+
+  // Support ticket actions and states
+  const [activeTranscript, setActiveTranscript] = useState<any[] | null>(null);
+  const [transcriptLoading, setTranscriptLoading] = useState(false);
+  const [selectedComplaintForTranscript, setSelectedComplaintForTranscript] = useState<any | null>(null);
+  const [editingNotesId, setEditingNotesId] = useState<string | null>(null);
+  const [notesText, setNotesText] = useState("");
 
   useEffect(() => {
     async function checkAuth() {
@@ -176,6 +186,47 @@ export default function AdminDashboard() {
   const handleLogout = async () => {
     await adminLogout();
     router.push("/");
+  };
+
+  const handleViewTranscript = async (complaint: any) => {
+    setSelectedComplaintForTranscript(complaint);
+    setActiveTranscript(null);
+    setTranscriptLoading(true);
+    const sessionId = complaint.chatSessionId || complaint.userId || complaint.customerEmail;
+    if (sessionId) {
+      const result = await getComplaintTranscript(sessionId);
+      if (result.success) {
+        setActiveTranscript(result.messages || []);
+      } else {
+        alert(result.error);
+      }
+    } else {
+      setActiveTranscript([]);
+    }
+    setTranscriptLoading(false);
+  };
+
+  const handleSaveNotes = async (complaintId: string) => {
+    setUpdating(complaintId);
+    const result = await updateComplaintNotes(complaintId, notesText);
+    if (result.success) {
+      setEditingNotesId(null);
+      await fetchComplaints();
+    } else {
+      alert(result.error);
+    }
+    setUpdating(null);
+  };
+
+  const handleAssignAgent = async (complaintId: string, agentName: string) => {
+    setUpdating(complaintId);
+    const result = await assignComplaintAgent(complaintId, agentName);
+    if (result.success) {
+      await fetchComplaints();
+    } else {
+      alert(result.error);
+    }
+    setUpdating(null);
   };
 
   const getStatusColor = (status: string) => {
@@ -462,111 +513,224 @@ export default function AdminDashboard() {
                 <p className="text-muted-foreground">When users send complaints or feedback, they will appear here.</p>
               </Card>
             ) : (
-              complaints.map((complaint) => (
-                <Card key={complaint.id} className="border-none bg-secondary/10 backdrop-blur-xl rounded-[2rem] overflow-hidden group transition-all hover:bg-secondary/15 border border-white/5">
-                  <div className={cn(
-                    "absolute top-0 left-0 w-1 h-full",
-                    complaint.status === "OPEN" ? "bg-yellow-500" : 
-                    complaint.status === "IN_PROGRESS" ? "bg-blue-500" : "bg-green-500"
-                  )} />
-                  
-                  <CardContent className="p-8">
-                    <div className="flex flex-col md:flex-row gap-8">
-                      {/* Left: Metadata */}
-                      <div className="md:w-1/4 space-y-6">
-                        <div className="space-y-4">
-                          <div className="flex items-center justify-between">
-                            <Badge className={cn("rounded-full px-3 py-1 border font-semibold", getStatusColor(complaint.status))}>
-                              {complaint.status}
-                            </Badge>
-                            <Badge className={cn("rounded-full px-3 py-1 border text-[10px] font-bold", getPriorityColor(complaint.priority))}>
-                              {complaint.priority}
-                            </Badge>
-                          </div>
-                          
-                          <div className="space-y-3">
-                            <div className="flex items-center gap-3">
-                              <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
-                                <User className="w-4 h-4 text-primary" />
+              <div className="grid grid-cols-1 gap-6">
+                {complaints.map((complaint) => (
+                  <Card 
+                    key={complaint.id} 
+                    className="relative border-none bg-zinc-900/60 backdrop-blur-xl rounded-[2rem] overflow-hidden group transition-all duration-300 hover:translate-y-[-4px] hover:scale-[1.005] hover:bg-zinc-900/80 hover:border-purple-500/20 border border-white/5 shadow-2xl"
+                  >
+                    {/* Priority vertical stripe accent */}
+                    <div className={cn(
+                      "absolute top-0 left-0 w-1.5 h-full transition-all duration-300",
+                      complaint.priority === "URGENT" ? "bg-red-500 shadow-[0_0_15px_rgba(239,68,68,0.5)] animate-pulse" :
+                      complaint.priority === "HIGH" ? "bg-orange-500" :
+                      complaint.priority === "MEDIUM" ? "bg-yellow-500" : "bg-blue-500"
+                    )} />
+                    
+                    <CardContent className="p-8">
+                      <div className="flex flex-col lg:flex-row gap-8">
+                        {/* Left Column: Metadata & Assignment */}
+                        <div className="lg:w-1/3 space-y-6">
+                          <div className="space-y-4">
+                            <div className="flex items-center justify-between gap-3">
+                              <Badge className={cn("rounded-full px-3 py-1 border font-semibold text-xs", getStatusColor(complaint.status))}>
+                                {complaint.status}
+                              </Badge>
+                              <Badge className={cn("rounded-full px-3 py-1 border text-[10px] font-bold tracking-wider uppercase", getPriorityColor(complaint.priority))}>
+                                {complaint.priority}
+                              </Badge>
+                            </div>
+                            
+                            <div className="space-y-3 p-4 bg-white/[0.02] border border-white/5 rounded-2xl">
+                              <div className="flex items-center gap-3">
+                                <div className="w-8 h-8 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
+                                  <User className="w-4 h-4 text-primary" />
+                                </div>
+                                <p className="font-semibold text-sm truncate">{complaint.customerName || "Anonymous"}</p>
                               </div>
-                              <p className="font-semibold text-sm truncate">{complaint.customerName || "Anonymous"}</p>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                <Mail className="w-4 h-4 shrink-0" />
+                                <span className="truncate" title={complaint.customerEmail}>{complaint.customerEmail || "No email"}</span>
+                              </div>
+                              <div className="flex items-center gap-3 text-sm text-muted-foreground">
+                                <Clock3 className="w-4 h-4 shrink-0" />
+                                <span>{new Date(complaint.createdAt).toLocaleDateString()}</span>
+                              </div>
                             </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <Mail className="w-4 h-4 shrink-0" />
-                              <span className="truncate">{complaint.customerEmail || "No email"}</span>
-                            </div>
-                            <div className="flex items-center gap-3 text-sm text-muted-foreground">
-                              <Clock3 className="w-4 h-4 shrink-0" />
-                              <span>{new Date(complaint.createdAt).toLocaleDateString()}</span>
+                          </div>
+
+                          {/* Dynamic Agent Assignment Section */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Assignee</p>
+                            <select
+                              value={complaint.assignedTo || ""}
+                              disabled={updating === complaint.id}
+                              onChange={(e) => handleAssignAgent(complaint.id, e.target.value)}
+                              className="w-full bg-black/40 border border-white/5 rounded-xl h-10 px-3 text-xs focus:ring-1 focus:ring-primary outline-none transition-colors hover:border-white/10"
+                            >
+                              <option value="">Unassigned</option>
+                              <option value="Agent Sarah">Agent Sarah</option>
+                              <option value="Agent John">Agent John</option>
+                              <option value="Agent Alex">Agent Alex</option>
+                            </select>
+                          </div>
+
+                          {/* Quick Status Control Actions */}
+                          <div className="space-y-2">
+                            <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Change Status</p>
+                            <div className="flex flex-wrap gap-2">
+                              <Button 
+                                variant="outline"
+                                size="icon"
+                                disabled={updating === complaint.id}
+                                onClick={() => handleComplaintStatusUpdate(complaint.id, "OPEN")}
+                                className={cn("h-10 w-10 border-white/5 transition-all hover:bg-yellow-500/10 rounded-lg", complaint.status === "OPEN" && "bg-yellow-500/20 border-yellow-500/20")}
+                                title="Mark as Open"
+                              >
+                                <Clock className="w-4 h-4 text-yellow-500" />
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="icon"
+                                disabled={updating === complaint.id}
+                                onClick={() => handleComplaintStatusUpdate(complaint.id, "IN_PROGRESS")}
+                                className={cn("h-10 w-10 border-white/5 transition-all hover:bg-blue-500/10 rounded-lg", complaint.status === "IN_PROGRESS" && "bg-blue-500/20 border-blue-500/20")}
+                                title="Mark as In Progress"
+                              >
+                                <Loader2 className="w-4 h-4 text-blue-500" />
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="icon"
+                                disabled={updating === complaint.id}
+                                onClick={() => handleComplaintStatusUpdate(complaint.id, "RESOLVED")}
+                                className={cn("h-10 w-10 border-white/5 transition-all hover:bg-green-500/10 rounded-lg", complaint.status === "RESOLVED" && "bg-green-500/20 border-green-500/20")}
+                                title="Mark as Resolved"
+                              >
+                                <CheckCircle className="w-4 h-4 text-green-500" />
+                              </Button>
+                              <Button 
+                                variant="outline"
+                                size="icon"
+                                disabled={updating === complaint.id}
+                                onClick={() => handleComplaintDelete(complaint.id)}
+                                className="h-10 w-10 border-white/5 transition-all hover:bg-destructive/10 rounded-lg"
+                                title="Delete Ticket"
+                              >
+                                <Trash2 className="w-4 h-4 text-destructive" />
+                              </Button>
                             </div>
                           </div>
                         </div>
+  
+                        {/* Right Column: Ticket Content & Notes */}
+                        <div className="flex-1 space-y-6">
+                          {/* Subject & Tags */}
+                          <div className="bg-white/[0.02] border border-white/5 rounded-3xl p-6">
+                            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 mb-4">
+                              <div className="flex items-center gap-3">
+                                <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
+                                  <Flag className="w-5 h-5 text-primary" />
+                                </div>
+                                <div>
+                                  <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Subject</p>
+                                  <h3 className="text-lg font-bold font-outfit">{complaint.subject}</h3>
+                                </div>
+                              </div>
+                              
+                              {/* Transcript Trigger */}
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={() => handleViewTranscript(complaint)}
+                                className="rounded-xl border-white/5 bg-secondary/20 hover:bg-primary hover:text-black gap-2 h-9 px-4 shrink-0 transition-all"
+                              >
+                                <MessageSquare className="w-3.5 h-3.5" />
+                                View Transcript
+                              </Button>
+                            </div>
 
-                        <div className="pt-4 border-t border-white/5 space-y-2">
-                          <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Change Status</p>
-                          <div className="flex flex-wrap gap-2">
-                            <Button 
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleComplaintStatusUpdate(complaint.id, "OPEN")}
-                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-yellow-500/10 rounded-lg", complaint.status === "OPEN" && "bg-yellow-500/20 border-yellow-500/20")}
-                              title="Mark as Open"
-                            >
-                              <Clock className="w-4 h-4 text-yellow-500" />
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleComplaintStatusUpdate(complaint.id, "IN_PROGRESS")}
-                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-blue-500/10 rounded-lg", complaint.status === "IN_PROGRESS" && "bg-blue-500/20 border-blue-500/20")}
-                              title="Mark as In Progress"
-                            >
-                              <Loader2 className="w-4 h-4 text-blue-500" />
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleComplaintStatusUpdate(complaint.id, "RESOLVED")}
-                              className={cn("h-10 w-10 border-white/5 transition-all hover:bg-green-500/10 rounded-lg", complaint.status === "RESOLVED" && "bg-green-500/20 border-green-500/20")}
-                              title="Mark as Resolved"
-                            >
-                              <CheckCircle className="w-4 h-4 text-green-500" />
-                            </Button>
-                            <Button 
-                              variant="outline"
-                              size="icon"
-                              onClick={() => handleComplaintDelete(complaint.id)}
-                              className="h-10 w-10 border-white/5 transition-all hover:bg-destructive/10 rounded-lg"
-                              title="Delete Message"
-                            >
-                              <Trash2 className="w-4 h-4 text-destructive" />
-                            </Button>
+                            <div className="space-y-4">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Message</p>
+                              <div className="bg-black/30 rounded-2xl p-5 text-muted-foreground text-sm leading-relaxed border border-white/5 italic">
+                                "{complaint.message}"
+                              </div>
+                            </div>
+
+                            {/* Tags display */}
+                            {complaint.tags && complaint.tags.length > 0 && (
+                              <div className="mt-4 flex flex-wrap gap-2 items-center">
+                                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground mr-1">Tags:</span>
+                                {complaint.tags.map((tag: string, i: number) => (
+                                  <Badge key={i} variant="outline" className="bg-primary/5 border-primary/20 text-primary text-[10px] rounded-lg px-2.5 py-0.5 font-medium">
+                                    {tag}
+                                  </Badge>
+                                ))}
+                              </div>
+                            )}
+                          </div>
+
+                          {/* Editable Agent Internal Notes */}
+                          <div className="bg-white/[0.01] border border-dashed border-white/10 rounded-3xl p-6 space-y-3">
+                            <div className="flex items-center justify-between">
+                              <p className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Agent Action Notes (Internal Only)</p>
+                              {editingNotesId !== complaint.id ? (
+                                <Button
+                                  variant="ghost"
+                                  size="sm"
+                                  onClick={() => {
+                                    setEditingNotesId(complaint.id);
+                                    setNotesText(complaint.internalNotes || "");
+                                  }}
+                                  className="text-primary hover:text-primary/80 hover:bg-primary/5 h-8 rounded-lg px-3 text-xs"
+                                >
+                                  {complaint.internalNotes ? "Edit Notes" : "+ Add Notes"}
+                                </Button>
+                              ) : (
+                                <div className="flex gap-1">
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => handleSaveNotes(complaint.id)}
+                                    className="text-green-500 hover:text-green-400 hover:bg-green-500/5 h-8 rounded-lg px-3 text-xs font-bold"
+                                  >
+                                    Save
+                                  </Button>
+                                  <Button
+                                    variant="ghost"
+                                    size="sm"
+                                    onClick={() => setEditingNotesId(null)}
+                                    className="text-muted-foreground hover:bg-white/5 h-8 rounded-lg px-3 text-xs"
+                                  >
+                                    Cancel
+                                  </Button>
+                                </div>
+                              )}
+                            </div>
+
+                            {editingNotesId === complaint.id ? (
+                              <textarea
+                                value={notesText}
+                                onChange={(e) => setNotesText(e.target.value)}
+                                placeholder="Describe investigation notes, internal updates, or actions taken..."
+                                className="w-full min-h-[80px] bg-black/40 border border-white/10 rounded-xl p-3 text-sm focus:outline-none focus:ring-1 focus:ring-primary text-foreground resize-none"
+                              />
+                            ) : (
+                              <div className="text-sm text-muted-foreground italic leading-relaxed min-h-[30px] flex items-center">
+                                {complaint.internalNotes ? (
+                                  <span>"{complaint.internalNotes}"</span>
+                                ) : (
+                                  <span className="text-muted-foreground/30 font-light">No internal notes logged. Click edit to document steps.</span>
+                                )}
+                              </div>
+                            )}
                           </div>
                         </div>
                       </div>
-
-                      {/* Right: Message Content */}
-                      <div className="flex-1 bg-white/[0.03] rounded-3xl p-8 border border-white/5">
-                        <div className="flex items-center gap-3 mb-4">
-                          <div className="w-10 h-10 rounded-2xl bg-primary/20 flex items-center justify-center">
-                            <Flag className="w-5 h-5 text-primary" />
-                          </div>
-                          <div>
-                            <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Subject</p>
-                            <h3 className="text-xl font-bold font-outfit">{complaint.subject}</h3>
-                          </div>
-                        </div>
-                        <div className="space-y-4">
-                          <p className="text-xs font-bold uppercase tracking-widest text-muted-foreground">Message</p>
-                          <div className="bg-black/40 rounded-2xl p-6 text-muted-foreground leading-relaxed italic border border-white/5">
-                            "{complaint.message}"
-                          </div>
-                        </div>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              ))
+                    </CardContent>
+                  </Card>
+                ))}
+              </div>
             )}
           </TabsContent>
 
@@ -577,6 +741,83 @@ export default function AdminDashboard() {
 
         </Tabs>
       </div>
+
+      {/* ── Slide-over Chat Transcript Panel ─────────────────────────── */}
+      {selectedComplaintForTranscript && (
+        <div className="fixed inset-0 z-50 flex justify-end bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+          {/* Backdrop Click */}
+          <div className="absolute inset-0" onClick={() => setSelectedComplaintForTranscript(null)} />
+          
+          <div className="relative w-full max-w-lg bg-zinc-950 border-l border-white/10 h-full flex flex-col shadow-2xl animate-in slide-in-from-right duration-300">
+            {/* Header */}
+            <div className="p-6 border-b border-white/5 flex items-center justify-between">
+              <div className="space-y-1 text-left">
+                <Badge variant="outline" className="border-primary/20 text-primary text-[10px] uppercase font-bold">Conversation Context</Badge>
+                <h3 className="font-outfit font-bold text-lg text-white">
+                  Chat Transcript
+                </h3>
+                <p className="text-xs text-muted-foreground truncate max-w-xs">{selectedComplaintForTranscript.customerEmail || selectedComplaintForTranscript.customerName || "Customer"}</p>
+              </div>
+              <Button 
+                variant="ghost" 
+                size="icon" 
+                onClick={() => setSelectedComplaintForTranscript(null)}
+                className="rounded-full text-muted-foreground hover:text-white hover:bg-white/5 h-10 w-10 flex items-center justify-center"
+              >
+                <XCircle className="w-6 h-6" />
+              </Button>
+            </div>
+
+            {/* Transcript Messages Stream */}
+            <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-zinc-950/40 flex flex-col">
+              {transcriptLoading ? (
+                <div className="h-full flex flex-col items-center justify-center gap-3 my-auto">
+                  <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto" />
+                  <p className="text-xs text-muted-foreground">Retrieving chat messages from SQLite/RDS...</p>
+                </div>
+              ) : activeTranscript && activeTranscript.length > 0 ? (
+                activeTranscript.map((msg, index) => {
+                  const isUser = msg.role.toLowerCase() === "user";
+                  return (
+                    <div 
+                      key={index} 
+                      className={cn(
+                        "flex flex-col max-w-[85%] rounded-2xl p-4 border text-sm leading-relaxed shadow-lg text-left",
+                        isUser 
+                          ? "ml-auto bg-primary/10 border-primary/20 text-primary rounded-tr-none" 
+                          : "bg-white/[0.02] border-white/5 text-muted-foreground rounded-tl-none"
+                      )}
+                    >
+                      <span className="text-[9px] font-bold uppercase tracking-wider text-muted-foreground/60 mb-1">
+                        {isUser ? "User" : "Assistant"}
+                      </span>
+                      <p className="whitespace-pre-wrap">{msg.content}</p>
+                    </div>
+                  );
+                })
+              ) : (
+                <div className="h-full flex flex-col items-center justify-center gap-2 text-center my-auto">
+                  <MessageSquare className="w-12 h-12 text-muted-foreground/10 mx-auto" />
+                  <h4 className="font-semibold text-sm">No Transcript Available</h4>
+                  <p className="text-xs text-muted-foreground max-w-xs">
+                    This ticket was generated directly or does not have an associated chat session record.
+                  </p>
+                </div>
+              )}
+            </div>
+            
+            {/* Action Footer */}
+            <div className="p-6 border-t border-white/5 bg-zinc-950">
+              <Button 
+                className="w-full rounded-xl"
+                onClick={() => setSelectedComplaintForTranscript(null)}
+              >
+                Close Transcript
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

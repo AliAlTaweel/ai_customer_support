@@ -149,3 +149,67 @@ export async function deleteComplaint(complaintId: string) {
     return { success: false, error: "Failed to delete complaint" };
   }
 }
+
+export async function updateComplaintNotes(complaintId: string, internalNotes: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: { internalNotes },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to update notes:", error);
+    return { success: false, error: "Failed to update notes" };
+  }
+}
+
+export async function assignComplaintAgent(complaintId: string, assignedTo: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    await prisma.complaint.update({
+      where: { id: complaintId },
+      data: { assignedTo },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to assign agent:", error);
+    return { success: false, error: "Failed to assign agent" };
+  }
+}
+
+export async function getComplaintTranscript(chatSessionId: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+  if (!chatSessionId) return { success: true, messages: [] };
+
+  try {
+    const prisma = await getPrisma();
+    const messages = await prisma.chatMessage.findMany({
+      where: {
+        OR: [
+          { userId: chatSessionId },
+          { userName: chatSessionId }
+        ]
+      },
+      orderBy: {
+        createdAt: "asc"
+      }
+    });
+
+    return {
+      success: true,
+      messages: JSON.parse(JSON.stringify(messages))
+    };
+  } catch (error: any) {
+    console.error("[ADMIN ERROR] Failed to fetch transcript:", error);
+    return { success: false, error: `Failed to fetch transcript: ${error.message}` };
+  }
+}

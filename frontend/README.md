@@ -32,6 +32,7 @@ A premium, high-performance storefront built with Next.js 16. This application s
   - **Visual Shipments & Maps**: Renders active shipment progress bars and interactive maps inside chat bubbles via structured `TRACKING_INFO` payloads.
 - **Tenant Admin Dashboard (`/dashboard`)**: A premium dashboard displaying copy-pasteable script tags for widget integration, Clerk active workspace stats, and domain whitelisting safety notices.
 - **Knowledge Base Manager (`/dashboard/knowledge-base`)**: An interactive drag-and-drop dropzone UI allowing tenant administrators to upload documentation (Markdown, CSV, PDF, TXT), search indexed chunks, and wipe pgvector database embeddings.
+- **Admin Support Ticketing Center (`/admin/dashboard` - Messages Tab)**: A redesigned, glassmorphic support ticket workspace. Includes dynamic left-border priority indicators, in-place internal note editing, agent assignment controls, and a slide-over drawer to inspect the active chat transcript context for any ticket.
 - **Secure Authentication**: Integrated with **Clerk** for multi-factor authentication, secure session management, and custom proxy domain compatibility.
 - **Cloud Database**: Powered by **Supabase PostgreSQL** with Prisma for production-grade reliability and shared access with the AI backend.
 

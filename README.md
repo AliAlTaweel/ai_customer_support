@@ -98,6 +98,12 @@ To shave user latency down by over 70%, inputs pass through a hybrid **Semantic 
 ### 🤖 Native Multi-Tool Agent (Google AI SDK)
 Complex inquiries trigger the Autonomous Orchestrator. The orchestrator decodes natural language intents into functional database calls—autonomously verifying product stock, processing order updates, and scraping internal policy documentation instantly.
 
+### 🎫 Integrated Customer Support Ticketing System
+Bridges autonomous AI loops and manual human support. If the chatbot cannot fulfill a complex request or detects user frustration, it triggers a ticket submission:
+- **Auto-Tagging & Classification:** Automatically groups tickets into categories (`Billing`, `Shipping`, `Product`, `Technical`) and extracts priority levels based on message contents.
+- **Transcript Context Binding:** Associates tickets with their active chat session, allowing support agents to review the context leading to the complaint.
+- **AI Self-Service Status Checks:** Customers can query the chat widget for their ticket statuses and active agent notes, which the AI retrieves dynamically from the database.
+
 ---
 
 ## 🏢 B2B SaaS Multi-Tenancy & Distribution (Fully Integrated)

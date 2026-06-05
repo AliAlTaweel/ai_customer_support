@@ -8,7 +8,7 @@ from typing import List, Dict, Any
 from app.schemas.response import ChatResponseSchema
 from app.tools.product_tools import search_products
 from app.tools.order_tools import get_order_details, cancel_order, place_order
-from app.tools.support_tools import submit_complaint
+from app.tools.support_tools import submit_complaint, get_user_complaints, get_complaint_status
 from app.tools.faq_tools import get_company_faq
 from app.core.config import settings
 from app.core.privacy import PrivacyScrubber, PII_MAPPING
@@ -31,35 +31,40 @@ class NativeAgentService:
             cancel_order,
             place_order,
             submit_complaint,
+            get_user_complaints,
+            get_complaint_status,
             get_company_faq
         ]
         
         self.system_instruction = """
         You are the Unified Luxe Specialist, a premier AI assistant for Luxe.
         Your goal is to handle customer inquiries with absolute professionalism, a warm tone, and extreme efficiency.
-        You have access to tools for searching products, managing orders, and answering FAQs.
+        You have access to tools for searching products, managing orders, answering FAQs, and tracking support tickets/complaints.
         
         CRITICAL RULES:
         1. Always be polite, warm, and concise.
         2. If you need to look up an order, use get_order_details.
         3. If you need to search products, use search_products.
         4. If a user asks a policy question, use get_company_faq.
-        5. When you have enough information, synthesize a final response. 
-        6. Do NOT expose raw tool JSON outputs to the user.
-        7. Extract relevant machine-readable signals for the UI into `ui_signals` (e.g., TRACKING_INFO, PRODUCT_LIST, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED).
-        8. If you retrieve order details with tracking, place the parsed tracking info into the `payload` dict.
-        9. If the user indicates they want to buy, order, checkout, or selects a specific product from the catalog (e.g., "yes this one Zenith Ultra Slim Laptop"), you MUST:
-           - First use search_products to find/verify the product exists and fetch its details and price.
-           - Output 'PLACE_ORDER_SUMMARY' in the `ui_signals` array.
-           - Provide the verified product details under 'pending_order_summary' in the `payload` dictionary, formatted exactly like:
-             "payload": {
-               "pending_order_summary": {
-                 "product_name": "Zenith Ultra Slim Laptop",
-                 "price": 1499.0,
-                 "imageUrl": "...",
-                 "details": "..."
-               }
-             }
+        5. If a user asks to file or submit a complaint/feedback/ticket, use submit_complaint.
+        6. If a user asks about their existing tickets/complaints, use get_user_complaints with their email.
+        7. If a user asks for updates on a specific ticket ID (e.g. CMP-XXXX), use get_complaint_status.
+        8. When you have enough information, synthesize a final response. 
+        9. Do NOT expose raw tool JSON outputs to the user.
+        10. Extract relevant machine-readable signals for the UI into `ui_signals` (e.g., TRACKING_INFO, PRODUCT_LIST, PLACE_ORDER_SUMMARY, CHECKOUT_REQUIRED).
+        11. If you retrieve order details with tracking, place the parsed tracking info into the `payload` dict.
+        12. If the user indicates they want to buy, order, checkout, or selects a specific product from the catalog (e.g., "yes this one Zenith Ultra Slim Laptop"), you MUST:
+            - First use search_products to find/verify the product exists and fetch its details and price.
+            - Output 'PLACE_ORDER_SUMMARY' in the `ui_signals` array.
+            - Provide the verified product details under 'pending_order_summary' in the `payload` dictionary, formatted exactly like:
+              "payload": {
+                "pending_order_summary": {
+                  "product_name": "Zenith Ultra Slim Laptop",
+                  "price": 1499.0,
+                  "imageUrl": "...",
+                  "details": "..."
+                }
+              }
         
         You MUST respond ONLY with a valid JSON object matching this schema:
         {
@@ -212,6 +217,10 @@ class NativeAgentService:
                             tool_result = place_order(**tool_args)
                         elif tool_name == "submit_complaint":
                             tool_result = submit_complaint(**tool_args)
+                        elif tool_name == "get_user_complaints":
+                            tool_result = get_user_complaints(**tool_args)
+                        elif tool_name == "get_complaint_status":
+                            tool_result = get_complaint_status(**tool_args)
                         elif tool_name == "get_company_faq":
                             tool_result = get_company_faq(**tool_args)
                         else:

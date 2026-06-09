@@ -37,7 +37,9 @@ def get_order_details(order_id: str = None, email: str = None, customer_email: s
             
     tenant_id = CURRENT_TENANT_DB_ID.get()
         
-    logger.info(f"Retrieving order details. ID: {order_id}, Email: {email}, Customer Email: {customer_email}, UserID: {user_id}, Tenant: {tenant_id}")
+    masked_email = PrivacyScrubber.mask_email(email) if email else None
+    masked_cust_email = PrivacyScrubber.mask_email(customer_email) if customer_email else None
+    logger.info(f"Retrieving order details. ID: {order_id}, Email: {masked_email}, Customer Email: {masked_cust_email}, UserID: {user_id}, Tenant: {tenant_id}")
     try:
         with Session() as session:
             query = session.query(Order)
@@ -134,7 +136,8 @@ def cancel_order(order_id: str, confirmed: bool = False, customer_email: str = N
         
     tenant_id = CURRENT_TENANT_DB_ID.get()
     
-    logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {customer_email}, UserID: {user_id}, Tenant: {tenant_id})")
+    masked_cust_email = PrivacyScrubber.mask_email(customer_email) if customer_email else None
+    logger.info(f"Attempting to cancel order: {order_id} (CustomerEmail: {masked_cust_email}, UserID: {user_id}, Tenant: {tenant_id})")
     try:
         with Session() as session:
             query = session.query(Order).filter(Order.id.ilike(order_id))
@@ -188,7 +191,9 @@ def place_order(customer_email: str, customer_name: str, items: Any, shipping_ad
                 return f"Error: Could not parse items list. Error: {str(e)}"
 
     tenant_id = CURRENT_TENANT_DB_ID.get()
-    logger.info(f"Placing order for {customer_name} ({customer_email}), UserID: {user_id}, Tenant: {tenant_id}")
+    masked_name = PrivacyScrubber.mask_name(customer_name) if customer_name else None
+    masked_email = PrivacyScrubber.mask_email(customer_email) if customer_email else None
+    logger.info(f"Placing order for {masked_name} ({masked_email}), UserID: {user_id}, Tenant: {tenant_id}")
     customer_email = detokenize_val(customer_email)
     customer_name = detokenize_val(customer_name)
     shipping_address = detokenize_val(shipping_address)

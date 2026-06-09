@@ -1,20 +1,15 @@
+/* eslint-disable react-hooks/error-boundaries */
 import type { Metadata } from "next";
 import { Inter, Outfit } from "next/font/google";
 import "./globals.css";
 import { cn } from "@/lib/utils";
-import { ClerkProvider, SignInButton, SignUpButton, UserButton, OrganizationSwitcher } from "@clerk/nextjs";
+import { ClerkProvider } from "@clerk/nextjs";
 import { auth } from "@clerk/nextjs/server";
-import { CartSheet } from "@/components/shop/CartSheet";
-import Link from "next/link";
-import { NavLinks } from "@/components/layout/NavLinks";
+import { AppLayoutShell } from "@/components/layout/AppLayoutShell";
 import ChatInterface from "@/components/chat/ChatInterface";
 import { isAdmin } from "@/lib/actions/isAdmin";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Sheet, SheetContent, SheetTrigger, SheetTitle } from "@/components/ui/sheet";
-import { Menu } from "lucide-react";
-import { Button } from "@/components/ui/button";
 import { ThemeProvider } from "@/components/theme-provider";
-import { ThemeToggle } from "@/components/layout/ThemeToggle";
 
 const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
@@ -58,85 +53,10 @@ export default async function RootLayout({
               enableSystem
               disableTransitionOnChange
             >
-            <header className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-md">
-              <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                    <span className="text-primary-foreground font-bold text-xl font-outfit">L</span>
-                  </div>
-                  <span className="text-xl font-bold font-outfit tracking-tight">LuxeCatalog</span>
-                </div>
-                <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1 rounded-full border border-primary/5">
-                  <NavLinks userId={userId} isAdmin={isUserAdmin} />
-                </nav>
-
-                {/* Mobile Menu */}
-                <div className="flex md:hidden">
-                  <Sheet>
-                    <SheetTrigger asChild>
-                      <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-secondary">
-                        <Menu className="w-6 h-6" />
-                      </Button>
-                    </SheetTrigger>
-                    <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background border-r border-primary/10">
-                      <SheetTitle className="sr-only">Menu</SheetTitle>
-                      <div className="flex flex-col gap-6 pt-12">
-                        <div className="flex items-center gap-2 px-4">
-                          <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                            <span className="text-primary-foreground font-bold text-xl font-outfit">L</span>
-                          </div>
-                          <span className="text-xl font-bold font-outfit tracking-tight">LuxeCatalog</span>
-                        </div>
-                        <div className="flex flex-col gap-2 p-2">
-                          <NavLinks userId={userId} isAdmin={isUserAdmin} />
-                        </div>
-                      </div>
-                    </SheetContent>
-                  </Sheet>
-                </div>
-                <div className="flex items-center gap-4">
-                  <div className="hidden sm:flex h-10 px-4 items-center rounded-full bg-secondary text-sm text-muted-foreground mr-2">
-                    Search products...
-                  </div>
-                  
-                  <CartSheet />
-                  <ThemeToggle />
-                  
-                  {!userId ? (
-                    <div className="flex items-center gap-2">
-                      <SignInButton mode="modal">
-                        <Button variant="ghost" className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors h-auto">Sign In</Button>
-                      </SignInButton>
-                      <SignUpButton mode="modal">
-                        <Button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors h-auto">Sign Up</Button>
-                      </SignUpButton>
-                    </div>
-                  ) : (
-                    <div className="flex items-center gap-4">
-                      <OrganizationSwitcher 
-                        appearance={{
-                          elements: {
-                            rootBox: "flex items-center justify-center text-sm font-medium",
-                            organizationSwitcherTrigger: "border border-primary/20 rounded-full px-3 py-1 bg-secondary text-foreground hover:bg-secondary/80 transition-colors h-10"
-                          }
-                        }}
-                      />
-                      <UserButton 
-                        appearance={{
-                          elements: {
-                            avatarBox: "h-10 w-10 rounded-full border-2 border-primary/20"
-                          }
-                        }}
-                      />
-                    </div>
-                  )}
-                </div>
-              </div>
-            </header>
               <TooltipProvider>
-                <main className="pt-20">
+                <AppLayoutShell userId={userId} isAdmin={isUserAdmin}>
                   {children}
-                </main>
+                </AppLayoutShell>
                 <ChatInterface />
               </TooltipProvider>
             </ThemeProvider>
@@ -144,11 +64,12 @@ export default async function RootLayout({
         </html>
       </ClerkProvider>
     );
-  } catch (err: any) {
+  } catch (err) {
+    const error = err as Error;
     const errorDetails = {
-      message: err?.message || "Unknown error",
-      stack: err?.stack || "No stack trace available",
-      name: err?.name || "Error",
+      message: error?.message || "Unknown error",
+      stack: error?.stack || "No stack trace available",
+      name: error?.name || "Error",
     };
 
     return (

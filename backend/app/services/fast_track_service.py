@@ -2,6 +2,7 @@ import logging
 import re
 from typing import List, Dict, Any, Optional
 from app.tools.faq_tools import GeminiEmbeddings
+from app.core.privacy import PrivacyScrubber
 
 logger = logging.getLogger(__name__)
 
@@ -178,7 +179,8 @@ class FastTrackService:
         pending_order_id = state.get("pending_order_id")
         if pending_order_id and email_match:
             email = email_match.group(0)
-            logger.info(f"Fast-tracking order lookup with email: {email} for order: {pending_order_id}")
+            masked_email = PrivacyScrubber.mask_email(email) if email else None
+            logger.info(f"Fast-tracking order lookup with email: {masked_email} for order: {pending_order_id}")
             return self._handle_status_inquiry(user_context, user_id, state, order_id=pending_order_id, provided_email=email)
 
         # 6. FAQ Fast-Track (Local Embeddings)
@@ -374,7 +376,8 @@ class FastTrackService:
                     email = val
                     break
         
-        logger.info(f"System Order Process - Auth: {is_auth}, Email: {email}")
+        masked_email = PrivacyScrubber.mask_email(email) if email else None
+        logger.info(f"System Order Process - Auth: {is_auth}, Email: {masked_email}")
         
         if not email:
             return {

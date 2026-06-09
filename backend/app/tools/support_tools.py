@@ -4,6 +4,7 @@ from datetime import datetime
 from sqlalchemy import text
 from app.tools.base import engine, detokenize_val
 from app.core.auth import CURRENT_TENANT_DB_ID
+from app.core.privacy import PrivacyScrubber
 
 logger = logging.getLogger(__name__)
 
@@ -24,7 +25,8 @@ def submit_complaint(subject: str, message: str, customer_name: str = None, cust
     message = detokenize_val(message)
     customer_name = detokenize_val(customer_name)
     customer_email = detokenize_val(customer_email)
-    logger.info(f"Submitting complaint: '{subject}' from {customer_name}, Tenant: {tenant_id}")
+    masked_name = PrivacyScrubber.mask_name(customer_name) if customer_name else None
+    logger.info(f"Submitting complaint: '{subject}' from {masked_name}, Tenant: {tenant_id}")
 
     # Auto-extract tags based on message contents
     tags = []
@@ -104,7 +106,8 @@ def get_user_complaints(customer_email: str) -> str:
     """
     tenant_id = CURRENT_TENANT_DB_ID.get()
     customer_email = detokenize_val(customer_email)
-    logger.info(f"Retrieving complaints for user email: {customer_email}, Tenant: {tenant_id}")
+    masked_email = PrivacyScrubber.mask_email(customer_email) if customer_email else None
+    logger.info(f"Retrieving complaints for user email: {masked_email}, Tenant: {tenant_id}")
     
     try:
         with engine.connect() as connection:

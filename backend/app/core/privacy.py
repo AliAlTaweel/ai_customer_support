@@ -32,7 +32,9 @@ def encrypt_val_fn(plaintext: str) -> str:
     try:
         from cryptography.fernet import Fernet
         from app.core.config import settings
-        key = getattr(settings, "ENCRYPTION_KEY", "3q2b9A8x7C6v5B4n3M2k1L0j9K8h7G6f5D4s3A2q1w=")
+        key = getattr(settings, "ENCRYPTION_KEY", None)
+        if not key:
+            raise ValueError("ENCRYPTION_KEY settings is missing.")
         if isinstance(key, str):
             key = key.encode()
         fernet = Fernet(key)
@@ -46,7 +48,9 @@ def decrypt_val_fn(ciphertext: str) -> str:
     try:
         from cryptography.fernet import Fernet
         from app.core.config import settings
-        key = getattr(settings, "ENCRYPTION_KEY", "3q2b9A8x7C6v5B4n3M2k1L0j9K8h7G6f5D4s3A2q1w=")
+        key = getattr(settings, "ENCRYPTION_KEY", None)
+        if not key:
+            raise ValueError("ENCRYPTION_KEY settings is missing.")
         if isinstance(key, str):
             key = key.encode()
         fernet = Fernet(key)
@@ -148,7 +152,8 @@ class PrivacyScrubber:
                     scrubbed = scrubbed.replace(addr, token)
             
         if mapping:
-            logger.info(f"Pseudonymization complete. Tokens created: {list(mapping.keys())}")
+            # Avoid logging raw token keys as they contain the sensitive ciphertext
+            logger.info(f"Pseudonymization complete. Created {len(mapping)} secure PII tokens.")
             
         return scrubbed, mapping
 

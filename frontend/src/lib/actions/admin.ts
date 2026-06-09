@@ -1,7 +1,6 @@
 "use server";
 
 import { getPrisma } from "@/lib/db";
-import { cookies } from "next/headers";
 import { revalidatePath } from "next/cache";
 
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
@@ -106,11 +105,12 @@ export async function getAllComplaints() {
       success: true,
       complaints: JSON.parse(JSON.stringify(complaints))
     };
-  } catch (error: any) {
-    console.error("[ADMIN ERROR] Failed to fetch complaints:", error);
+  } catch (error) {
+    const err = error as Error;
+    console.error("[ADMIN ERROR] Failed to fetch complaints:", err);
     return {
       success: false,
-      error: `Failed to fetch complaints: ${error.message || "Unknown error"}`
+      error: `Failed to fetch complaints: ${err.message || "Unknown error"}`
     };
   }
 }
@@ -208,8 +208,186 @@ export async function getComplaintTranscript(chatSessionId: string) {
       success: true,
       messages: JSON.parse(JSON.stringify(messages))
     };
-  } catch (error: any) {
-    console.error("[ADMIN ERROR] Failed to fetch transcript:", error);
-    return { success: false, error: `Failed to fetch transcript: ${error.message}` };
+  } catch (error) {
+    const err = error as Error;
+    console.error("[ADMIN ERROR] Failed to fetch transcript:", err);
+    return { success: false, error: `Failed to fetch transcript: ${err.message}` };
+  }
+}
+
+// ── Products CRUD Server Actions ───────────────────────────────────────────
+
+export async function getAllProductsAdmin() {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const products = await prisma.product.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return { success: true, products };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to fetch products:", error);
+    return { success: false, error: "Failed to fetch products" };
+  }
+}
+
+export async function createProduct(data: {
+  name: string;
+  description: string;
+  price: number;
+  category: string;
+  stock: number;
+  imageUrl: string;
+  details?: string;
+}) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const product = await prisma.product.create({
+      data: {
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        category: data.category,
+        stock: Number(data.stock),
+        imageUrl: data.imageUrl || "/images/placeholder.png",
+        details: data.details || "",
+      },
+    });
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/shop");
+    return { success: true, product };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to create product:", error);
+    return { success: false, error: "Failed to create product" };
+  }
+}
+
+export async function updateProduct(
+  id: string,
+  data: {
+    name: string;
+    description: string;
+    price: number;
+    category: string;
+    stock: number;
+    imageUrl: string;
+    details?: string;
+  }
+) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const product = await prisma.product.update({
+      where: { id },
+      data: {
+        name: data.name,
+        description: data.description,
+        price: Number(data.price),
+        category: data.category,
+        stock: Number(data.stock),
+        imageUrl: data.imageUrl,
+        details: data.details,
+      },
+    });
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/shop");
+    revalidatePath(`/shop/${id}`);
+    return { success: true, product };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to update product:", error);
+    return { success: false, error: "Failed to update product" };
+  }
+}
+
+export async function deleteProduct(id: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    await prisma.product.delete({
+      where: { id },
+    });
+
+    revalidatePath("/admin/dashboard");
+    revalidatePath("/shop");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to delete product:", error);
+    return { success: false, error: "Failed to delete product" };
+  }
+}
+
+// ── FAQs CRUD Server Actions ───────────────────────────────────────────────
+
+export async function getAllFAQs() {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const faqs = await prisma.fAQ.findMany({
+      orderBy: { createdAt: "desc" },
+    });
+    return { success: true, faqs };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to fetch FAQs:", error);
+    return { success: false, error: "Failed to fetch FAQs" };
+  }
+}
+
+export async function createFAQ(question: string, answer: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const faq = await prisma.fAQ.create({
+      data: { question, answer },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true, faq };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to create FAQ:", error);
+    return { success: false, error: "Failed to create FAQ" };
+  }
+}
+
+export async function updateFAQ(id: string, question: string, answer: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    const faq = await prisma.fAQ.update({
+      where: { id },
+      data: { question, answer },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true, faq };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to update FAQ:", error);
+    return { success: false, error: "Failed to update FAQ" };
+  }
+}
+
+export async function deleteFAQ(id: string) {
+  if (!(await isAdmin())) return { success: false, error: "Unauthorized" };
+
+  try {
+    const prisma = await getPrisma();
+    await prisma.fAQ.delete({
+      where: { id },
+    });
+
+    revalidatePath("/admin/dashboard");
+    return { success: true };
+  } catch (error) {
+    console.error("[ADMIN ERROR] Failed to delete FAQ:", error);
+    return { success: false, error: "Failed to delete FAQ" };
   }
 }

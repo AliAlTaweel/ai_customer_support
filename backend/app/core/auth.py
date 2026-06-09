@@ -88,7 +88,7 @@ def _verify_and_decode(token: str) -> dict:
                 raise ValueError(f"No matching JWK found for kid='{kid}'")
 
             unverified_claims = jwt.get_unverified_claims(token)
-            logger.info(f"Unverified Claims: {unverified_claims}")
+            logger.debug(f"Unverified Claims: {unverified_claims}")
 
             payload = jwt.decode(
                 token,

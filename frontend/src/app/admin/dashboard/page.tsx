@@ -619,8 +619,131 @@ export default function AdminDashboard() {
   }
 
   return (
-    <div className="min-h-screen bg-[#060608] text-neutral-100 flex flex-col relative admin-dashboard-container">
+    <div className="min-h-screen bg-[#101415] text-[#e0e3e5] flex flex-col relative admin-dashboard-container">
       <style dangerouslySetInnerHTML={{ __html: `
+        /* Design System Mappings & Premium Glassmorphism Overrides */
+        .admin-dashboard-container {
+          background-color: #101415 !important;
+          color: #e0e3e5 !important;
+        }
+        .admin-header {
+          background-color: rgba(16, 20, 21, 0.8) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+        
+        /* Map inputs, selects, and textareas */
+        .admin-dashboard-container input,
+        .admin-dashboard-container select,
+        .admin-dashboard-container textarea {
+          background-color: #0b0f10 !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          color: #e0e3e5 !important;
+        }
+        .admin-dashboard-container input:focus,
+        .admin-dashboard-container select:focus,
+        .admin-dashboard-container textarea:focus {
+          border-color: #8ed5ff !important;
+          box-shadow: 0 0 0 2px rgba(142, 213, 255, 0.25) !important;
+        }
+
+        /* Override violet styling with cyber-blue design system equivalents */
+        .bg-violet-600,
+        [class*="bg-violet-600"] {
+          background-color: #8ed5ff !important;
+          color: #00354a !important;
+        }
+        .bg-violet-600:hover,
+        [class*="bg-violet-600"]:hover {
+          background-color: #38bdf8 !important;
+          color: #00354a !important;
+        }
+        
+        .bg-violet-600\/10 {
+          background-color: rgba(142, 213, 255, 0.1) !important;
+        }
+
+        .text-violet-400,
+        [class*="text-violet-400"] {
+          color: #8ed5ff !important;
+        }
+        .text-violet-300,
+        [class*="text-violet-300"] {
+          color: #8ed5ff !important;
+        }
+        .text-violet-500,
+        [class*="text-violet-500"] {
+          color: #38bdf8 !important;
+        }
+
+        .border-violet-500\/40,
+        [class*="border-violet-500/40"] {
+          border-color: rgba(142, 213, 255, 0.4) !important;
+        }
+        .border-violet-500\/10,
+        [class*="border-violet-500/10"] {
+          border-color: rgba(142, 213, 255, 0.1) !important;
+        }
+        .bg-violet-500\/10 {
+          background-color: rgba(142, 213, 255, 0.1) !important;
+        }
+        .bg-violet-500\/5 {
+          background-color: rgba(142, 213, 255, 0.05) !important;
+        }
+
+        /* Map selection active states */
+        .bg-\[\#141424\] {
+          background-color: rgba(15, 23, 42, 0.6) !important;
+          backdrop-filter: blur(12px);
+          -webkit-backdrop-filter: blur(12px);
+          border: 1px solid rgba(255, 255, 255, 0.15) !important;
+          border-top: 1px solid rgba(255, 255, 255, 0.2) !important;
+        }
+
+        /* Override borders and floating card elements */
+        .border-neutral-800,
+        .border-neutral-850,
+        [class*="border-neutral-800"],
+        [class*="border-neutral-850"] {
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .bg-neutral-900\/35,
+        .bg-neutral-900\/40,
+        [class*="bg-neutral-900/35"],
+        [class*="bg-[#09090f]/30"],
+        [class*="bg-[#09090f]/35"],
+        [class*="bg-neutral-900/60"] {
+          background-color: rgba(15, 23, 42, 0.4) !important;
+          backdrop-filter: blur(16px);
+          -webkit-backdrop-filter: blur(16px);
+          border: 1px solid rgba(255, 255, 255, 0.1) !important;
+        }
+
+        .bg-neutral-900\/35:hover,
+        .bg-neutral-900/60:hover {
+          background-color: rgba(255, 255, 255, 0.03) !important;
+        }
+
+        .bg-neutral-950 {
+          background-color: #0b0f10 !important;
+        }
+
+        /* Chart Tooltip Overrides */
+        .recharts-default-tooltip {
+          background-color: #1d2022 !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+          color: #e0e3e5 !important;
+          box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3) !important;
+        }
+
+        /* Horizontal Top Tabs style details */
+        .admin-tab-list {
+          background-color: rgba(15, 23, 42, 0.5) !important;
+          border-color: rgba(255, 255, 255, 0.1) !important;
+        }
+
+        /* Light Mode fallback */
         html:not(.dark) .admin-dashboard-container {
           background-color: #faf9fc !important;
           color: #443199 !important;
@@ -629,9 +752,6 @@ export default function AdminDashboard() {
           background-color: #ffffff !important;
           border-color: #ebdff5 !important;
           box-shadow: 0 4px 20px -2px rgba(121, 44, 162, 0.05) !important;
-        }
-        html:not(.dark) .admin-logo-text {
-          color: #443199 !important;
         }
         html:not(.dark) [class*="bg-neutral-900/60"] {
           background-color: #f6f0fc !important;
@@ -653,108 +773,19 @@ export default function AdminDashboard() {
           box-shadow: 0 4px 18px -4px rgba(121, 44, 162, 0.04) !important;
         }
         html:not(.dark) [class*="border-neutral-800"],
-        html:not(.dark) [class*="border-neutral-850"],
-        html:not(.dark) [class*="border-neutral-800/80"],
-        html:not(.dark) [class*="border-neutral-800/60"],
-        html:not(.dark) [class*="border-neutral-800/40"] {
+        html:not(.dark) [class*="border-neutral-850"] {
           border-color: #f0e6fa !important;
-        }
-        html:not(.dark) [class*="border-t border-neutral-800"] {
-          border-top-color: #f0e6fa !important;
         }
         html:not(.dark) [class*="bg-[#141424]"] {
           background-color: #faf0fc !important;
-          border-color: #c13383 !important;
-          box-shadow: 0 4px 12px rgba(193, 51, 131, 0.08) !important;
-        }
-        html:not(.dark) [class*="bg-[#141424]"] h4,
-        html:not(.dark) [class*="bg-[#141424]"] p,
-        html:not(.dark) [class*="bg-[#141424]"] span:not([class*="bg-"]) {
-          color: #443199 !important;
-        }
-        html:not(.dark) [class*="bg-neutral-900/35"]:hover,
-        html:not(.dark) [class*="bg-[#09090f]/30"] [class*="hover:bg-neutral-900/60"]:hover {
-          background-color: #faf5ff !important;
+          border-color: #792ca2 !important;
         }
         html:not(.dark) input,
         html:not(.dark) select,
-        html:not(.dark) textarea,
-        html:not(.dark) [class*="bg-neutral-950"] {
+        html:not(.dark) textarea {
           background-color: #ffffff !important;
           border-color: #dfd5ed !important;
           color: #443199 !important;
-        }
-        html:not(.dark) input::placeholder,
-        html:not(.dark) textarea::placeholder {
-          color: #a497b8 !important;
-        }
-        html:not(.dark) input:focus,
-        html:not(.dark) select:focus,
-        html:not(.dark) textarea:focus {
-          border-color: #792ca2 !important;
-          box-shadow: 0 0 0 2px rgba(121, 44, 162, 0.15) !important;
-        }
-        html:not(.dark) .text-white,
-        html:not(.dark) .text-neutral-100 {
-          color: #443199 !important;
-        }
-        html:not(.dark) .text-neutral-200 {
-          color: #443199 !important;
-        }
-        html:not(.dark) .text-neutral-300 {
-          color: #792ca2 !important;
-        }
-        html:not(.dark) .text-neutral-400 {
-          color: #792ca2 !important;
-        }
-        html:not(.dark) .text-neutral-500 {
-          color: #a497b8 !important;
-        }
-        html:not(.dark) button[class*="bg-neutral-900/40"] {
-          background-color: #ffffff !important;
-          border-color: #dfd5ed !important;
-          color: #792ca2 !important;
-        }
-        html:not(.dark) button[class*="bg-neutral-900/40"]:hover {
-          background-color: #faf5ff !important;
-          color: #443199 !important;
-        }
-        html:not(.dark) button[class*="bg-red-500/5"] {
-          border-color: #fca5a5 !important;
-          background-color: #fef2f2 !important;
-          color: #ef4444 !important;
-        }
-        html:not(.dark) button[class*="bg-red-500/5"]:hover {
-          background-color: #fee2e2 !important;
-          color: #dc2626 !important;
-        }
-        html:not(.dark) .recharts-default-tooltip {
-          background-color: #ffffff !important;
-          border-color: #ebdff5 !important;
-          color: #443199 !important;
-          box-shadow: 0 4px 12px rgba(121, 44, 162, 0.05) !important;
-        }
-        html:not(.dark) .admin-scrollarea {
-          background-color: #faf5ff !important;
-          border-color: #ebdff5 !important;
-        }
-        html:not(.dark) [class*="bg-violet-600"],
-        html:not(.dark) button[class*="bg-violet-600"] {
-          background-color: #792ca2 !important;
-          color: #ffffff !important;
-        }
-        html:not(.dark) [class*="bg-violet-600"]:hover,
-        html:not(.dark) button[class*="bg-violet-600"]:hover {
-          background-color: #632287 !important;
-        }
-        html:not(.dark) [class*="text-violet-400"] {
-          color: #c13383 !important;
-        }
-        html:not(.dark) [class*="text-violet-300"] {
-          color: #792ca2 !important;
-        }
-        html:not(.dark) [class*="from-violet-600"] {
-          background-image: linear-gradient(to top right, #443199, #c13383) !important;
         }
       `}} />
       {/* ── TOP HEADER NAVBAR ── */}

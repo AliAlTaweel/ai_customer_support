@@ -47,12 +47,12 @@ export function ProductGrid({ products }: ProductGridProps) {
           placeholder="Search products by name or description..."
           value={searchQuery}
           onChange={(e) => setSearchQuery(e.target.value)}
-          className="pl-11 h-12 rounded-2xl bg-secondary/35 border-primary/5 focus-visible:ring-primary w-full text-sm placeholder:text-muted-foreground/60 shadow-inner"
+          className="pl-11 h-12 rounded-2xl bg-input dark:bg-slate-900/80 border border-border focus-visible:ring-primary w-full text-sm placeholder:text-muted-foreground/60 shadow-inner"
         />
       </div>
 
       {filteredProducts.length === 0 ? (
-        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-8 border-2 border-dashed rounded-3xl bg-secondary/10">
+        <div className="flex flex-col items-center justify-center min-h-[300px] text-center p-8 border border-border rounded-3xl bg-card dark:bg-slate-900/40">
           <h3 className="text-lg font-semibold mb-1">No products found</h3>
           <p className="text-muted-foreground text-xs max-w-xs">
             Try adjusting your search keywords or categories to find products.

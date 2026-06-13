@@ -21,3 +21,7 @@ __pycache__/
 
 # Private Personal Notes
 notes/
+
+# Claude development files (keep claude documentation)
+.claude/
+frontend/.claude/

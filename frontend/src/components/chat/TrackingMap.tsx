@@ -23,7 +23,7 @@ export default function TrackingMap({ data }: { data: TrackingData }) {
     <motion.div 
       initial={{ opacity: 0, scale: 0.95 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col gap-4 p-5 bg-secondary/10 rounded-[2.5rem] border border-primary/10 mx-1 mb-4 shadow-xl backdrop-blur-md overflow-hidden relative"
+      className="flex flex-col gap-4 p-5 bg-[#191c1e]/40 dark:bg-white/[0.02] rounded-[2.5rem] border border-primary/10 mx-1 mb-4 shadow-xl backdrop-blur-md overflow-hidden relative"
     >
       {/* Decorative Background Map (SVG) */}
       <div className="absolute inset-0 opacity-[0.03] pointer-events-none">

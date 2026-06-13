@@ -27,7 +27,7 @@ export function AppLayoutShell({ children, userId, isAdmin }: AppLayoutShellProp
     pathname?.startsWith("/sign-in") ||
     pathname?.startsWith("/sign-up");
 
-  const excludeSidebar = pathname?.startsWith("/admin");
+  const excludeSidebar = pathname === "/" || pathname?.startsWith("/admin");
 
   if (excludeEntireLayout) {
     return <>{children}</>;
@@ -42,77 +42,95 @@ export function AppLayoutShell({ children, userId, isAdmin }: AppLayoutShellProp
   return (
     <div className="flex flex-col min-h-screen">
       {/* ── GLOBAL TOP HEADER NAVBAR ── */}
-      <header className="fixed top-0 w-full z-50 border-b bg-background/80 backdrop-blur-md">
-        <div className="container mx-auto px-4 h-20 flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Link href="/" className="flex items-center gap-2">
-              <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                <span className="text-primary-foreground font-bold text-xl font-outfit">L</span>
-              </div>
-              <span className="text-xl font-bold font-outfit tracking-tight text-foreground">LuxeCatalog</span>
-            </Link>
-          </div>
-          <nav className="hidden md:flex items-center gap-1 bg-secondary/30 p-1 rounded-full border border-primary/5">
+      <header className="fixed top-0 w-full z-50 border-b border-border bg-background/95 backdrop-blur-md">
+        <div className="w-full px-4 sm:px-6 lg:px-8 h-16 sm:h-20 flex items-center justify-between gap-3 sm:gap-6">
+          {/* Logo - Premium styling */}
+          <Link href="/" className="flex items-center gap-2 sm:gap-3 group flex-shrink-0">
+            <div className="w-10 sm:w-11 h-10 sm:h-11 rounded-lg bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center flex-shrink-0 shadow-lg shadow-primary/20 group-hover:shadow-xl group-hover:shadow-primary/30 transition-all duration-300">
+              <span className="text-white font-bold text-lg sm:text-2xl">✨</span>
+            </div>
+            <div className="flex flex-col gap-0.5">
+              <span className="text-lg sm:text-xl font-bold text-foreground hidden sm:inline leading-tight">LuxeAI</span>
+              <span className="text-[10px] sm:text-xs font-medium text-primary uppercase tracking-wider">AI Support</span>
+            </div>
+          </Link>
+
+          {/* Desktop Navigation */}
+          <nav className="hidden lg:flex items-center gap-1 ml-auto mr-auto">
             <NavLinks userId={userId} isAdmin={isAdmin} />
           </nav>
 
           {/* Mobile Menu */}
-          <div className="flex md:hidden">
+          <div className="flex lg:hidden ml-auto flex-shrink-0">
             <Sheet>
               <SheetTrigger asChild>
-                <Button variant="ghost" size="icon" className="h-10 w-10 rounded-full hover:bg-secondary">
-                  <Menu className="w-6 h-6" />
+                <Button variant="ghost" size="icon" className="h-10 w-10 hover:bg-primary/5 rounded-lg">
+                  <Menu className="w-5 h-5" />
                 </Button>
               </SheetTrigger>
-              <SheetContent side="left" className="w-[300px] sm:w-[400px] bg-background border-r border-primary/10">
-                <SheetTitle className="sr-only">Menu</SheetTitle>
-                <div className="flex flex-col gap-6 pt-12">
-                  <div className="flex items-center gap-2 px-4">
-                    <div className="w-10 h-10 rounded-xl bg-primary flex items-center justify-center">
-                      <span className="text-primary-foreground font-bold text-xl font-outfit">L</span>
+              <SheetContent side="left" className="w-[280px] sm:w-[320px] bg-background border-border pt-0">
+                <SheetTitle className="sr-only">Navigation Menu</SheetTitle>
+                <div className="flex flex-col gap-6 pt-6">
+                  <Link href="/" className="flex items-center gap-2 px-2">
+                    <div className="w-9 h-9 rounded-lg bg-gradient-to-br from-primary via-accent to-primary flex items-center justify-center">
+                      <span className="text-white font-bold text-lg">✨</span>
                     </div>
-                    <span className="text-xl font-bold font-outfit tracking-tight">LuxeCatalog</span>
-                  </div>
-                  <div className="flex flex-col gap-2 p-2">
+                    <div className="flex flex-col gap-0.5">
+                      <span className="text-lg font-bold text-foreground leading-tight">LuxeAI</span>
+                      <span className="text-[9px] font-medium text-primary uppercase tracking-wider">AI Support</span>
+                    </div>
+                  </Link>
+                  <nav className="flex flex-col gap-2 px-2">
                     <NavLinks userId={userId} isAdmin={isAdmin} />
-                    <div className="h-[1px] bg-border my-2" />
-                    <Link href="/support" className="text-sm font-medium px-4 py-2 hover:bg-secondary rounded-full">Support Center</Link>
-                    <Link href="/architecture" className="text-sm font-medium px-4 py-2 hover:bg-secondary rounded-full">Architecture</Link>
+                  </nav>
+                  <div className="h-[1px] bg-border" />
+                  <div className="flex flex-col gap-2 px-2">
+                    <Link href="/support" className="text-sm font-medium px-3 py-2.5 text-foreground hover:bg-primary/5 rounded-lg transition-colors">Support Center</Link>
+                    <Link href="/architecture" className="text-sm font-medium px-3 py-2.5 text-foreground hover:bg-primary/5 rounded-lg transition-colors">Architecture</Link>
                     {isAdmin && (
-                      <Link href="/admin/dashboard" className="text-sm font-medium px-4 py-2 hover:bg-secondary rounded-full text-primary">Admin Portal</Link>
+                      <Link href="/admin/dashboard" className="text-sm font-medium px-3 py-2.5 text-primary hover:bg-primary/5 rounded-lg transition-colors">Admin Portal</Link>
                     )}
                   </div>
                 </div>
               </SheetContent>
             </Sheet>
           </div>
-          <div className="flex items-center gap-4">
-            <CartSheet />
+
+          {/* Right Actions - Premium styling */}
+          <div className="flex items-center gap-2 sm:gap-4 flex-shrink-0">
+            <div className="hidden sm:flex">
+              <CartSheet />
+            </div>
+
+            <div className="w-[1px] h-6 bg-border hidden sm:block" />
+
             <ThemeToggle />
-            
+
             {!userId ? (
-              <div className="flex items-center gap-2">
+              <div className="hidden sm:flex items-center gap-2">
                 <SignInButton mode="modal">
-                  <Button variant="ghost" className="text-sm font-medium px-4 py-2 rounded-full hover:bg-secondary transition-colors h-auto">Sign In</Button>
+                  <Button variant="ghost" className="text-sm font-medium px-3 py-2 hover:bg-primary/5 rounded-lg">Sign In</Button>
                 </SignInButton>
                 <SignUpButton mode="modal">
-                  <Button className="text-sm font-medium px-4 py-2 rounded-full bg-primary text-primary-foreground hover:bg-primary/90 transition-colors h-auto">Sign Up</Button>
+                  <Button className="text-sm font-medium px-4 py-2 bg-primary text-primary-foreground hover:bg-primary/90 rounded-lg shadow-md shadow-primary/20 transition-all duration-200">Sign Up</Button>
                 </SignUpButton>
               </div>
             ) : (
-              <div className="flex items-center gap-4">
-                <OrganizationSwitcher 
+              <div className="flex items-center gap-2 sm:gap-3">
+                <div className="hidden sm:block">
+                  <OrganizationSwitcher
+                    appearance={{
+                      elements: {
+                        rootBox: "flex items-center justify-center text-sm font-medium",
+                        organizationSwitcherTrigger: "border border-border rounded-lg px-3 py-1.5 bg-input text-foreground hover:bg-input/80 transition-colors text-xs sm:text-sm"
+                      }
+                    }}
+                  />
+                </div>
+                <UserButton
                   appearance={{
                     elements: {
-                      rootBox: "flex items-center justify-center text-sm font-medium",
-                      organizationSwitcherTrigger: "border border-primary/20 rounded-full px-3 py-1 bg-secondary text-foreground hover:bg-secondary/80 transition-colors h-10"
-                    }
-                  }}
-                />
-                <UserButton 
-                  appearance={{
-                    elements: {
-                      avatarBox: "h-10 w-10 rounded-full border-2 border-primary/20"
+                      avatarBox: "h-9 sm:h-10 w-9 sm:w-10 rounded-full border border-border"
                     }
                   }}
                 />
@@ -123,17 +141,16 @@ export function AppLayoutShell({ children, userId, isAdmin }: AppLayoutShellProp
       </header>
 
       {/* ── CONTENT BODY WITH SIDEBAR ── */}
-      <div className="flex flex-1 pt-20 bg-background relative">
+      <div className="flex flex-1 pt-16 sm:pt-20 bg-background relative">
         {/* ── LEFT SIDE LIST SIDEBAR ── */}
         {!excludeSidebar && (
-          <aside className="w-64 bg-card/25 backdrop-blur-md border-r border-border/60 pt-8 pb-8 px-4 shrink-0 hidden md:flex flex-col gap-6 sticky top-20 h-[calc(100vh-80px)] z-30">
-            <div className="px-4 flex items-center justify-between">
-              <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/85 font-mono">
-                Platform Resources
+          <aside className="w-72 bg-sidebar border-r border-border pt-6 pb-8 px-4 shrink-0 hidden lg:flex flex-col gap-8 sticky top-16 sm:top-20 h-[calc(100vh-64px)] sm:h-[calc(100vh-80px)] z-30">
+            <div className="px-2 flex items-center justify-between">
+              <span className="text-xs font-semibold uppercase tracking-wider text-muted-foreground">
+                Navigation
               </span>
-              <span className="w-1.5 h-1.5 rounded-full bg-primary/40" />
             </div>
-            <nav className="flex flex-col gap-1.5">
+            <nav className="flex flex-col gap-1">
               {sidebarLinks.map((link) => {
                 const Icon = link.icon;
                 const isActive = pathname === link.href;
@@ -142,31 +159,24 @@ export function AppLayoutShell({ children, userId, isAdmin }: AppLayoutShellProp
                     key={link.href}
                     href={link.href}
                     className={cn(
-                      "group flex items-center justify-between px-4 py-3 rounded-2xl text-xs font-semibold transition-all duration-300 border border-transparent",
+                      "flex items-center gap-3 px-3 py-2.5 rounded-md text-sm font-medium transition-all duration-200",
                       isActive
-                        ? "bg-primary text-primary-foreground shadow-lg shadow-primary/15 border-primary/20 scale-[1.01]"
-                        : "text-muted-foreground hover:text-foreground hover:bg-secondary/40 hover:border-secondary-foreground/5"
+                        ? "bg-primary text-primary-foreground"
+                        : "text-foreground hover:bg-primary/5"
                     )}
                   >
-                    <div className="flex items-center gap-3">
-                      <Icon className={cn("w-4 h-4 transition-transform group-hover:scale-110", isActive ? "text-primary-foreground" : "text-muted-foreground group-hover:text-primary")} />
-                      <span>{link.label}</span>
-                    </div>
-                    <ChevronRight className={cn(
-                      "w-3.5 h-3.5 opacity-0 -translate-x-1 transition-all duration-300",
-                      isActive ? "opacity-100 translate-x-0 text-primary-foreground" : "group-hover:opacity-40 group-hover:translate-x-0"
-                    )} />
+                    <Icon className="w-4 h-4 flex-shrink-0" />
+                    <span>{link.label}</span>
                   </Link>
                 );
               })}
             </nav>
 
-            {/* Floating Accent card */}
-            <div className="mt-auto p-4 rounded-3xl bg-secondary/25 border border-primary/5 flex flex-col gap-2 relative overflow-hidden">
-              <div className="absolute -right-4 -bottom-4 w-16 h-16 rounded-full bg-primary/10 blur-xl" />
-              <span className="text-[9px] uppercase tracking-wider text-muted-foreground font-bold font-mono">System Integrity</span>
-              <p className="text-[11px] text-muted-foreground/80 leading-relaxed">
-                Autonomous support loops and presidio PII scrubbers are operational.
+            {/* Info Card */}
+            <div className="mt-auto p-4 rounded-lg border border-border bg-card flex flex-col gap-2">
+              <span className="text-xs font-semibold uppercase tracking-wider text-primary">System Status</span>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                AI-powered support loops and PII scrubbers are fully operational.
               </p>
             </div>
           </aside>

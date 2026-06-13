@@ -68,7 +68,7 @@ export function MessageItem({ message }: MessageItemProps) {
                 {/* Token Breakdown Tooltip Badge */}
                 <Tooltip>
                   <TooltipTrigger asChild>
-                    <Badge variant="outline" className="text-muted-foreground hover:bg-secondary/50 transition-all text-[10px] rounded-full px-2 font-outfit flex gap-1.5 cursor-help shadow-none">
+                    <Badge variant="outline" className="text-muted-foreground hover:bg-primary/10 hover:text-primary transition-all text-[10px] rounded-full px-2 font-outfit flex gap-1.5 cursor-help shadow-none">
                       <Cpu className="w-3 h-3" />
                       {message.usage.total_tokens > 0 ? `${message.usage.total_tokens} Tokens` : "Static Logic"}
                       <Info className="w-2.5 h-2.5 opacity-40 ml-0.5" />

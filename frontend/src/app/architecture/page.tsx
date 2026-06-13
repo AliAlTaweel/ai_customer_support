@@ -67,7 +67,7 @@ export default function ArchitecturePage() {
             </div>
           </div>
 
-          <div className="p-6 sm:p-12 rounded-[2.5rem] bg-secondary/30 border border-border/50 relative overflow-hidden shadow-2xl">
+          <div className="p-6 sm:p-12 rounded-[2.5rem] bg-[#191c1e]/40 dark:bg-white/[0.02] border border-border/50 backdrop-blur-md relative overflow-hidden shadow-2xl">
             <div className="absolute top-0 left-0 w-full h-full bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-primary/5 via-transparent to-transparent pointer-events-none" />
             
             {/* Diagram Layout */}
@@ -210,7 +210,7 @@ export default function ArchitecturePage() {
                 <Lock className="w-5 h-5" />
                 <h3 className="font-bold text-lg">Data Governance</h3>
               </div>
-              <div className="p-5 bg-secondary/20 border border-border rounded-2xl font-mono text-[11px] leading-relaxed relative group overflow-hidden">
+              <div className="p-5 bg-[#0b0f10]/80 dark:bg-white/[0.02] border border-border rounded-2xl font-mono text-[11px] leading-relaxed relative group overflow-hidden">
                  <div className="absolute top-2 right-2 text-[9px] uppercase tracking-widest opacity-40">Input Scrub Loop</div>
                  <span className="text-muted-foreground">// Incoming user payload</span><br/>
                  <span className="text-foreground">message: </span>

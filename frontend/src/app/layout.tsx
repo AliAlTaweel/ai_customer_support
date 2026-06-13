@@ -15,8 +15,8 @@ const inter = Inter({ subsets: ["latin"], variable: "--font-inter" });
 const outfit = Outfit({ subsets: ["latin"], variable: "--font-outfit" });
 
 export const metadata: Metadata = {
-  title: "LuxeCatalog | High-End Product Discovery",
-  description: "Experience the future of e-commerce with our premium Bento-inspired product catalog.",
+  title: "LuxeAI | Enterprise Autonomous AI Support",
+  description: "Automate your customer support loops and GDPR compliance with next-generation agentic orchestration.",
 };
 
 export default async function RootLayout({
@@ -50,7 +50,7 @@ export default async function RootLayout({
             <ThemeProvider
               attribute="class"
               defaultTheme="dark"
-              enableSystem
+              enableSystem={false}
               disableTransitionOnChange
             >
               <TooltipProvider>

@@ -46,7 +46,7 @@ export function ComplaintModal({ isOpen, onClose, onSubmit }: ComplaintModalProp
             value={complaintText}
             onChange={(e) => setComplaintText(e.target.value)}
             placeholder="What can we improve? Describe your issue here..."
-            className="w-full h-28 bg-secondary/30 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/10 border border-primary/5 resize-none text-foreground placeholder:opacity-50"
+            className="w-full h-28 bg-card dark:bg-[#0b0f10]/80 rounded-xl p-3 text-xs focus:outline-none focus:ring-2 focus:ring-primary/20 border border-white/10 resize-none text-foreground placeholder:opacity-50"
             autoFocus
           />
           <div className="flex gap-2">

@@ -13,10 +13,11 @@ export function NavLinks({ userId, isAdmin }: NavLinksProps) {
   const pathname = usePathname();
 
   const links = [
-    { href: "/", label: "Home" },
-    { href: "/shop", label: "Shop" },
+    { href: "/#features", label: "Features" },
+    { href: "/architecture", label: "How it Works" },
+    { href: "/shop", label: "Demo Shop" },
+    { href: "/support", label: "Support" },
     ...(userId ? [
-      { href: "/dashboard", label: "Dashboard" },
       { href: "/orders", label: "My Orders" }
     ] : []),
   ];
@@ -34,7 +35,7 @@ export function NavLinks({ userId, isAdmin }: NavLinksProps) {
               "text-sm font-medium px-4 py-1.5 rounded-full transition-all duration-300 relative",
               isActive 
                 ? "bg-primary text-primary-foreground shadow-lg shadow-primary/20" 
-                : "text-muted-foreground hover:text-foreground hover:bg-secondary/50"
+                : "text-muted-foreground hover:text-foreground hover:bg-primary/10 dark:hover:bg-white/10"
             )}
           >
             {link.label}

@@ -37,7 +37,7 @@ export function CartSheet() {
     <Sheet>
       <SheetTrigger
         render={
-          <Button variant="ghost" size="icon" className="relative h-10 w-10 flex items-center justify-center rounded-full bg-secondary/50 text-foreground transition-all hover:bg-secondary">
+          <Button variant="ghost" size="icon" className="relative h-10 w-10 flex items-center justify-center rounded-full hover:bg-primary/10 transition-all text-primary border border-white/5 bg-card/45 dark:bg-white/5">
             <ShoppingCart className="w-5 h-5" />
             {mounted && count > 0 && (
               <Badge 
@@ -66,7 +66,7 @@ export function CartSheet() {
         <ScrollArea className="flex-1 px-6">
           {!mounted || items.length === 0 ? (
             <div className="flex flex-col items-center justify-center py-20 text-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center">
+              <div className="w-16 h-16 rounded-full bg-primary/10 flex items-center justify-center">
                 <ShoppingCart className="w-8 h-8 text-muted-foreground/50" />
               </div>
               <div>
@@ -93,7 +93,7 @@ export function CartSheet() {
         </ScrollArea>
 
         {mounted && items.length > 0 && (
-          <div className="p-6 border-t border-primary/5 bg-secondary/10 backdrop-blur-md">
+          <div className="p-6 border-t border-primary/5 bg-card/85 dark:bg-[#0b0f10]/80 backdrop-blur-md">
             <div className="space-y-4">
               <div className="flex items-center justify-between">
                 <span className="text-muted-foreground">Subtotal</span>
@@ -156,7 +156,7 @@ function CartItemRow({ item }: { item: CartItem }) {
         </div>
         
         <div className="flex items-center justify-between mt-2">
-          <div className="flex items-center bg-secondary/50 rounded-lg p-1 border border-primary/5">
+          <div className="flex items-center bg-muted dark:bg-[#191c1e] rounded-lg p-1 border border-white/5">
             <Button
               variant="ghost"
               size="icon"

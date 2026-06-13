@@ -20,7 +20,7 @@ export function ChatInput({ input, setInput, onSend, isLoading }: ChatInputProps
           value={input}
           onChange={(e) => setInput(e.target.value)}
           onKeyDown={(e) => e.key === "Enter" && onSend()}
-          className="w-full h-14 bg-secondary/30 rounded-2xl pl-5 pr-14 text-sm focus-visible:ring-primary/20 transition-all border-transparent group-hover:border-primary/10 font-outfit text-foreground"
+          className="w-full h-14 bg-[#0b0f10]/80 dark:bg-black/40 border border-white/10 rounded-2xl pl-5 pr-14 text-sm focus-visible:ring-primary/20 transition-all font-outfit text-foreground"
         />
         <Button 
           size="icon"

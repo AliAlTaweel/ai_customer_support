@@ -15,7 +15,7 @@ export function PendingConfirmation({ state, onSend }: { state: ConversationStat
     <motion.div 
       initial={{ opacity: 0, y: 10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="flex flex-col gap-3 p-4 bg-secondary/20 rounded-2xl border border-primary/10 mx-1 mb-2 shadow-sm"
+      className="flex flex-col gap-3 p-4 bg-card dark:bg-[#191c1e]/40 border border-white/10 rounded-2xl mx-1 mb-2 shadow-sm backdrop-blur-md"
     >
       <div className="flex items-center gap-2 text-primary">
         <Bot className="w-4 h-4" />
@@ -55,7 +55,7 @@ export function PendingOrderSummary({ state, onSend }: { state: ConversationStat
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col gap-3.5 p-4 bg-secondary/10 rounded-[2rem] border border-primary/10 mx-1 mb-3 shadow-lg backdrop-blur-sm"
+      className="flex flex-col gap-3.5 p-4 bg-card dark:bg-[#191c1e]/40 border border-white/10 mx-1 mb-3 shadow-lg backdrop-blur-sm rounded-[2rem]"
     >
       <div className="flex items-center gap-2 text-primary">
         <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -136,7 +136,7 @@ export function PendingYesNo({ state, onSend }: { state: ConversationState; onSe
     <motion.div 
       initial={{ opacity: 0, scale: 0.98 }}
       animate={{ opacity: 1, scale: 1 }}
-      className="flex flex-col gap-3 p-4 bg-secondary/10 rounded-2xl border border-primary/10 mx-1 mb-3 shadow-md"
+      className="flex flex-col gap-3 p-4 bg-card dark:bg-[#191c1e]/40 border border-white/10 mx-1 mb-3 shadow-md backdrop-blur-md rounded-2xl"
     >
       <div className="flex items-center gap-2 text-primary">
         <div className="w-7 h-7 rounded-lg bg-primary/10 flex items-center justify-center">
@@ -190,7 +190,7 @@ export function PendingProductList({ state, onSend }: { state: ConversationState
             whileHover={{ y: -4 }}
             className="flex-shrink-0 w-[240px] snap-start bg-background border border-primary/10 rounded-2xl overflow-hidden shadow-sm hover:shadow-xl transition-all duration-300"
           >
-            <div className="h-32 bg-secondary/20 relative group">
+            <div className="h-32 bg-muted/30 dark:bg-white/[0.02] relative group">
               {product.imageUrl ? (
                 <img 
                   src={product.imageUrl} 

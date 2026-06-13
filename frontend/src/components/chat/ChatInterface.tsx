@@ -258,9 +258,9 @@ export default function ChatInterface() {
             exit={{ scale: 0, opacity: 0 }}
             onClick={() => setIsOpen(true)}
             data-chat-toggle
-            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-primary text-primary-foreground shadow-2xl flex items-center justify-center hover:scale-110 transition-transform active:scale-95 group"
+            className="w-14 h-14 sm:w-16 sm:h-16 rounded-full bg-[#0b0f10] border border-white/15 text-[#8ed5ff] shadow-[0_0_20px_rgba(0,102,204,0.25)] flex items-center justify-center hover:scale-110 transition-all hover:border-[#8ed5ff]/40 active:scale-95 group"
           >
-            <MessageCircle className="w-7 h-7 sm:w-8 sm:h-8 group-hover:rotate-12 transition-transform" />
+            <Bot className="w-7 h-7 sm:w-8 sm:h-8 group-hover:rotate-12 transition-transform" />
           </motion.button>
         )}
       </AnimatePresence>

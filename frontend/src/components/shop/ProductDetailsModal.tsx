@@ -45,7 +45,7 @@ export function ProductDetailsModal({
       <DialogContent className="max-w-4xl p-0 overflow-hidden border-none bg-background/80 backdrop-blur-xl">
         <div className="grid md:grid-cols-2 h-full min-h-[500px]">
           {/* Image Section */}
-          <div className="relative h-[300px] md:h-full bg-secondary/20">
+          <div className="relative h-[300px] md:h-full bg-[#191c1e]/40 dark:bg-white/[0.02]">
             <motion.div
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
@@ -103,14 +103,14 @@ export function ProductDetailsModal({
                 )}
 
                 <div className="grid grid-cols-2 gap-4 mb-8">
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 dark:bg-white/5 border border-white/10 backdrop-blur-sm">
                     <ShieldCheck className="w-5 h-5 text-primary" />
                     <div className="text-xs">
                       <p className="font-semibold">2 Year Warranty</p>
                       <p className="text-muted-foreground">Full protection</p>
                     </div>
                   </div>
-                  <div className="flex items-center gap-3 p-3 rounded-xl bg-secondary/50 backdrop-blur-sm">
+                  <div className="flex items-center gap-3 p-3 rounded-xl bg-card/50 dark:bg-white/5 border border-white/10 backdrop-blur-sm">
                     <Truck className="w-5 h-5 text-primary" />
                     <div className="text-xs">
                       <p className="font-semibold">Free Shipping</p>
